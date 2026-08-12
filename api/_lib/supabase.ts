@@ -1,5 +1,3 @@
-import type { VercelRequest } from "@vercel/node";
-
 const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -28,7 +26,7 @@ export function json(res: any, status: number, body: unknown) {
   res.status(status).setHeader("Content-Type", "application/json").json(body);
 }
 
-export function getAccessToken(req: VercelRequest) {
+export function getAccessToken(req: any) {
   const authorization = req.headers.authorization;
   if (authorization?.startsWith("Bearer ")) return authorization.slice(7);
   const cookie = req.headers.cookie || "";
@@ -36,7 +34,7 @@ export function getAccessToken(req: VercelRequest) {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-export async function getAuthUser(req: VercelRequest) {
+export async function getAuthUser(req: any) {
   const token = getAccessToken(req);
   if (!token) return null;
   requireBackend();
@@ -47,7 +45,7 @@ export async function getAuthUser(req: VercelRequest) {
   return response.json();
 }
 
-export async function getProfile(req: VercelRequest) {
+export async function getProfile(req: any) {
   const user = await getAuthUser(req);
   if (!user?.id) return null;
   const response = await supabaseFetch(`/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=id,name,role,is_active`);
