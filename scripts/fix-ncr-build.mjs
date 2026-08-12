@@ -72,8 +72,8 @@ const newValidation = `    const department = String(formData.department ?? "").
       toast({
         title: isAr ? "بيانات ناقصة" : "Validation Error",
         description: isAr
-          ? `يرجى إدخال: ${missingFields.join("، ")}`
-          : `Required: ${missingFields.join(", ")}`,
+          ? "يرجى إدخال: " + missingFields.join("، ")
+          : "Required: " + missingFields.join(", "),
         variant: "destructive",
       });
       return;
@@ -95,10 +95,6 @@ if (validationMatches === 2) {
 form = replaceAllSafe(form, `await updateNCR(params!.id, formData);`, `await updateNCR(params!.id, normalizedFormData);`);
 form = form.replace(`setShareNcrMeta({ id: params!.id, refNo: formData.refNo });`, `setShareNcrMeta({ id: params!.id, refNo: normalizedFormData.refNo });`);
 form = form.replace(`transform: "scale(0.48)", transformOrigin: "top left",`, `zoom: 0.48,`);
-
-// Explicitly make the primary save action a submit button and the send action a
-// normal button. This avoids relying on the custom Button component's default type.
-form = form.replace(`{isAr ? "حفظ التقرير" : "Save NCR"}`, `{isAr ? "حفظ التقرير" : "Save NCR"}`);
 
 writeFileSync(formFile, form);
 
@@ -152,12 +148,10 @@ const oldSend = `  // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const newSend = `  const sendNCREmail = async (ncrId: string, extraRecipients: string[] = []) => {
     const ncr = ncrs.find(n => n.id === ncrId);
     if (!ncr) throw new Error("NCR not found");
-    // This frontend-only build has no SMTP/API endpoint. Keep the action safe and
-    // explicit rather than pretending an email was delivered.
-    const recipientText = extraRecipients.length ? \` (${extraRecipients.join(", ")})\` : "";
+    const recipientText = extraRecipients.length ? " (" + extraRecipients.join(", ") + ")" : "";
     toast({
       title: "NCR Ready to Send",
-      description: \`${ncr.refNo || "NCR"} is saved and ready for sharing\${recipientText}.\`,
+      description: (ncr.refNo || "NCR") + " is saved and ready for sharing" + recipientText + ".",
     });
   };`;
 data = replaceOnce(data, oldSend, newSend, "NCR send function");
