@@ -1,0 +1,26 @@
+import { readFileSync, writeFileSync } from "node:fs";
+
+const file = "src/lib/data-context.tsx";
+let source = readFileSync(file, "utf8");
+const replace = (label, re, value) => {
+  const next = source.replace(re, value);
+  if (next === source) throw new Error(`Production API patch failed: ${label}`);
+  source = next;
+};
+
+replace("auth initializer", /const \[currentUser, setCurrentUser\] = useState<User \| null>\(\(\) => \{[\s\S]*?\n  \}\);/, `const [currentUser, setCurrentUser] = useState<User | null>(null);`);
+
+replace("auth bootstrap", /  \/\/ Frontend-only deployment:[\s\S]*?\n  \}, \[currentUser\]\);/, `  // Restore the real server-side Supabase session after every refresh.\n  useEffect(() => {\n    let cancelled = false;\n    fetch("/api/auth/me", { credentials: "include" })\n      .then(async (res) => { if (!res.ok) throw new Error("Not authenticated"); return res.json(); })\n      .then((user) => { if (!cancelled) setCurrentUser(user); })\n      .catch(() => { if (!cancelled) setCurrentUser(null); });\n    return () => { cancelled = true; };\n  }, []);\n\n  useEffect(() => {\n    if (currentUser) localStorage.setItem("board_current_user", JSON.stringify(currentUser));\n    else localStorage.removeItem("board_current_user");\n  }, [currentUser]);`);
+
+replace("login", /  const login = async \(email: string, password: string\) => \{[\s\S]*?\n  \};\n\n  const logout = async/s, `  const login = async (email: string, password: string) => {\n    try {\n      const response = await apiRequest("POST", "/api/auth/login", { email, password });\n      const user = await response.json();\n      setCurrentUser(user);\n      queryClient.clear();\n      toast({ title: settings.language === "ar" ? "تم تسجيل الدخول" : "Login successful" });\n    } catch (e: any) {\n      toast({ title: settings.language === "ar" ? "فشل تسجيل الدخول" : "Login Failed", description: e.message, variant: "destructive" });\n      throw e;\n    }\n  };\n\n  const logout = async`);
+
+replace("NCR query", /  \/\/ Local state for NCRs and employees \(mock data\)[\s\S]*?\n  const \{ data: activityLogs = \[\] \}/, `  const { data: ncrs = [] } = useQuery<NCR[]>({ queryKey: ["/api/ncr"], enabled: isAuthenticated });\n  const { data: activityLogs = [] }`);
+
+replace("NCR mutations", /  \/\/ NCRs - Local implementation[\s\S]*?\n  const updateSettings = async/, `  // NCRs - persistent Supabase-backed API\n  const addNCR = async (data: any): Promise<NCR> => {\n    const response = await apiRequest("POST", "/api/ncr", data);\n    const created = await response.json();\n    await queryClient.invalidateQueries({ queryKey: ["/api/ncr"] });\n    toast({ title: settings.language === "ar" ? "تم إنشاء NCR" : "NCR Created" });\n    return created;\n  };\n  const updateNCR = async (id: string, data: any) => {\n    await apiRequest("PATCH", \`/api/ncr/\${encodeURIComponent(id)}\`, data);\n    await queryClient.invalidateQueries({ queryKey: ["/api/ncr"] });\n    toast({ title: settings.language === "ar" ? "تم تحديث NCR" : "NCR Updated" });\n  };\n  const deleteNCR = async (id: string) => {\n    await apiRequest("DELETE", \`/api/ncr/\${encodeURIComponent(id)}\`);\n    await queryClient.invalidateQueries({ queryKey: ["/api/ncr"] });\n    toast({ title: settings.language === "ar" ? "تم حذف NCR" : "NCR Deleted" });\n  };\n  const sendNCREmail = async (ncrId: string, extraRecipients: string[] = []) => {\n    await apiRequest("POST", "/api/ncr/send", { ncrId, extraRecipients });\n    toast({ title: settings.language === "ar" ? "تم الإرسال" : "Email Sent" });\n  };\n\n  const updateSettings = async`);
+
+replace("Safety Reports query", /  \/\/ Local state for safety reports[\s\S]*?\n  const \[reportSettingsData, setReportSettingsData\]/, `  const { data: safetyReports = [] } = useQuery<SafetyReport[]>({ queryKey: ["/api/safety-reports"], enabled: isAuthenticated });\n  const [reportSettingsData, setReportSettingsData]`);
+
+replace("Safety Reports mutations", /  \/\/ Safety Reports - Local implementation[\s\S]*?\n  const updateReportSettings = async/, `  // Safety Reports - persistent Supabase-backed API\n  const addSafetyReport = async (data: any): Promise<SafetyReport> => {\n    const response = await apiRequest("POST", "/api/safety-reports", data);\n    const created = await response.json();\n    await queryClient.invalidateQueries({ queryKey: ["/api/safety-reports"] });\n    toast({ title: settings.language === "ar" ? "تم إنشاء التقرير" : "Report Created" });\n    return created;\n  };\n  const updateSafetyReport = async (id: string, data: any) => {\n    await apiRequest("PATCH", \`/api/safety-reports/\${encodeURIComponent(id)}\`, data);\n    await queryClient.invalidateQueries({ queryKey: ["/api/safety-reports"] });\n    toast({ title: settings.language === "ar" ? "تم تحديث التقرير" : "Report Updated" });\n  };\n  const deleteSafetyReport = async (id: string) => {\n    await apiRequest("DELETE", \`/api/safety-reports/\${encodeURIComponent(id)}\`);\n    await queryClient.invalidateQueries({ queryKey: ["/api/safety-reports"] });\n    toast({ title: settings.language === "ar" ? "تم حذف التقرير" : "Report Deleted" });\n  };\n  const updateReportSettings = async`);
+
+writeFileSync(file, source);
+console.log("Production API patch applied: Supabase Auth + NCR + Safety Reports.");
