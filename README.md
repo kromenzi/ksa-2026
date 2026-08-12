@@ -328,4 +328,5 @@ VITE_SITE_NAME=ABDULKAREM SAFETY BOARD
 ## Development Status:
 🟢 **Development Ready (Frontend-Only)**
 #   s a f e t y - b o a r d  
+ #   s a f e t y - b o a r d  
  
