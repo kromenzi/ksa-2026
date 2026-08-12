@@ -3,9 +3,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 const file = "src/pages/admin/ncr/form.tsx";
 let source = readFileSync(file, "utf8");
 
-// Normalize legacy NCR records before they enter the edit form. Older records can
-// store these values under observation/source metadata, while the edit form
-// validates the canonical `department` and `description` fields.
+// Keep the build patch idempotent for repeated local builds.
+if (source.includes("const sourceFields = ncr.sourceMetadata?.fields")) {
+  console.log("NCR build patch already applied; skipping.");
+  process.exit(0);
+}
+
 const oldLoad = `          setFormData({
             ...ncr,
             image1: ncr.image1 || null,
@@ -51,7 +54,6 @@ if (!source.includes(oldLoad)) {
 }
 source = source.replace(oldLoad, newLoad);
 
-// Make validation whitespace-safe and show exactly which required fields are missing.
 const oldValidation = `    if (!formData.department || !formData.description) {
       toast({ title: "Validation Error", description: "Department and Description are required.", variant: "destructive" });
       return;
@@ -83,22 +85,14 @@ if (validationCount !== 2) {
 }
 source = source.replaceAll(oldValidation, newValidation);
 
-// The A4 preview used transform:scale(), which scales the visual box without
-// scaling its layout box and can make the preview appear blank/cropped in the
-// scroll container. CSS zoom keeps the preview's layout and visual dimensions aligned.
 source = source.replace(
   `transform: "scale(0.48)", transformOrigin: "top left",`,
   `zoom: 0.48,`,
 );
 
-// Save normalized data on both edit paths.
-source = source.replace(
+source = source.replaceAll(
   `await updateNCR(params!.id, formData);`,
   `await updateNCR(params!.id, normalizedFormData);`,
-);
-source = source.replace(
-  `await updateNCR(params!.id, normalizedFormData);\n      setShareNcrMeta({ id: params!.id, refNo: formData.refNo });`,
-  `await updateNCR(params!.id, normalizedFormData);\n      setShareNcrMeta({ id: params!.id, refNo: normalizedFormData.refNo });`,
 );
 
 writeFileSync(file, source);
