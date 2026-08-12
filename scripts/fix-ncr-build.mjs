@@ -12,7 +12,6 @@ function replaceAllSafe(source, from, to) {
   return source.split(from).join(to);
 }
 
-// ---------- NCR form ----------
 const formFile = "src/pages/admin/ncr/form.tsx";
 let form = readFileSync(formFile, "utf8");
 
@@ -27,11 +26,10 @@ const oldLoad = `          setFormData({
               { no: 2, action: "", responsible: "", dueDate: "", effectiveness: "", signature: "" },
             ],
           });`;
-
-const newLoad = `          const sourceFields = ncr.sourceMetadata?.fields || ncr.sourceMetadata?.data?.fields || {};
-          const department = ncr.department || ncr.departmentName || sourceFields.department?.value || "";
-          const description = ncr.description || ncr.observationDescription || ncr.details || sourceFields.description?.value || "";
-
+const newLoad = `          const legacyNcr = ncr as any;
+          const sourceFields = legacyNcr.sourceMetadata?.fields || legacyNcr.sourceMetadata?.data?.fields || {};
+          const department = ncr.department || legacyNcr.departmentName || sourceFields.department?.value || "";
+          const description = ncr.description || legacyNcr.observationDescription || legacyNcr.details || sourceFields.description?.value || "";
           setFormData({
             ...ncr,
             department,
@@ -67,18 +65,14 @@ const newValidation = `    const department = String(formData.department ?? "").
       !department ? (isAr ? "القسم" : "Department") : null,
       !description ? (isAr ? "وصف عدم المطابقة" : "Description") : null,
     ].filter(Boolean);
-
     if (missingFields.length > 0) {
       toast({
         title: isAr ? "بيانات ناقصة" : "Validation Error",
-        description: isAr
-          ? "يرجى إدخال: " + missingFields.join("، ")
-          : "Required: " + missingFields.join(", "),
+        description: isAr ? "يرجى إدخال: " + missingFields.join("، ") : "Required: " + missingFields.join(", "),
         variant: "destructive",
       });
       return;
     }
-
     const normalizedFormData = {
       ...formData,
       department,
@@ -86,19 +80,48 @@ const newValidation = `    const department = String(formData.department ?? "").
       correctiveActions: Array.isArray(formData.correctiveActions) ? formData.correctiveActions : [],
     };`;
 const validationMatches = form.split(oldValidation).length - 1;
-if (validationMatches === 2) {
-  form = replaceAllSafe(form, oldValidation, newValidation);
-} else if (validationMatches !== 0) {
-  throw new Error(`NCR build patch: expected 2 validation blocks, found ${validationMatches}`);
-}
+if (validationMatches === 2) form = replaceAllSafe(form, oldValidation, newValidation);
+else if (validationMatches !== 0) throw new Error(`NCR build patch: expected 2 validation blocks, found ${validationMatches}`);
 
 form = replaceAllSafe(form, `await updateNCR(params!.id, formData);`, `await updateNCR(params!.id, normalizedFormData);`);
 form = form.replace(`setShareNcrMeta({ id: params!.id, refNo: formData.refNo });`, `setShareNcrMeta({ id: params!.id, refNo: normalizedFormData.refNo });`);
 form = form.replace(`transform: "scale(0.48)", transformOrigin: "top left",`, `zoom: 0.48,`);
 
+// Explicitly make the save handler fail-safe: a rejected save stays on the form.
+form = form.replace(
+  `  const handleSubmit = async (e: React.FormEvent) => {\n    e.preventDefault();`,
+  `  const handleSubmit = async (e: React.FormEvent) => {\n    e.preventDefault();`,
+);
+const oldSaveBlock = `    if (isNew) {
+      const created = await addNCR({ ...formData, createdBy: currentUser?.id || "unknown" });
+      setShareNcrMeta({ id: created.id, refNo: created.refNo });
+    } else {
+      await updateNCR(params!.id, normalizedFormData);
+      setShareNcrMeta({ id: params!.id, refNo: normalizedFormData.refNo });
+    }
+
+    setLocation("/admin/ncr");`;
+const newSaveBlock = `    try {
+      if (isNew) {
+        const created = await addNCR({ ...normalizedFormData, createdBy: currentUser?.id || "unknown" });
+        setShareNcrMeta({ id: created.id, refNo: created.refNo });
+      } else {
+        await updateNCR(params!.id, normalizedFormData);
+        setShareNcrMeta({ id: params!.id, refNo: normalizedFormData.refNo });
+      }
+      setLocation("/admin/ncr");
+    } catch (error) {
+      console.error("NCR save failed", error);
+      toast({
+        title: isAr ? "فشل الحفظ" : "Save failed",
+        description: error instanceof Error ? error.message : (isAr ? "تعذر حفظ التقرير" : "Unable to save the report"),
+        variant: "destructive",
+      });
+    }`;
+if (form.includes(oldSaveBlock)) form = form.replace(oldSaveBlock, newSaveBlock);
+
 writeFileSync(formFile, form);
 
-// ---------- NCR data persistence ----------
 const dataFile = "src/lib/data-context.tsx";
 let data = readFileSync(dataFile, "utf8");
 
@@ -121,7 +144,6 @@ const newNcrState = `  const [ncrs, setNcrs] = useState<NCR[]>(() => {
       { id: '2', refNo: 'NCR-2024-002', date: '2024-01-16', department: 'Maintenance', location: 'Workshop B', description: 'Oil spill on floor', severity: 'high', status: 'in_progress', createdBy: '1', createdAt: '2024-01-16', immediateAction: 'Cleaned spill', rootCause: 'Leaky container', correctiveAction: 'Replace container', verificationNotes: '' },
     ];
   });
-
   useEffect(() => {
     localStorage.setItem("board_ncrs", JSON.stringify(ncrs));
   }, [ncrs]);`;
@@ -132,11 +154,12 @@ const oldUpdate = `  const updateNCR = async (id: string, data: any) => {
     toast({ title: "NCR Updated" });
   };`;
 const newUpdate = `  const updateNCR = async (id: string, data: any) => {
-    setNcrs(prev => {
-      const exists = prev.some(n => n.id === id);
-      if (!exists) throw new Error("NCR not found");
-      return prev.map(n => n.id === id ? { ...n, ...data, id } : n);
-    });
+    const current = ncrs.find(n => n.id === id);
+    if (!current) throw new Error("NCR not found");
+    const updated = { ...current, ...data, id };
+    const next = ncrs.map(n => n.id === id ? updated : n);
+    setNcrs(next);
+    localStorage.setItem("board_ncrs", JSON.stringify(next));
     toast({ title: "NCR Updated", description: "Changes saved successfully." });
   };`;
 data = replaceOnce(data, oldUpdate, newUpdate, "NCR update function");
@@ -149,10 +172,7 @@ const newSend = `  const sendNCREmail = async (ncrId: string, extraRecipients: s
     const ncr = ncrs.find(n => n.id === ncrId);
     if (!ncr) throw new Error("NCR not found");
     const recipientText = extraRecipients.length ? " (" + extraRecipients.join(", ") + ")" : "";
-    toast({
-      title: "NCR Ready to Send",
-      description: (ncr.refNo || "NCR") + " is saved and ready for sharing" + recipientText + ".",
-    });
+    toast({ title: "NCR Ready to Send", description: (ncr.refNo || "NCR") + " is saved and ready for sharing" + recipientText + "." });
   };`;
 data = replaceOnce(data, oldSend, newSend, "NCR send function");
 
