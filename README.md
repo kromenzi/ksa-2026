@@ -331,4 +331,4 @@ VITE_SITE_NAME=ABDULKAREM SAFETY BOARD
  #   s a f e t y - b o a r d  
  #   k s a - 2 0 2 6  
  #   s a f e t y - b o a r d  
- 
+ # ksa-2026
