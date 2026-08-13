@@ -1,0 +1,8 @@
+/* PrintShareDialog creates an off-screen iframe for the browser print engine. */
+/* Keep the iframe renderable: opacity:0 can produce a completely blank Chrome print preview. */
+iframe#print-share-iframe {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  pointer-events: none !important;
+}
