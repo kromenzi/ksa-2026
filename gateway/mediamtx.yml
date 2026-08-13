@@ -1,0 +1,38 @@
+# ABDULKAREM SAFETY BOARD - CCTV Gateway
+# MediaMTX bridges camera/NVR RTSP streams to browser-safe HLS and WebRTC.
+
+logLevel: info
+
+rtsp: true
+rtspAddress: :8554
+rtspTransports: [tcp]
+
+hls: true
+hlsAddress: :8888
+hlsAllowOrigins: ['*']
+hlsAlwaysRemux: true
+
+webrtc: true
+webrtcAddress: :8889
+webrtcAllowOrigins: ['*']
+webrtcLocalUDPAddress: :8189
+
+# Internal authentication is enabled by default.
+# Change these values in gateway/.env and never commit real credentials.
+authMethod: internal
+authInternalUsers:
+  - user: ${MTX_WEB_USER}
+    pass: ${MTX_WEB_PASS}
+    ips: []
+    permissions:
+      - action: read
+        path: ~^.+$
+
+# Pull RTSP sources from cameras/NVRs on the private network.
+# Add each camera as a path. Example:
+# paths:
+#   cam101:
+#     source: rtsp://${CAM101_USER}:${CAM101_PASS}@192.168.10.101:554/Streaming/Channels/101
+#     rtspTransport: tcp
+
+paths: {}
