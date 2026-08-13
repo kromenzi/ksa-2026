@@ -11,41 +11,32 @@ export default async function handler(req: any, res: any) {
 
     const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method: "POST",
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        "Content-Type": "application/json",
-      },
+      headers: { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" },
       body: JSON.stringify({ email: String(email).trim().toLowerCase(), password }),
     });
     const auth = await response.json();
-    if (!response.ok || !auth.access_token || !auth.user?.id) {
-      return json(res, 401, { error: "Invalid email or password" });
-    }
+    if (!response.ok || !auth.access_token || !auth.user?.id) return json(res, 401, { error: "Invalid email or password" });
 
-    // Read the authenticated user's application profile using the user's JWT.
-    // This removes the production dependency on SUPABASE_SERVICE_ROLE_KEY.
     const profileResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(String(auth.user.id))}&select=id,name,role,is_active,created_at`,
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(String(auth.user.id))}&select=id,name,role,is_active,created_at`,
       {
         headers: {
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${auth.access_token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     if (!profileResponse.ok) {
       const details = await profileResponse.text().catch(() => "");
-      console.error("Failed to load application profile", profileResponse.status, details);
-      return json(res, 500, { error: "Failed to load application profile" });
+      console.error("Failed to load application user profile", profileResponse.status, details);
+      return json(res, 500, { error: "Failed to load application user profile" });
     }
 
     const profiles = await profileResponse.json();
     const profile = profiles[0];
-    if (!profile || !profile.is_active) {
-      return json(res, 403, { error: "Account is disabled or has no application profile" });
-    }
+    if (!profile || !profile.is_active) return json(res, 403, { error: "Account is disabled or has no application profile" });
 
     setAccessCookie(res, auth.access_token);
     return json(res, 200, {
