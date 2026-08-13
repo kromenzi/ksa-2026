@@ -1,31 +1,40 @@
-import { json, requireBackend, setAccessCookie, supabaseFetch } from "../_lib/supabase.js";
+import { json, setAccessCookie } from "../_lib/supabase.js";
+
+const SUPABASE_URL = (process.env.SUPABASE_URL || "https://sfdpkpqokazsegsstjfs.supabase.co").replace(/\/$/, "");
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable__ve50anGhjvRKxXi6UdrcQ_SQ945faS";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
   try {
-    requireBackend();
     const { email, password } = req.body || {};
     if (!email || !password) return json(res, 400, { error: "Email and password are required" });
 
-    const response = await fetch(`${process.env.SUPABASE_URL!.replace(/\/$/, "")}/auth/v1/token?grant_type=password`, {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method: "POST",
       headers: {
-        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        apikey: SUPABASE_ANON_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ email: String(email).trim().toLowerCase(), password }),
     });
     const auth = await response.json();
-    if (!response.ok || !auth.access_token) {
+    if (!response.ok || !auth.access_token || !auth.user?.id) {
       return json(res, 401, { error: "Invalid email or password" });
     }
 
-    // The production schema stores application profiles in public.profiles.
-    // The Auth user UUID must have a matching active profile.
-    const userId = String(auth.user.id);
-    const profileResponse = await supabaseFetch(
-      `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,name,role,is_active,created_at`
+    // Read the authenticated user's application profile using the user's JWT.
+    // This removes the production dependency on SUPABASE_SERVICE_ROLE_KEY.
+    const profileResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(String(auth.user.id))}&select=id,name,role,is_active,created_at`,
+      {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${auth.access_token}`,
+          "Content-Type": "application/json",
+        },
+      }
     );
+
     if (!profileResponse.ok) {
       const details = await profileResponse.text().catch(() => "");
       console.error("Failed to load application profile", profileResponse.status, details);
@@ -49,6 +58,6 @@ export default async function handler(req: any, res: any) {
     });
   } catch (error: any) {
     console.error("Login failed", error);
-    return json(res, error.statusCode || 500, { error: error.message || "Login failed" });
+    return json(res, 500, { error: error.message || "Login failed" });
   }
 }
