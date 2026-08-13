@@ -1,13 +1,14 @@
-const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
+const url = (process.env.SUPABASE_URL || "https://sfdpkpqokazsegsstjfs.supabase.co").replace(/\/$/, "");
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable__ve50anGhjvRKxXi6UdrcQ_SQ945faS";
 
 export function backendConfigured() {
-  return Boolean(url && serviceKey);
+  return Boolean(url && (serviceKey || anonKey));
 }
 
 export function requireBackend() {
-  if (!url || !serviceKey) {
-    const error = new Error("Backend is not configured. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel Production Environment Variables.");
+  if (!url || !(serviceKey || anonKey)) {
+    const error = new Error("Backend is not configured.");
     (error as any).statusCode = 503;
     throw error;
   }
@@ -16,8 +17,8 @@ export function requireBackend() {
 export async function supabaseFetch(path: string, init: RequestInit = {}) {
   requireBackend();
   const headers = new Headers(init.headers);
-  headers.set("apikey", serviceKey!);
-  headers.set("Authorization", `Bearer ${serviceKey}`);
+  headers.set("apikey", serviceKey || anonKey);
+  headers.set("Authorization", `Bearer ${serviceKey || anonKey}`);
   headers.set("Content-Type", "application/json");
   return fetch(`${url}${path}`, { ...init, headers });
 }
@@ -39,18 +40,18 @@ export async function getAuthUser(req: any) {
   if (!token) return null;
   requireBackend();
   const response = await fetch(`${url}/auth/v1/user`, {
-    headers: { apikey: serviceKey!, Authorization: `Bearer ${token}` },
+    headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
   });
   if (!response.ok) return null;
   return response.json();
 }
 
-// Application profiles are stored in public.profiles and are keyed by the
-// Supabase Auth user UUID. Keep this query aligned with supabase/schema.sql.
 export async function getProfile(req: any) {
   const user = await getAuthUser(req);
   if (!user?.id) return null;
-  const response = await supabaseFetch(`/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=id,name,role,is_active,created_at`);
+  const response = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=id,name,role,is_active,created_at`, {
+    headers: { apikey: anonKey, Authorization: `Bearer ${getAccessToken(req)}`, "Content-Type": "application/json" },
+  });
   if (!response.ok) return null;
   const rows = await response.json();
   return rows[0] || null;
