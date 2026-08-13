@@ -1,4 +1,4 @@
-import { getAuthUser, getProfile, json, supabaseFetch } from "../_lib/supabase.js";
+import { getAuthUser, getProfile, json, supabaseFetchForRequest } from "../_lib/supabase.js";
 
 const writableRoles = new Set(["admin", "manager", "editor"]);
 
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
     if (!user || !profile?.is_active) return json(res, 401, { error: "Not authenticated" });
 
     if (req.method === "GET") {
-      const response = await supabaseFetch("/rest/v1/safety_reports?select=*&order=created_at.desc");
+      const response = await supabaseFetchForRequest(req, "/rest/v1/safety_reports?select=*&order=created_at.desc");
       const rows = await response.json();
       if (!response.ok) return json(res, response.status, { error: rows?.message || "Unable to load safety reports" });
       return json(res, 200, rows.map(toClient));
@@ -68,7 +68,7 @@ export default async function handler(req: any, res: any) {
         source_file: body.sourceFile || null,
         source_metadata: body.sourceMetadata || null,
       };
-      const response = await supabaseFetch("/rest/v1/safety_reports", {
+      const response = await supabaseFetchForRequest(req, "/rest/v1/safety_reports", {
         method: "POST",
         headers: { Prefer: "return=representation" },
         body: JSON.stringify(row),
