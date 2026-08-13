@@ -45,10 +45,12 @@ export async function getAuthUser(req: any) {
   return response.json();
 }
 
+// Application profiles are stored in public.profiles and are keyed by the
+// Supabase Auth user UUID. Keep this query aligned with supabase/schema.sql.
 export async function getProfile(req: any) {
   const user = await getAuthUser(req);
   if (!user?.id) return null;
-  const response = await supabaseFetch(`/rest/v1/users?id=eq.${encodeURIComponent(user.id)}&select=id,name,email,role,is_active,joined_at`);
+  const response = await supabaseFetch(`/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=id,name,role,is_active,created_at`);
   if (!response.ok) return null;
   const rows = await response.json();
   return rows[0] || null;
