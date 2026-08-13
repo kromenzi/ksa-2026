@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, Plus, Search, Eye, Printer, HelpCircle, GitMerge, ShieldAlert } from "lucide-react";
+import PrintShareDialog from "@/components/print-share-dialog";
 
 export interface FiveWhyItem { whyNo: number; question: string; answer: string; }
 export interface FishboneCategory {
@@ -57,36 +58,6 @@ const SAMPLE_INCIDENTS: IncidentRecord[] = [{
 
 const esc = (value: string) => value || "—";
 
-const printCss = (rtl: boolean) => `
-  @page { size: A4; margin: 12mm; }
-  * { box-sizing: border-box; forced-color-adjust: none !important; }
-  html { color-scheme: light !important; background: #ffffff !important; }
-  body { margin: 0; padding: 0; background: #ffffff !important; color: #111827 !important; font-family: Arial, Helvetica, sans-serif; color-scheme: light !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  .incident-print-report { display: block !important; width: 100%; direction: ${rtl ? "rtl" : "ltr"}; text-align: ${rtl ? "right" : "left"}; background-color: #ffffff !important; color: #111827 !important; color-scheme: light !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; visibility: visible !important; position: static !important; }
-  .incident-print-page { width: 100%; background-color: #ffffff !important; }
-  .incident-print-header { border: 2px solid #b91c1c; border-radius: 10px; overflow: hidden; margin-bottom: 12px; background: #ffffff !important; }
-  .incident-print-header-title { color: #ffffff !important; background-color: #b91c1c !important; padding: 12px 14px; font-size: 18px; font-weight: 800; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-shadow: inset 0 0 0 1000px #b91c1c; }
-  .incident-print-header-subtitle { color: #7f1d1d !important; background-color: #fef2f2 !important; padding: 7px 14px; font-size: 10px; box-shadow: inset 0 0 0 1000px #fef2f2; }
-  .incident-print-card { border: 1px solid #d1d5db; border-radius: 7px; padding: 10px; background-color: #ffffff !important; }
-  .incident-print-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .incident-print-label { display: block; color: #6b7280 !important; font-size: 8px; font-weight: 700; margin-bottom: 2px; }
-  .incident-print-value { color: #111827 !important; font-size: 10px; font-weight: 600; }
-  .incident-print-title { color: #991b1b !important; font-size: 13px; font-weight: 800; margin: 0 0 7px; }
-  .incident-print-section { break-inside: avoid; page-break-inside: avoid; margin-bottom: 14px; }
-  .incident-print-section-title { color: #ffffff !important; background-color: #1f2937 !important; box-shadow: inset 0 0 0 1000px #1f2937; padding: 7px 9px; border-radius: 5px; font-size: 11px; font-weight: 800; margin-bottom: 7px; }
-  .incident-print-why { color: #111827 !important; background-color: #eff6ff !important; box-shadow: inset 0 0 0 1000px #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 7px; margin-bottom: 6px; }
-  .incident-print-why strong { color: #1d4ed8 !important; }
-  .incident-print-fishbone { color: #111827 !important; background-color: #f5f3ff !important; box-shadow: inset 0 0 0 1000px #f5f3ff; border: 1px solid #ddd6fe; border-radius: 6px; padding: 7px; margin-bottom: 6px; }
-  .incident-print-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .incident-print-table th, .incident-print-table td { border: 1px solid #d1d5db; padding: 7px 8px; font-size: 10px; line-height: 1.45; vertical-align: top; color: #111827 !important; }
-  .incident-print-table th { background-color: #f3f4f6 !important; box-shadow: inset 0 0 0 1000px #f3f4f6; font-weight: 700; }
-  .incident-print-action-open { background-color: #fff7ed !important; box-shadow: inset 0 0 0 1000px #fff7ed; }
-  .incident-print-action-closed { background-color: #f0fdf4 !important; box-shadow: inset 0 0 0 1000px #f0fdf4; }
-  .incident-print-footer { border-top: 1px solid #d1d5db; margin-top: 14px; padding-top: 6px; font-size: 8px; color: #6b7280 !important; display: flex; justify-content: space-between; }
-  .incident-print-badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 9px; font-weight: 700; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; forced-color-adjust: none !important; }
-  @media print { html, body { background: #ffffff !important; color: #111827 !important; color-scheme: light !important; height: auto !important; overflow: visible !important; } .incident-print-report { display: block !important; visibility: visible !important; position: static !important; } }
-`;
-
 export default function AdminIncidentsPage() {
   const { settings } = useData();
   const isAr = settings.language === "ar";
@@ -96,6 +67,8 @@ export default function AdminIncidentsPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [activeIncident, setActiveIncident] = useState<IncidentRecord | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPrintOpen, setIsPrintOpen] = useState(false);
+  const [printItem, setPrintItem] = useState<any>(null);
 
   const filtered = incidents.filter((inc) => {
     const q = searchTerm.toLowerCase();
@@ -108,14 +81,32 @@ export default function AdminIncidentsPage() {
 
   const printIncident = () => {
     if (!activeIncident) return;
-    const previousTitle = document.title;
-    document.title = `${esc(activeIncident.refNo)} - ${isAr ? "تقرير الحادث والواقعة الوشيكة (RCA)" : "Incident / Near Miss RCA Report"}`;
-    const restoreTitle = () => { document.title = previousTitle; };
-    const runPrint = () => {
-      window.print();
-      window.setTimeout(restoreTitle, 1000);
-    };
-    window.requestAnimationFrame(() => window.requestAnimationFrame(runPrint));
+    setPrintItem({
+      id: activeIncident.id,
+      type: "report",
+      refNo: activeIncident.refNo,
+      title: `${isAr ? "تحليل الحادث والسبب الجذر (RCA)" : "Incident Investigation & Root Cause Analysis"} - ${activeIncident.title || activeIncident.refNo}`,
+      department: activeIncident.department,
+      severity: activeIncident.severity,
+      status: activeIncident.status,
+      date: activeIncident.date,
+      sections: [
+        { label: isAr ? "عنوان الواقعة / الحادث" : "Incident Title", value: esc(activeIncident.title) },
+        { label: isAr ? "الرقم المرجعي" : "Reference No", value: esc(activeIncident.refNo) },
+        { label: isAr ? "نوع الحادث" : "Incident Type", value: esc(activeIncident.type) },
+        { label: isAr ? "التاريخ والوقت" : "Date & Time", value: `${esc(activeIncident.date)} — ${esc(activeIncident.time)}` },
+        { label: isAr ? "الموقع" : "Location", value: esc(activeIncident.location) },
+        { label: isAr ? "القسم / المصنع" : "Department / Factory", value: `${esc(activeIncident.department)} / ${esc(activeIncident.factory)}` },
+        { label: isAr ? "المبلّغ" : "Reported By", value: esc(activeIncident.reportedBy) },
+        { label: isAr ? "الحالة" : "Status", value: esc(activeIncident.status) },
+        { label: isAr ? "وصف الحادث التفصيلي" : "Detailed Incident Description", value: esc(activeIncident.description) },
+        { label: isAr ? "تحليل الأسباب الخمسة (5 Why)" : "5-Why Root Cause Analysis", value: activeIncident.fiveWhys.map(fw => `${isAr ? `لماذا #${fw.whyNo}` : `Why #${fw.whyNo}`}: ${esc(fw.question)}\n${esc(fw.answer)}`).join("\n\n") },
+        { label: isAr ? "تحليل عظم السمكة (Ishikawa)" : "Fishbone / Ishikawa Analysis", value: activeIncident.fishbone.map(fb => `${fb.category}: ${esc(fb.cause)}`).join("\n") },
+        { label: isAr ? "الإجراءات التصحيحية والوقائية" : "Corrective & Preventive Actions", value: activeIncident.correctiveActions.map(a => `${esc(a.action)} | ${esc(a.responsible)} | ${esc(a.targetDate)} | ${esc(a.status)}`).join("\n") },
+        { label: isAr ? "الدروس المستفادة" : "Lessons Learned", value: esc(activeIncident.lessonsLearned) },
+      ],
+    });
+    setIsPrintOpen(true);
   };
 
   const createIncident = () => {
@@ -126,7 +117,7 @@ export default function AdminIncidentsPage() {
       location: "Factory Floor", department: "Production", factory: "Main Factory 1", reportedBy: "Abdulkarem Alanzi", severity: "Medium", description: "",
       fiveWhys: [1,2,3,4,5].map(n => ({ whyNo: n, question: n === 5 ? "Root Cause?" : n === 1 ? "Why did it happen?" : "Why?", answer: "" })),
       fishbone: [{ category: "Man (People)", cause: "" }],
-      correctiveActions: [{ action: "Immediate safety briefing", responsible: "Safety Team", targetDate: "2024-06-01", status: "Open" }],
+      correctiveActions: [{ action: "Immediate safety briefing", responsible: "Safety Team", targetDate: new Date().toISOString().split("T")[0], status: "Open" }],
       lessonsLearned: "", status: "Under Investigation"
     };
     setActiveIncident(newInc);
@@ -135,8 +126,7 @@ export default function AdminIncidentsPage() {
 
   return (
     <div className="space-y-6" data-testid="admin-incidents-page">
-      <style>{`@media screen{.incident-print-report{display:none!important}}@media print{html,body{background:#fff!important;color:#111827!important;color-scheme:light!important}.incident-print-report{display:block!important;visibility:visible!important;position:static!important;forced-color-adjust:none!important}.incident-screen-ui{display:none!important}}`}</style>
-      <div className="incident-screen-ui space-y-6">
+      <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20"><AlertTriangle className="h-5 w-5 text-white" /></div>
@@ -151,7 +141,7 @@ export default function AdminIncidentsPage() {
 
       {activeIncident && isDialogOpen && <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}><DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto"><DialogHeader><DialogTitle className="flex items-center justify-between"><span>{isAr?"تحليل الحادث والسبب الجذر (RCA)":"Incident Investigation & Root Cause Analysis"}</span><Button type="button" variant="outline" size="sm" onClick={printIncident} className="gap-2"><Printer className="h-4 w-4" />{isAr?"طباعة التقرير":"Print Investigation"}</Button></DialogTitle></DialogHeader><Tabs defaultValue="overview" className="w-full mt-2"><TabsList className="grid grid-cols-4 w-full"><TabsTrigger value="overview">{isAr?"الوصف العام":"Overview"}</TabsTrigger><TabsTrigger value="fivewhy">{isAr?"تحليل 5 Why":"5-Why RCA"}</TabsTrigger><TabsTrigger value="fishbone">{isAr?"عظم السمكة (Ishikawa)":"Fishbone"}</TabsTrigger><TabsTrigger value="actions">{isAr?"الإجراءات والدروس":"Actions & Lessons"}</TabsTrigger></TabsList><TabsContent value="overview" className="space-y-3 pt-4 text-sm"><div className="grid grid-cols-2 gap-3"><div><label className="text-xs font-semibold">{isAr?"عنوان الواقعة / الحادث":"Incident Title"}</label><Input value={activeIncident.title} onChange={e=>setActiveIncident({...activeIncident,title:e.target.value})}/></div><div><label className="text-xs font-semibold">{isAr?"الموقع":"Location"}</label><Input value={activeIncident.location} onChange={e=>setActiveIncident({...activeIncident,location:e.target.value})}/></div></div><div><label className="text-xs font-semibold">{isAr?"وصف الحادث التفصيلي":"Detailed Description"}</label><textarea className="w-full p-2 text-xs border rounded-md h-20 bg-background" value={activeIncident.description} onChange={e=>setActiveIncident({...activeIncident,description:e.target.value})}/></div></TabsContent><TabsContent value="fivewhy" className="space-y-3 pt-4"><h4 className="font-semibold text-sm flex items-center gap-2"><HelpCircle className="h-4 w-4 text-blue-500" />{isAr?"منهجية الأسباب الخمسة (5-Why Analysis)":"5-Why Root Cause Methodology"}</h4>{activeIncident.fiveWhys.map((fw,idx)=><div key={idx} className="p-3 border rounded-lg bg-muted/30 space-y-1 text-xs"><p className="font-bold text-blue-600">Why #{fw.whyNo}: {fw.question}</p><Input value={fw.answer} placeholder={`Answer for Why #${fw.whyNo}`} onChange={e=>{const updated=[...activeIncident.fiveWhys];updated[idx]={...updated[idx],answer:e.target.value};setActiveIncident({...activeIncident,fiveWhys:updated});}}/></div>)}</TabsContent><TabsContent value="fishbone" className="space-y-3 pt-4"><h4 className="font-semibold text-sm flex items-center gap-2"><GitMerge className="h-4 w-4 text-purple-500" />{isAr?"مخطط عظم السمكة (Ishikawa Diagram Categories)":"Ishikawa Fishbone Cause Diagram"}</h4>{activeIncident.fishbone.map((fb,idx)=><div key={idx} className="flex items-center gap-3 border p-2.5 rounded-md text-xs"><span className="font-bold w-44">{fb.category}:</span><Input value={fb.cause} placeholder="Identified cause factor..." onChange={e=>{const updated=[...activeIncident.fishbone];updated[idx]={...updated[idx],cause:e.target.value};setActiveIncident({...activeIncident,fishbone:updated});}}/></div>)}</TabsContent><TabsContent value="actions" className="space-y-3 pt-4"><div><h4 className="font-semibold text-sm mb-2">{isAr?"الدروس المستفادة (Lessons Learned)":"Lessons Learned Bulletin"}</h4><textarea className="w-full p-2 text-xs border rounded-md h-16 bg-background" value={activeIncident.lessonsLearned} onChange={e=>setActiveIncident({...activeIncident,lessonsLearned:e.target.value})}/></div></TabsContent></Tabs><DialogFooter className="mt-4 gap-2"><Button type="button" variant="outline" onClick={()=>setIsDialogOpen(false)}>{isAr?"إلغاء":"Cancel"}</Button><Button type="button" variant="outline" onClick={printIncident} className="gap-2"><Printer className="h-4 w-4" /><span>{isAr?"طباعة تقرير RCA":"Print RCA Report"}</span></Button><Button type="button" onClick={()=>{if(activeIncident)setIncidents(prev=>prev.some(i=>i.id===activeIncident.id)?prev.map(i=>i.id===activeIncident.id?activeIncident:i):[activeIncident,...prev]);setIsDialogOpen(false);}} className="bg-red-600 hover:bg-red-700">{isAr?"حفظ الحادث":"Save Incident"}</Button></DialogFooter></DialogContent></Dialog>}
 
-      {activeIncident && <div className="incident-print-report" dir={isAr?"rtl":"ltr"} aria-hidden="true"><div className="incident-print-page"><div className="incident-print-header"><div className="incident-print-header-title">{isAr?"إدارة الحوادث والوقائع الوشيكة (Near Miss)":"INCIDENTS & NEAR MISS MANAGEMENT"}</div><div className="incident-print-header-subtitle">{isAr?"تقرير تحقيق الحادث وتحليل السبب الجذر (RCA)":"Incident Investigation & Root Cause Analysis"}</div></div><section className="incident-print-section incident-print-card"><h2 className="incident-print-title">{esc(activeIncident.title)}</h2><div className="incident-print-grid"><div><span className="incident-print-label">{isAr?"الرقم المرجعي":"Reference No"}</span><span className="incident-print-value">{esc(activeIncident.refNo)}</span></div><div><span className="incident-print-label">{isAr?"نوع الحادث":"Incident Type"}</span><span className="incident-print-value">{esc(activeIncident.type)}</span></div><div><span className="incident-print-label">{isAr?"التاريخ والوقت":"Date & Time"}</span><span className="incident-print-value">{esc(activeIncident.date)} — {esc(activeIncident.time)}</span></div><div><span className="incident-print-label">{isAr?"الخطورة":"Severity"}</span><span className="incident-print-badge" style={{backgroundColor:activeIncident.severity==="Critical"?"#fee2e2":activeIncident.severity==="High"?"#ffedd5":activeIncident.severity==="Medium"?"#fef3c7":"#dcfce7",color:activeIncident.severity==="Critical"?"#991b1b":activeIncident.severity==="High"?"#9a3412":activeIncident.severity==="Medium"?"#92400e":"#166534"}}>{activeIncident.severity}</span></div><div><span className="incident-print-label">{isAr?"الموقع":"Location"}</span><span className="incident-print-value">{esc(activeIncident.location)}</span></div><div><span className="incident-print-label">{isAr?"القسم / المصنع":"Department / Factory"}</span><span className="incident-print-value">{esc(activeIncident.department)} / {esc(activeIncident.factory)}</span></div><div><span className="incident-print-label">{isAr?"المبلّغ":"Reported By"}</span><span className="incident-print-value">{esc(activeIncident.reportedBy)}</span></div><div><span className="incident-print-label">{isAr?"الحالة":"Status"}</span><span className="incident-print-value">{esc(activeIncident.status)}</span></div></div></section><section className="incident-print-section"><div className="incident-print-section-title">{isAr?"1. وصف الحادث":"1. INCIDENT DESCRIPTION"}</div><div className="incident-print-card" style={{whiteSpace:"pre-wrap",fontSize:10,lineHeight:1.55}}>{esc(activeIncident.description)}</div></section><section className="incident-print-section"><div className="incident-print-section-title">{isAr?"2. تحليل الأسباب الخمسة (5 Why)":"2. 5-WHY ROOT CAUSE ANALYSIS"}</div>{activeIncident.fiveWhys.map(fw=><div className="incident-print-why" key={fw.whyNo}><strong>{isAr?`لماذا #${fw.whyNo}:`:`Why #${fw.whyNo}:`}</strong> {esc(fw.question)}<div style={{marginTop:3}}>{esc(fw.answer)}</div></div>)}</section><section className="incident-print-section"><div className="incident-print-section-title">{isAr?"3. تحليل عظم السمكة (Ishikawa)":"3. FISHBONE / ISHIKAWA ANALYSIS"}</div>{activeIncident.fishbone.map((fb,idx)=><div className="incident-print-fishbone" key={`${fb.category}-${idx}`}><strong>{fb.category}</strong><span> — {esc(fb.cause)}</span></div>)}</section><section className="incident-print-section"><div className="incident-print-section-title">{isAr?"4. الإجراءات التصحيحية والوقائية":"4. CORRECTIVE & PREVENTIVE ACTIONS"}</div><table className="incident-print-table"><thead><tr><th>{isAr?"الإجراء":"Action"}</th><th>{isAr?"المسؤول":"Responsible"}</th><th>{isAr?"التاريخ المستهدف":"Target Date"}</th><th>{isAr?"الحالة":"Status"}</th></tr></thead><tbody>{activeIncident.correctiveActions.map((action,idx)=><tr className={action.status==="Closed"?"incident-print-action-closed":"incident-print-action-open"} key={idx}><td>{esc(action.action)}</td><td>{esc(action.responsible)}</td><td>{esc(action.targetDate)}</td><td><span className="incident-print-badge" style={{backgroundColor:action.status==="Closed"?"#dcfce7":"#ffedd5",color:action.status==="Closed"?"#166534":"#9a3412"}}>{action.status}</span></td></tr>)}</tbody></table></section><section className="incident-print-section"><div className="incident-print-section-title">{isAr?"5. الدروس المستفادة":"5. LESSONS LEARNED"}</div><div className="incident-print-card" style={{whiteSpace:"pre-wrap",fontSize:10,lineHeight:1.55}}>{esc(activeIncident.lessonsLearned)}</div></section><div className="incident-print-footer"><span>{isAr?"إدارة الحوادث والوقائع الوشيكة (Near Miss) — نسخة للطباعة":"Incidents & Near Miss Management — Print Copy"}</span><span>{activeIncident.refNo}</span></div></div></div>}
+      {printItem && <PrintShareDialog open={isPrintOpen} onOpenChange={setIsPrintOpen} item={printItem} />}
     </div>
   );
 }
