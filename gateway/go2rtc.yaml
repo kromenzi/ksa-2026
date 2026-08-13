@@ -1,0 +1,17 @@
+# go2rtc bridge for IP Webcam / NVR sources.
+# Current test source: Android IP Webcam at 192.168.100.78:8080/video
+api:
+  listen: ":1984"
+
+rtsp:
+  listen: ":8555"
+
+webrtc:
+  listen: ":8556"
+
+streams:
+  phone:
+    - "http://192.168.100.78:8080/video"
+
+# HLS: http://<gateway-host>:1984/api/stream.m3u8?src=phone
+# WebRTC: use the go2rtc WebUI at http://<gateway-host>:1984/ and open "phone".
