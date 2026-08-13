@@ -1,4 +1,4 @@
-import { getAuthUser, getProfile, json, supabaseFetch } from "../_lib/supabase.js";
+import { getAuthUser, getProfile, json, supabaseFetchForRequest } from "../_lib/supabase.js";
 
 const writableRoles = new Set(["admin", "manager", "editor"]);
 
@@ -39,7 +39,7 @@ export default async function handler(req: any, res: any) {
     if (!user || !profile || !profile.is_active) return json(res, 401, { error: "Not authenticated" });
 
     if (req.method === "GET") {
-      const response = await supabaseFetch("/rest/v1/ncrs?select=*&order=created_at.desc");
+      const response = await supabaseFetchForRequest(req, "/rest/v1/ncrs?select=*&order=created_at.desc");
       const rows = await response.json();
       if (!response.ok) return json(res, response.status, { error: rows?.message || "Unable to load NCRs" });
       return json(res, 200, rows.map(toClient));
@@ -77,7 +77,7 @@ export default async function handler(req: any, res: any) {
         image3: body.image3 || null,
         image4: body.image4 || null,
       };
-      const response = await supabaseFetch("/rest/v1/ncrs", {
+      const response = await supabaseFetchForRequest(req, "/rest/v1/ncrs", {
         method: "POST",
         headers: { Prefer: "return=representation" },
         body: JSON.stringify(row),
