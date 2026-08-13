@@ -45,9 +45,10 @@ export default function CameraStream({
   const configuredGateway = (import.meta.env.VITE_CAMERA_GATEWAY_URL as string | undefined)?.replace(/\/$/, "");
   const localTestGateway = cameraId === "CAM-101" ? "http://localhost:1984" : undefined;
   const gatewayBase = configuredGateway || localTestGateway;
+  const localMjpegUrl = cameraId === "CAM-101" && gatewayBase ? `${gatewayBase}/api/stream.mjpeg?src=phone` : undefined;
   const gatewayHlsUrl = gatewayBase ? `${gatewayBase}/api/stream.m3u8?src=${encodeURIComponent(cameraId === "CAM-101" ? "phone" : cameraId)}` : undefined;
-  const effectiveStreamUrl = streamUrl || gatewayHlsUrl;
-  const effectiveStreamType = streamType || (gatewayHlsUrl ? "hls" : undefined);
+  const effectiveStreamUrl = streamUrl || localMjpegUrl || gatewayHlsUrl;
+  const effectiveStreamType = streamType || (localMjpegUrl ? "mjpeg" : gatewayHlsUrl ? "hls" : undefined);
   const isBrowserStream = Boolean(effectiveStreamUrl && effectiveStreamType);
 
   useEffect(() => setLiveError(false), [effectiveStreamUrl, effectiveStreamType]);
@@ -104,7 +105,7 @@ export default function CameraStream({
   const handlePan = (dx: number, dy: number) => setPtzOffset((p) => ({ x: p.x + dx, y: p.y + dy }));
 
   return <div className={cn("relative group rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-md flex flex-col justify-between select-none", heightClassName, className)}>
-    {isBrowserStream ? <video ref={videoRef} autoPlay playsInline muted={isMuted} controls={false} onError={() => setLiveError(true)} onClick={onOpenDetails} className="w-full h-full object-cover block cursor-pointer bg-black" style={{ transform: `translate(${ptzOffset.x}px, ${ptzOffset.y}px) scale(${ptzZoom})` }} /> : <canvas ref={canvasRef} width={640} height={360} className="w-full h-full object-cover block cursor-pointer" onClick={onOpenDetails} />}
+    {isBrowserStream ? (effectiveStreamType === "mjpeg" ? <img src={effectiveStreamUrl} alt={`${cameraName} live stream`} onError={() => setLiveError(true)} onClick={onOpenDetails} className="w-full h-full object-cover block cursor-pointer bg-black" style={{ transform: `translate(${ptzOffset.x}px, ${ptzOffset.y}px) scale(${ptzZoom})` }} /> : <video ref={videoRef} autoPlay playsInline muted={isMuted} controls={false} onError={() => setLiveError(true)} onClick={onOpenDetails} className="w-full h-full object-cover block cursor-pointer bg-black" style={{ transform: `translate(${ptzOffset.x}px, ${ptzOffset.y}px) scale(${ptzZoom})` }} />) : <canvas ref={canvasRef} width={640} height={360} className="w-full h-full object-cover block cursor-pointer" onClick={onOpenDetails} />}
 
     <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
       <div className="flex items-center gap-1.5 flex-wrap">
