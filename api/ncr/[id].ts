@@ -1,4 +1,4 @@
-import { getAuthUser, getProfile, json, supabaseFetch } from "../_lib/supabase.js";
+import { getAuthUser, getProfile, json, supabaseFetchForRequest } from "../_lib/supabase.js";
 
 const writableRoles = new Set(["admin", "manager", "editor"]);
 
@@ -42,7 +42,7 @@ export default async function handler(req: any, res: any) {
     if (!id) return json(res, 400, { error: "NCR id is required" });
 
     if (req.method === "GET") {
-      const response = await supabaseFetch(`/rest/v1/ncrs?id=eq.${encodeURIComponent(id)}&select=*`);
+      const response = await supabaseFetchForRequest(req, `/rest/v1/ncrs?id=eq.${encodeURIComponent(id)}&select=*`);
       const rows = await response.json();
       if (!response.ok) return json(res, response.status, { error: rows?.message || "Unable to load NCR" });
       if (!rows[0]) return json(res, 404, { error: "NCR not found" });
@@ -70,7 +70,7 @@ export default async function handler(req: any, res: any) {
       if (patch.department === "" || patch.description === "") return json(res, 422, { error: "Department and Description are required" });
       patch.updated_at = new Date().toISOString();
 
-      const response = await supabaseFetch(`/rest/v1/ncrs?id=eq.${encodeURIComponent(id)}`, {
+      const response = await supabaseFetchForRequest(req, `/rest/v1/ncrs?id=eq.${encodeURIComponent(id)}`, {
         method: "PATCH",
         headers: { Prefer: "return=representation" },
         body: JSON.stringify(patch),
@@ -82,7 +82,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === "DELETE") {
-      const response = await supabaseFetch(`/rest/v1/ncrs?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+      const response = await supabaseFetchForRequest(req, `/rest/v1/ncrs?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
       if (!response.ok) {
         const result = await response.json();
         return json(res, response.status, { error: result?.message || "Unable to delete NCR" });
