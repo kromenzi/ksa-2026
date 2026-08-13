@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import "./print-share-fix.css";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 const printStyle = document.createElement("style");
@@ -42,6 +43,11 @@ printStyle.textContent = `
       background: #fff !important;
       color: #111827 !important;
       color-scheme: light !important;
+    }
+    iframe#print-share-iframe {
+      opacity: 1 !important;
+      visibility: visible !important;
+      display: block !important;
     }
   }
 `;
