@@ -1,0 +1,36 @@
+name: Repair empty data context
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ github.event.head_commit.message != 'chore: restore data context from stable commit' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Restore data context when empty
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -s src/lib/data-context.tsx ]; then
+            echo 'data-context.tsx is present; no repair needed.'
+            exit 0
+          fi
+          git checkout 861df2576a16bc0b4215d5f6594716ff426a5e33 -- src/lib/data-context.tsx
+          if [ ! -s src/lib/data-context.tsx ]; then
+            echo 'Stable source did not restore a non-empty file.'
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/lib/data-context.tsx
+          git commit -m 'chore: restore data context from stable commit'
+          git push origin main
