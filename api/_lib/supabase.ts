@@ -58,9 +58,17 @@ export async function getAuthUser(req: any) {
 export async function getProfile(req: any) {
   const user = await getAuthUser(req);
   if (!user?.id) return null;
-  const response = await fetch(`${url}/rest/v1/users?id=eq.${encodeURIComponent(user.id)}&select=id,name,role,is_active,created_at`, {
-    headers: { apikey: anonKey, Authorization: `Bearer ${getAccessToken(req)}`, "Content-Type": "application/json" },
-  });
+  const token = getAccessToken(req);
+  const response = await fetch(
+    `${url}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(user.id)}&select=id,name,email,role,is_active,joined_at,auth_user_id`,
+    {
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
   if (!response.ok) return null;
   const rows = await response.json();
   return rows[0] || null;
