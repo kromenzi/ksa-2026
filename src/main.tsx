@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import "./print-share-fix.css";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 const printStyle = document.createElement("style");
