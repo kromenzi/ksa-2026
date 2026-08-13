@@ -1,4 +1,4 @@
-import { json, requireBackend, setAccessCookie, supabaseFetch } from "../_lib/supabase";
+import { json, requireBackend, setAccessCookie, supabaseFetch } from "../_lib/supabase.js";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
