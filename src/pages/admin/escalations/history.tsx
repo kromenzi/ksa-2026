@@ -19,6 +19,42 @@ export default function EscalationHistory() {
     { id: "ESC-2026-0005", source: "OBS-2026-00111", level: "Level 3", user: "HSE Admin", date: "2026-08-01 16:45", action: "Manual Escalation", status: "RESOLVED" },
   ];
 
+  const filteredHistory = mockHistory.filter((log) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [log.id, log.source, log.level, log.user, log.date, log.action, log.status].some((value) =>
+      value.toLowerCase().includes(q)
+    );
+  });
+
+  const handleExportLog = () => {
+    const headers = isAr
+      ? ["التاريخ والوقت", "رقم التصعيد", "المصدر", "المستوى", "المستخدم", "الإجراء", "الحالة"]
+      : ["Date & Time", "Escalation No", "Source", "Level", "User", "Action", "Status"];
+
+    const rows = filteredHistory.map((log) => [
+      log.date,
+      log.id,
+      log.source,
+      log.level,
+      log.user,
+      log.action,
+      log.status,
+    ]);
+
+    const escapeCsv = (value: string) => `"${String(value).replace(/"/g, '""')}"`;
+    const csv = "\uFEFF" + [headers, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `escalation-history-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -31,7 +67,7 @@ export default function EscalationHistory() {
             {isAr ? "مراجعة السجل الكامل لحركات التصعيد" : "Review the complete log of escalation movements"}
           </p>
         </div>
-        <Button variant="outline" className="gap-2">
+        <Button type="button" variant="outline" className="gap-2" onClick={handleExportLog}>
           <Download className="h-4 w-4" />
           {isAr ? "تصدير السجل" : "Export Log"}
         </Button>
@@ -42,8 +78,8 @@ export default function EscalationHistory() {
           <CardTitle>{isAr ? "سجل الحركات" : "Movement Log"}</CardTitle>
           <div className="relative w-72">
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder={isAr ? "بحث..." : "Search..."} 
+            <Input
+              placeholder={isAr ? "بحث..." : "Search..."}
               className="ps-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -65,8 +101,8 @@ export default function EscalationHistory() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockHistory.map((log, i) => (
-                  <TableRow key={i}>
+                {filteredHistory.map((log, i) => (
+                  <TableRow key={`${log.id}-${log.date}-${i}`}>
                     <TableCell className="whitespace-nowrap text-xs">{log.date}</TableCell>
                     <TableCell className="font-medium text-rose-600">{log.id}</TableCell>
                     <TableCell className="text-xs">{log.source}</TableCell>
@@ -74,12 +110,30 @@ export default function EscalationHistory() {
                     <TableCell className="text-xs">{log.user}</TableCell>
                     <TableCell>{log.action}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={log.status === 'OVERDUE' ? 'border-red-500 text-red-500' : ''}>
+                      <Badge
+                        variant="outline"
+                        className={
+                          log.status === "OVERDUE"
+                            ? "border-red-500 text-red-500"
+                            : log.status === "ESCALATED"
+                              ? "border-orange-500 text-orange-600"
+                              : log.status === "RESOLVED"
+                                ? "border-emerald-500 text-emerald-600"
+                                : ""
+                        }
+                      >
                         {log.status}
                       </Badge>
                     </TableCell>
                   </TableRow>
                 ))}
+                {filteredHistory.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                      {isAr ? "لا توجد نتائج مطابقة" : "No matching entries"}
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
