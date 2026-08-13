@@ -54,31 +54,35 @@ export default function CameraStream({
   const [ptzZoom, setPtzZoom] = useState(1);
   const [ptzOffset, setPtzOffset] = useState({ x: 0, y: 0 });
 
-  const isBrowserStream = Boolean(streamUrl && streamType);
+  // For production CCTV, set VITE_CAMERA_GATEWAY_URL to an on-prem HLS/WebRTC gateway.
+  const gatewayBase = (import.meta.env.VITE_CAMERA_GATEWAY_URL as string | undefined)?.replace(/\/$/, "");
+  const gatewayHlsUrl = gatewayBase ? `${gatewayBase}/streams/${encodeURIComponent(cameraId)}/index.m3u8` : undefined;
+  const effectiveStreamUrl = streamUrl || gatewayHlsUrl;
+  const effectiveStreamType = streamType || (gatewayHlsUrl ? "hls" : undefined);
+  const isBrowserStream = Boolean(effectiveStreamUrl && effectiveStreamType);
+
+  useEffect(() => setLiveError(false), [effectiveStreamUrl, effectiveStreamType, cameraId]);
 
   useEffect(() => {
-    setLiveError(false);
-  }, [streamUrl, streamType, cameraId]);
-
-  useEffect(() => {
-    if (streamType !== "hls" || !streamUrl || !videoRef.current) return;
+    if (effectiveStreamType !== "hls" || !effectiveStreamUrl || !videoRef.current) return;
     const video = videoRef.current;
     let hls: any;
     let disposed = false;
 
     const start = async () => {
       if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = streamUrl;
+        video.src = effectiveStreamUrl;
         try { await video.play(); } catch {}
         return;
       }
       try {
-        const mod = await import("hls.js");
-        if (disposed || !mod.default.isSupported()) return;
-        hls = new mod.default({ enableWorker: true, lowLatencyMode: true });
-        hls.loadSource(streamUrl);
+        const mod: any = await import("https://cdn.jsdelivr.net/npm/hls.js@1.5.20/+esm");
+        if (disposed || !mod?.default?.isSupported?.()) return;
+        const Hls = mod.default;
+        hls = new Hls({ enableWorker: true, lowLatencyMode: true, backBufferLength: 30 });
+        hls.loadSource(effectiveStreamUrl);
         hls.attachMedia(video);
-        hls.on(mod.default.Events.ERROR, (_event: unknown, data: any) => {
+        hls.on(Hls.Events.ERROR, (_event: unknown, data: any) => {
           if (data?.fatal) setLiveError(true);
         });
       } catch {
@@ -86,11 +90,8 @@ export default function CameraStream({
       }
     };
     void start();
-    return () => {
-      disposed = true;
-      try { hls?.destroy(); } catch {}
-    };
-  }, [streamUrl, streamType]);
+    return () => { disposed = true; try { hls?.destroy?.(); } catch {} };
+  }, [effectiveStreamUrl, effectiveStreamType]);
 
   useEffect(() => {
     if (isBrowserStream) return;
@@ -100,21 +101,18 @@ export default function CameraStream({
     if (!ctx) return;
 
     let animId = 0;
-    let step = 0;
     const render = () => {
-      step += 1;
       const w = canvas.width;
       const h = canvas.height;
       ctx.fillStyle = "#020617";
       ctx.fillRect(0, 0, w, h);
+      ctx.textAlign = "center";
       ctx.fillStyle = status === "OFFLINE" ? "#ef4444" : "#f59e0b";
       ctx.font = "bold 14px monospace";
-      ctx.textAlign = "center";
       ctx.fillText(status === "OFFLINE" ? "CAMERA OFFLINE" : "LIVE STREAM NOT CONFIGURED", w / 2, h / 2 - 16);
       ctx.fillStyle = "#94a3b8";
       ctx.font = "11px sans-serif";
-      const detail = rtspUrl ? "RTSP requires an on-premise HLS/WebRTC gateway" : "Add a browser stream URL (HLS/WebRTC/MJPEG) for live video";
-      ctx.fillText(detail, w / 2, h / 2 + 10);
+      ctx.fillText(rtspUrl ? "RTSP is not browser-playable; configure the camera gateway." : "Configure a real HLS/WebRTC/MJPEG stream URL.", w / 2, h / 2 + 10);
       ctx.fillStyle = "#64748b";
       ctx.font = "10px monospace";
       ctx.fillText(rtspUrl || `CAMERA: ${cameraId}`, w / 2, h / 2 + 34);
@@ -124,9 +122,7 @@ export default function CameraStream({
     return () => cancelAnimationFrame(animId);
   }, [isBrowserStream, status, rtspUrl, cameraId]);
 
-  const handleZoom = (direction: "in" | "out") => {
-    setPtzZoom((prev) => Math.max(1, Math.min(3, direction === "in" ? prev + 0.25 : prev - 0.25)));
-  };
+  const handleZoom = (direction: "in" | "out") => setPtzZoom((prev) => Math.max(1, Math.min(3, direction === "in" ? prev + 0.25 : prev - 0.25)));
   const handlePan = (dx: number, dy: number) => setPtzOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
 
   return (
@@ -134,7 +130,7 @@ export default function CameraStream({
       {isBrowserStream ? (
         <video
           ref={videoRef}
-          src={streamType === "mjpeg" ? streamUrl : undefined}
+          src={effectiveStreamType === "mjpeg" ? effectiveStreamUrl : undefined}
           autoPlay
           playsInline
           muted={isMuted}
@@ -151,8 +147,7 @@ export default function CameraStream({
       <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
         <div className="flex items-center gap-1.5 flex-wrap">
           <Badge className={cn("text-[10px] px-2 py-0.5 font-semibold tracking-wide", liveError ? "bg-rose-600 text-white" : status === "ONLINE" ? "bg-emerald-500/90 text-white" : status === "WARNING" ? "bg-amber-500/90 text-white" : "bg-rose-600 text-white")}>
-            <Radio className="w-2.5 h-2.5 me-1" />
-            {liveError ? "STREAM ERROR" : status}
+            <Radio className="w-2.5 h-2.5 me-1" />{liveError ? "STREAM ERROR" : status}
           </Badge>
           {isBrowserStream && <Badge className="bg-cyan-600/90 text-white text-[10px] px-2 py-0.5 font-semibold">LIVE</Badge>}
           {aiActive && <Badge className="bg-indigo-600/90 text-white text-[10px] px-2 py-0.5 font-semibold"><ShieldCheck className="w-2.5 h-2.5 me-1" />ESP AI</Badge>}
