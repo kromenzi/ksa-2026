@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Maximize2, Volume2, VolumeX, Eye, ShieldAlert, Radio, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import EspAiOverlay from "@/components/esp-ai-overlay";
 
 interface CameraStreamProps {
   cameraId: string;
@@ -54,13 +55,8 @@ export default function CameraStream({
 
   useEffect(() => setLiveError(false), [effectiveStreamUrl, effectiveStreamType]);
 
-  // Real gateway discovery/health check. For CAM-101 the gateway stream is named "phone".
   useEffect(() => {
-    if (!gatewayBase) {
-      setGatewayVerified(null);
-      return;
-    }
-
+    if (!gatewayBase) { setGatewayVerified(null); return; }
     let cancelled = false;
     const checkGateway = async () => {
       try {
@@ -69,15 +65,10 @@ export default function CameraStream({
         const streams = await response.json();
         const sourceName = cameraId === "CAM-101" ? "phone" : cameraId;
         const source = streams?.[sourceName];
-        const receiving = Boolean(source?.producers?.some((producer: any) =>
-          Number(producer?.bytes_recv || 0) > 0 || (producer?.receivers?.length ?? 0) > 0
-        ));
+        const receiving = Boolean(source?.producers?.some((producer: any) => Number(producer?.bytes_recv || 0) > 0 || (producer?.receivers?.length ?? 0) > 0));
         if (!cancelled) setGatewayVerified(receiving);
-      } catch {
-        if (!cancelled) setGatewayVerified(false);
-      }
+      } catch { if (!cancelled) setGatewayVerified(false); }
     };
-
     checkGateway();
     const timer = window.setInterval(checkGateway, 5000);
     return () => { cancelled = true; window.clearInterval(timer); };
@@ -89,28 +80,18 @@ export default function CameraStream({
     let hls: any;
     let disposed = false;
     let script: HTMLScriptElement | null = null;
-
-    const startNative = async () => {
-      video.src = effectiveStreamUrl;
-      try { await video.play(); } catch { /* autoplay may be blocked */ }
-    };
+    const startNative = async () => { video.src = effectiveStreamUrl; try { await video.play(); } catch {} };
     const attachHls = () => {
       if (disposed || !window.Hls?.isSupported?.()) { if (!disposed) startNative(); return; }
       hls = new window.Hls({ enableWorker: true, lowLatencyMode: true, backBufferLength: 30 });
-      hls.loadSource(effectiveStreamUrl);
-      hls.attachMedia(video);
+      hls.loadSource(effectiveStreamUrl); hls.attachMedia(video);
       hls.on(window.Hls.Events.ERROR, (_event: unknown, data: any) => { if (data?.fatal) setLiveError(true); });
     };
-
     if (video.canPlayType("application/vnd.apple.mpegurl")) startNative();
     else if (window.Hls) attachHls();
     else {
-      script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js";
-      script.async = true;
-      script.onload = attachHls;
-      script.onerror = () => setLiveError(true);
-      document.head.appendChild(script);
+      script = document.createElement("script"); script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js"; script.async = true;
+      script.onload = attachHls; script.onerror = () => setLiveError(true); document.head.appendChild(script);
     }
     return () => { disposed = true; try { hls?.destroy?.(); } catch {} if (script?.parentNode) script.parentNode.removeChild(script); };
   }, [effectiveStreamUrl, effectiveStreamType]);
@@ -123,8 +104,7 @@ export default function CameraStream({
       ctx.fillStyle = "#020617"; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.textAlign = "center"; ctx.fillStyle = status === "OFFLINE" ? "#ef4444" : "#f59e0b";
       ctx.font = "bold 14px monospace"; ctx.fillText(status === "OFFLINE" ? "CAMERA OFFLINE" : "LIVE STREAM NOT CONFIGURED", canvas.width / 2, canvas.height / 2 - 16);
-      ctx.fillStyle = "#94a3b8"; ctx.font = "11px sans-serif";
-      ctx.fillText(rtspUrl ? "RTSP requires the camera gateway." : "Configure a real HLS/WebRTC/MJPEG stream.", canvas.width / 2, canvas.height / 2 + 10);
+      ctx.fillStyle = "#94a3b8"; ctx.font = "11px sans-serif"; ctx.fillText(rtspUrl ? "RTSP requires the camera gateway." : "Configure a real HLS/WebRTC/MJPEG stream.", canvas.width / 2, canvas.height / 2 + 10);
       ctx.fillStyle = "#64748b"; ctx.font = "10px monospace"; ctx.fillText(rtspUrl || `CAMERA: ${cameraId}`, canvas.width / 2, canvas.height / 2 + 34);
       frame = requestAnimationFrame(render);
     };
@@ -133,18 +113,13 @@ export default function CameraStream({
 
   const handleZoom = (direction: "in" | "out") => setPtzZoom((p) => Math.max(1, Math.min(3, direction === "in" ? p + 0.25 : p - 0.25)));
   const handlePan = (dx: number, dy: number) => setPtzOffset((p) => ({ x: p.x + dx, y: p.y + dy }));
-
   const statusText = liveError ? "STREAM ERROR" : gatewayVerified === false ? "GATEWAY OFFLINE" : status;
-  const statusClass = liveError || gatewayVerified === false
-    ? "bg-rose-600 text-white"
-    : status === "ONLINE" || gatewayVerified === true
-      ? "bg-emerald-500/90 text-white"
-      : status === "WARNING"
-        ? "bg-amber-500/90 text-white"
-        : "bg-rose-600 text-white";
+  const statusClass = liveError || gatewayVerified === false ? "bg-rose-600 text-white" : status === "ONLINE" || gatewayVerified === true ? "bg-emerald-500/90 text-white" : status === "WARNING" ? "bg-amber-500/90 text-white" : "bg-rose-600 text-white";
 
   return <div className={cn("relative group rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-md flex flex-col justify-between select-none", heightClassName, className)}>
     {isBrowserStream ? (effectiveStreamType === "mjpeg" ? <img src={effectiveStreamUrl} alt={`${cameraName} live stream`} onError={() => setLiveError(true)} onLoad={() => setLiveError(false)} onClick={onOpenDetails} className="w-full h-full object-cover block cursor-pointer bg-black" style={{ transform: `translate(${ptzOffset.x}px, ${ptzOffset.y}px) scale(${ptzZoom})` }} /> : <video ref={videoRef} autoPlay playsInline muted={isMuted} controls={false} onError={() => setLiveError(true)} onClick={onOpenDetails} className="w-full h-full object-cover block cursor-pointer bg-black" style={{ transform: `translate(${ptzOffset.x}px, ${ptzOffset.y}px) scale(${ptzZoom})` }} />) : <canvas ref={canvasRef} width={640} height={360} className="w-full h-full object-cover block cursor-pointer" onClick={onOpenDetails} />}
+
+    {cameraId === "CAM-101" && <EspAiOverlay cameraId={cameraId} enabled={aiActive && isBrowserStream} />}
 
     <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
       <div className="flex items-center gap-1.5 flex-wrap">
