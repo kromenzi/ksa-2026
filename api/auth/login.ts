@@ -18,8 +18,13 @@ export default async function handler(req: any, res: any) {
     const auth = await response.json();
     if (!response.ok || !auth.access_token) return json(res, 401, { error: "Invalid email or password" });
 
-    const profileResponse = await supabaseFetch(`/rest/v1/profiles?id=eq.${encodeURIComponent(auth.user.id)}&select=id,name,role,is_active`);
-    const profiles = profileResponse.ok ? await profileResponse.json() : [];
+    // Application profile is stored in public.users and must match Supabase Auth.
+    const userId = String(auth.user.id);
+    const profileResponse = await supabaseFetch(`/rest/v1/users?id=eq.${encodeURIComponent(userId)}&select=id,name,email,role,is_active,joined_at`);
+    if (!profileResponse.ok) {
+      return json(res, 500, { error: "Failed to load application profile" });
+    }
+    const profiles = await profileResponse.json();
     const profile = profiles[0];
     if (!profile || !profile.is_active) return json(res, 403, { error: "Account is disabled or has no application profile" });
 
@@ -30,7 +35,7 @@ export default async function handler(req: any, res: any) {
       email: auth.user.email,
       role: profile.role,
       isActive: profile.is_active,
-      joinedAt: auth.user.created_at,
+      joinedAt: profile.joined_at || auth.user.created_at,
     });
   } catch (error: any) {
     return json(res, error.statusCode || 500, { error: error.message || "Login failed" });
