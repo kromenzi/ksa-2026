@@ -14,8 +14,10 @@ function downloadCsv(rows: any[], isAr: boolean) {
     ? ["التاريخ والوقت", "رقم التصعيد", "المصدر", "المستوى", "المستخدم", "الإجراء", "الحالة", "التفاصيل"]
     : ["Date & Time", "Escalation No", "Source", "Level", "User", "Action", "Status", "Details"];
   const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
-  const data = [headers, ...rows.map(log => [log.date, log.id, log.source, log.level, log.user, log.action, log.status, log.details])];
-  const csv = "\uFEFF" + data.map(row => row.map(escape).join(",")).join("\r\n");
+  const dataRows = rows.length
+    ? rows.map(log => [log.date, log.id, log.source, log.level, log.user, log.action, log.status, log.details])
+    : [[new Date().toISOString(), "—", "—", "—", "System", isAr ? "لا توجد سجلات" : "No records", "—", ""]];
+  const csv = "\uFEFF" + [headers, ...dataRows].map(row => row.map(escape).join(",")).join("\r\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const link = document.createElement("a");
   link.href = url;
@@ -36,6 +38,7 @@ export default function EscalationHistory() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     apiRequest("GET", "/api/escalations")
       .then(async response => {
         if (!response.ok) throw new Error((await response.text()) || "Unable to load escalation history");
@@ -44,7 +47,9 @@ export default function EscalationHistory() {
       .then((escalations: any[]) => {
         if (cancelled) return;
         const rows = escalations.flatMap(esc => {
-          const entries = Array.isArray(esc.history) && esc.history.length > 0 ? esc.history : [{ action: "Escalation Created", status: esc.status, user: "System", date: esc.createdAt, details: esc.reason || "" }];
+          const entries = Array.isArray(esc.history) && esc.history.length > 0
+            ? esc.history
+            : [{ action: "Escalation Created", status: esc.status, user: "System", date: esc.createdAt, details: esc.reason || "" }];
           return entries.map((entry: any, index: number) => ({
             id: `${esc.refNo || esc.id}-${entry.id || index}`,
             source: esc.source || esc.refNo || esc.id,
@@ -72,11 +77,16 @@ export default function EscalationHistory() {
     return history.filter(log => [log.id, log.source, log.level, log.user, log.date, log.action, log.status, log.details].some((value: any) => String(value || "").toLowerCase().includes(q)));
   }, [history, searchQuery]);
 
+  const handleExport = () => {
+    downloadCsv(filteredHistory, isAr);
+    toast.success(isAr ? "تم تصدير السجل بنجاح" : "History exported successfully");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div><h2 className="text-2xl font-bold tracking-tight flex items-center gap-2"><History className="h-6 w-6 text-orange-500" />{isAr ? "سجل التصعيدات" : "Escalation History"}</h2><p className="text-sm text-muted-foreground mt-1">{isAr ? "مراجعة السجل الكامل لحركات التصعيد" : "Review the complete log of escalation movements"}</p></div>
-        <Button type="button" variant="outline" className="gap-2" disabled={filteredHistory.length === 0} onClick={() => { downloadCsv(filteredHistory, isAr); toast.success(isAr ? "تم تصدير السجل بنجاح" : "History exported successfully"); }}><Download className="h-4 w-4" />{isAr ? "تصدير السجل" : "Export Log"}</Button>
+        <Button type="button" variant="outline" className="gap-2" disabled={loading} onClick={handleExport}><Download className="h-4 w-4" />{isAr ? "تصدير السجل" : "Export Log"}</Button>
       </div>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4"><CardTitle>{isAr ? "سجل الحركات" : "Movement Log"}</CardTitle><div className="relative w-72"><Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder={isAr ? "بحث..." : "Search..."} className="ps-9" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div></CardHeader>
