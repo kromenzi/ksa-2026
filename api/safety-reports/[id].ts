@@ -1,4 +1,4 @@
-import { getAuthUser, getProfile, json, supabaseFetch } from "../_lib/supabase.js";
+import { getAuthUser, getProfile, json, supabaseFetchForRequest } from "../_lib/supabase.js";
 
 function toClient(row: any) {
   return {
@@ -20,7 +20,7 @@ export default async function handler(req: any, res: any) {
     const roles = ["admin", "manager", "editor"];
 
     if (req.method === "GET") {
-      const r = await supabaseFetch(`/rest/v1/safety_reports?id=eq.${encodeURIComponent(id)}&select=*`);
+      const r = await supabaseFetchForRequest(req, `/rest/v1/safety_reports?id=eq.${encodeURIComponent(id)}&select=*`);
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to load report" });
       if (!rows[0]) return json(res, 404, { error: "Report not found" });
@@ -32,7 +32,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "DELETE") {
       if (!["admin", "manager"].includes(profile.role)) return json(res, 403, { error: "Delete permission required" });
-      const r = await supabaseFetch(`/rest/v1/safety_reports?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+      const r = await supabaseFetchForRequest(req, `/rest/v1/safety_reports?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
       if (!r.ok) { const e = await r.json(); return json(res, r.status, { error: e?.message || "Unable to delete report" }); }
       return json(res, 200, { ok: true });
     }
@@ -49,7 +49,7 @@ export default async function handler(req: any, res: any) {
     row.updated_at = new Date().toISOString();
     if ("observation_description" in row && !String(row.observation_description || "").trim()) return json(res, 422, { error: "Observation description is required" });
 
-    const r = await supabaseFetch(`/rest/v1/safety_reports?id=eq.${encodeURIComponent(id)}`, {
+    const r = await supabaseFetchForRequest(req, `/rest/v1/safety_reports?id=eq.${encodeURIComponent(id)}`, {
       method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(row),
     });
     const result = await r.json();
