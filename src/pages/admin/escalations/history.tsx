@@ -32,15 +32,17 @@ export default function EscalationHistory() {
     const rows = filteredHistory.map((log) => [log.date, log.id, log.source, log.level, log.user, log.action, log.status]);
     const escapeCsv = (value: string) => `"${String(value).replace(/"/g, '""')}"`;
     const csv = "\uFEFF" + [headers, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\r\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = `escalation-history-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.style.display = "none";
+    link.setAttribute("download", link.download);
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (
