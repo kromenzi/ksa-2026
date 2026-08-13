@@ -39,6 +39,7 @@ export default function CameraStream({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [liveError, setLiveError] = useState(false);
+  const [gatewayVerified, setGatewayVerified] = useState<boolean | null>(null);
   const [ptzZoom, setPtzZoom] = useState(1);
   const [ptzOffset, setPtzOffset] = useState({ x: 0, y: 0 });
 
@@ -52,6 +53,35 @@ export default function CameraStream({
   const isBrowserStream = Boolean(effectiveStreamUrl && effectiveStreamType);
 
   useEffect(() => setLiveError(false), [effectiveStreamUrl, effectiveStreamType]);
+
+  // Real gateway discovery/health check. For CAM-101 the gateway stream is named "phone".
+  useEffect(() => {
+    if (!gatewayBase) {
+      setGatewayVerified(null);
+      return;
+    }
+
+    let cancelled = false;
+    const checkGateway = async () => {
+      try {
+        const response = await fetch(`${gatewayBase}/api/streams`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Gateway HTTP ${response.status}`);
+        const streams = await response.json();
+        const sourceName = cameraId === "CAM-101" ? "phone" : cameraId;
+        const source = streams?.[sourceName];
+        const receiving = Boolean(source?.producers?.some((producer: any) =>
+          Number(producer?.bytes_recv || 0) > 0 || (producer?.receivers?.length ?? 0) > 0
+        ));
+        if (!cancelled) setGatewayVerified(receiving);
+      } catch {
+        if (!cancelled) setGatewayVerified(false);
+      }
+    };
+
+    checkGateway();
+    const timer = window.setInterval(checkGateway, 5000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [gatewayBase, cameraId]);
 
   useEffect(() => {
     if (effectiveStreamType !== "hls" || !effectiveStreamUrl || !videoRef.current) return;
@@ -104,13 +134,23 @@ export default function CameraStream({
   const handleZoom = (direction: "in" | "out") => setPtzZoom((p) => Math.max(1, Math.min(3, direction === "in" ? p + 0.25 : p - 0.25)));
   const handlePan = (dx: number, dy: number) => setPtzOffset((p) => ({ x: p.x + dx, y: p.y + dy }));
 
+  const statusText = liveError ? "STREAM ERROR" : gatewayVerified === false ? "GATEWAY OFFLINE" : status;
+  const statusClass = liveError || gatewayVerified === false
+    ? "bg-rose-600 text-white"
+    : status === "ONLINE" || gatewayVerified === true
+      ? "bg-emerald-500/90 text-white"
+      : status === "WARNING"
+        ? "bg-amber-500/90 text-white"
+        : "bg-rose-600 text-white";
+
   return <div className={cn("relative group rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-md flex flex-col justify-between select-none", heightClassName, className)}>
-    {isBrowserStream ? (effectiveStreamType === "mjpeg" ? <img src={effectiveStreamUrl} alt={`${cameraName} live stream`} onError={() => setLiveError(true)} onClick={onOpenDetails} className="w-full h-full object-cover block cursor-pointer bg-black" style={{ transform: `translate(${ptzOffset.x}px, ${ptzOffset.y}px) scale(${ptzZoom})` }} /> : <video ref={videoRef} autoPlay playsInline muted={isMuted} controls={false} onError={() => setLiveError(true)} onClick={onOpenDetails} className="w-full h-full object-cover block cursor-pointer bg-black" style={{ transform: `translate(${ptzOffset.x}px, ${ptzOffset.y}px) scale(${ptzZoom})` }} />) : <canvas ref={canvasRef} width={640} height={360} className="w-full h-full object-cover block cursor-pointer" onClick={onOpenDetails} />}
+    {isBrowserStream ? (effectiveStreamType === "mjpeg" ? <img src={effectiveStreamUrl} alt={`${cameraName} live stream`} onError={() => setLiveError(true)} onLoad={() => setLiveError(false)} onClick={onOpenDetails} className="w-full h-full object-cover block cursor-pointer bg-black" style={{ transform: `translate(${ptzOffset.x}px, ${ptzOffset.y}px) scale(${ptzZoom})` }} /> : <video ref={videoRef} autoPlay playsInline muted={isMuted} controls={false} onError={() => setLiveError(true)} onClick={onOpenDetails} className="w-full h-full object-cover block cursor-pointer bg-black" style={{ transform: `translate(${ptzOffset.x}px, ${ptzOffset.y}px) scale(${ptzZoom})` }} />) : <canvas ref={canvasRef} width={640} height={360} className="w-full h-full object-cover block cursor-pointer" onClick={onOpenDetails} />}
 
     <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
       <div className="flex items-center gap-1.5 flex-wrap">
-        <Badge className={cn("text-[10px] px-2 py-0.5 font-semibold tracking-wide", liveError ? "bg-rose-600 text-white" : status === "ONLINE" ? "bg-emerald-500/90 text-white" : status === "WARNING" ? "bg-amber-500/90 text-white" : "bg-rose-600 text-white")}><Radio className="w-2.5 h-2.5 me-1" />{liveError ? "STREAM ERROR" : status}</Badge>
+        <Badge className={cn("text-[10px] px-2 py-0.5 font-semibold tracking-wide", statusClass)}><Radio className="w-2.5 h-2.5 me-1" />{statusText}</Badge>
         {isBrowserStream && <Badge className="bg-cyan-600/90 text-white text-[10px] px-2 py-0.5 font-semibold">LIVE</Badge>}
+        {gatewayVerified === true && <Badge className="bg-emerald-700/90 text-white text-[10px] px-2 py-0.5 font-semibold">GATEWAY OK</Badge>}
         {aiActive && <Badge className="bg-indigo-600/90 text-white text-[10px] px-2 py-0.5 font-semibold"><ShieldCheck className="w-2.5 h-2.5 me-1" />ESP AI</Badge>}
         {activeAlerts > 0 && <Badge className="bg-rose-500 text-white text-[10px] px-2 py-0.5 font-bold"><ShieldAlert className="w-2.5 h-2.5 me-1" />{activeAlerts} ALERTS</Badge>}
       </div>
