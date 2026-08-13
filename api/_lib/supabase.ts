@@ -1,13 +1,13 @@
 const url = (process.env.SUPABASE_URL || "https://sfdpkpqokazsegsstjfs.supabase.co").replace(/\/$/, "");
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable__ve50anGhjvRKxXi6UdrcQ_SQ945faS";
+const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable__ve50anGhjvRKxXi6UdqcR_QS945faS";
 
 export function backendConfigured() {
   return Boolean(url && (serviceKey || anonKey));
 }
 
 export function requireBackend() {
-  if (!url || !(serviceKey || anonKey)) {
+  if (!backendConfigured()) {
     const error = new Error("Backend is not configured.");
     (error as any).statusCode = 503;
     throw error;
@@ -18,9 +18,18 @@ export async function supabaseFetch(path: string, init: RequestInit = {}) {
   requireBackend();
   const headers = new Headers(init.headers);
   headers.set("apikey", serviceKey || anonKey);
-  headers.set("Authorization", `Bearer ${serviceKey || anonKey}`);
+  if (!headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${serviceKey || anonKey}`);
+  }
   headers.set("Content-Type", "application/json");
   return fetch(`${url}${path}`, { ...init, headers });
+}
+
+export async function supabaseFetchForRequest(req: any, path: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  const token = getAccessToken(req);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  return supabaseFetch(path, { ...init, headers });
 }
 
 export function json(res: any, status: number, body: unknown) {
@@ -49,7 +58,7 @@ export async function getAuthUser(req: any) {
 export async function getProfile(req: any) {
   const user = await getAuthUser(req);
   if (!user?.id) return null;
-  const response = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=id,name,role,is_active,created_at`, {
+  const response = await fetch(`${url}/rest/v1/users?id=eq.${encodeURIComponent(user.id)}&select=id,name,role,is_active,created_at`, {
     headers: { apikey: anonKey, Authorization: `Bearer ${getAccessToken(req)}`, "Content-Type": "application/json" },
   });
   if (!response.ok) return null;
