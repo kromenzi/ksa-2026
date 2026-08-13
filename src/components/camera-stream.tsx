@@ -26,6 +26,12 @@ interface CameraStreamProps {
   rtspUrl?: string;
 }
 
+declare global {
+  interface Window {
+    Hls?: any;
+  }
+}
+
 export default function CameraStream({
   cameraId,
   cameraName,
@@ -54,7 +60,6 @@ export default function CameraStream({
   const [ptzZoom, setPtzZoom] = useState(1);
   const [ptzOffset, setPtzOffset] = useState({ x: 0, y: 0 });
 
-  // For production CCTV, set VITE_CAMERA_GATEWAY_URL to an on-prem HLS/WebRTC gateway.
   const gatewayBase = (import.meta.env.VITE_CAMERA_GATEWAY_URL as string | undefined)?.replace(/\/$/, "");
   const gatewayHlsUrl = gatewayBase ? `${gatewayBase}/streams/${encodeURIComponent(cameraId)}/index.m3u8` : undefined;
   const effectiveStreamUrl = streamUrl || gatewayHlsUrl;
@@ -68,6 +73,7 @@ export default function CameraStream({
     const video = videoRef.current;
     let hls: any;
     let disposed = false;
+    let script: HTMLScriptElement | null = null;
 
     const start = async () => {
       if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -75,22 +81,36 @@ export default function CameraStream({
         try { await video.play(); } catch {}
         return;
       }
-      try {
-        const mod: any = await import("https://cdn.jsdelivr.net/npm/hls.js@1.5.20/+esm");
-        if (disposed || !mod?.default?.isSupported?.()) return;
-        const Hls = mod.default;
-        hls = new Hls({ enableWorker: true, lowLatencyMode: true, backBufferLength: 30 });
+
+      const startWithHls = () => {
+        if (disposed || !window.Hls?.isSupported?.()) return;
+        hls = new window.Hls({ enableWorker: true, lowLatencyMode: true, backBufferLength: 30 });
         hls.loadSource(effectiveStreamUrl);
         hls.attachMedia(video);
-        hls.on(Hls.Events.ERROR, (_event: unknown, data: any) => {
+        hls.on(window.Hls.Events.ERROR, (_event: unknown, data: any) => {
           if (data?.fatal) setLiveError(true);
         });
-      } catch {
-        setLiveError(true);
+      };
+
+      if (window.Hls) {
+        startWithHls();
+        return;
       }
+
+      script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js";
+      script.async = true;
+      script.onload = startWithHls;
+      script.onerror = () => setLiveError(true);
+      document.head.appendChild(script);
     };
+
     void start();
-    return () => { disposed = true; try { hls?.destroy?.(); } catch {} };
+    return () => {
+      disposed = true;
+      try { hls?.destroy?.(); } catch {}
+      if (script?.parentNode) script.parentNode.removeChild(script);
+    };
   }, [effectiveStreamUrl, effectiveStreamType]);
 
   useEffect(() => {
@@ -153,7 +173,7 @@ export default function CameraStream({
           {aiActive && <Badge className="bg-indigo-600/90 text-white text-[10px] px-2 py-0.5 font-semibold"><ShieldCheck className="w-2.5 h-2.5 me-1" />ESP AI</Badge>}
           {activeAlerts > 0 && <Badge className="bg-rose-500 text-white text-[10px] px-2 py-0.5 font-bold"><ShieldAlert className="w-2.5 h-2.5 me-1" />{activeAlerts} ALERTS</Badge>}
         </div>
-        <div className="text-[10px] font-mono text-slate-300 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded border border-white/10">{plant} • {area}</div>
+        <div className="text-[10px] font-mono text-slate-300 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded border border-white/10">{plant} • {area} • {resolution} • {fps} FPS{recording ? " • REC" : ""}</div>
       </div>
 
       {interactivePtz && (
