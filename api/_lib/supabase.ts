@@ -48,7 +48,7 @@ export async function getAuthUser(req: any) {
 export async function getProfile(req: any) {
   const user = await getAuthUser(req);
   if (!user?.id) return null;
-  const response = await supabaseFetch(`/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=id,name,role,is_active`);
+  const response = await supabaseFetch(`/rest/v1/users?id=eq.${encodeURIComponent(user.id)}&select=id,name,email,role,is_active,joined_at`);
   if (!response.ok) return null;
   const rows = await response.json();
   return rows[0] || null;
