@@ -1,4 +1,4 @@
-import { getAuthUser, getProfile, json, supabaseFetch } from "../_lib/supabase";
+import { getAuthUser, getProfile, json, supabaseFetch } from "../_lib/supabase.js";
 
 const writableRoles = new Set(["admin", "manager", "editor"]);
 
