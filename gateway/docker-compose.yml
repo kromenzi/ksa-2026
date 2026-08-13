@@ -24,3 +24,19 @@ services:
       - "8556:8556"
     volumes:
       - ./go2rtc.yaml:/config/go2rtc.yaml:ro
+
+  esp-ai:
+    build:
+      context: ./ai
+    container_name: abdulkarem-esp-ai
+    restart: unless-stopped
+    environment:
+      ESP_CAMERA_ID: CAM-101
+      ESP_SOURCE_URL: http://go2rtc:1984/api/stream.mjpeg?src=phone
+      ESP_MODEL: yolov8s-worldv2.pt
+      ESP_CONFIDENCE: "0.28"
+      ESP_FRAME_INTERVAL: "0.6"
+    depends_on:
+      - go2rtc
+    ports:
+      - "8090:8090"
