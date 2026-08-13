@@ -18,7 +18,7 @@ export default async function handler(req: any, res: any) {
     if (!response.ok || !auth.access_token || !auth.user?.id) return json(res, 401, { error: "Invalid email or password" });
 
     const profileResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(String(auth.user.id))}&select=id,name,role,is_active,created_at`,
+      `${SUPABASE_URL}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(auth.user.id))}&select=id,name,email,role,is_active,joined_at,auth_user_id`,
       {
         headers: {
           apikey: SUPABASE_ANON_KEY,
@@ -45,7 +45,7 @@ export default async function handler(req: any, res: any) {
       email: auth.user.email,
       role: profile.role,
       isActive: profile.is_active,
-      joinedAt: profile.created_at || auth.user.created_at,
+      joinedAt: profile.joined_at || auth.user.created_at,
     });
   } catch (error: any) {
     console.error("Login failed", error);
