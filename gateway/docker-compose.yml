@@ -13,3 +13,14 @@ services:
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro
       - ./data:/data
+
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: abdulkarem-camera-bridge
+    restart: unless-stopped
+    ports:
+      - "1984:1984"
+      - "8555:8555"
+      - "8556:8556"
+    volumes:
+      - ./go2rtc.yaml:/config/go2rtc.yaml:ro
