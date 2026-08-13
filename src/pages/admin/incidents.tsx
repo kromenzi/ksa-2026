@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
+import {
   AlertTriangle, Plus, Search, Eye, Printer, HelpCircle, GitMerge, ShieldAlert
 } from "lucide-react";
 
@@ -80,6 +80,8 @@ const SAMPLE_INCIDENTS: IncidentRecord[] = [
   }
 ];
 
+const esc = (value: string) => value || "—";
+
 export default function AdminIncidentsPage() {
   const { settings } = useData();
   const isAr = settings.language === "ar";
@@ -87,7 +89,6 @@ export default function AdminIncidentsPage() {
   const [incidents, setIncidents] = useState<IncidentRecord[]>(SAMPLE_INCIDENTS);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-
   const [activeIncident, setActiveIncident] = useState<IncidentRecord | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -97,9 +98,225 @@ export default function AdminIncidentsPage() {
     return matchesSearch && matchesType;
   });
 
+  const printIncident = () => {
+    if (!activeIncident) return;
+    window.print();
+  };
+
   return (
     <div className="space-y-6" data-testid="admin-incidents-page">
-      {/* Header */}
+      <style>{`
+        @page {
+          size: A4;
+          margin: 12mm;
+        }
+
+        .incident-print-report {
+          display: none;
+          direction: ltr;
+          color: #111827;
+          background: #ffffff;
+          font-family: Arial, Helvetica, sans-serif;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        .incident-print-report[dir="rtl"] {
+          direction: rtl;
+          text-align: right;
+        }
+
+        @media print {
+          html, body {
+            background: #ffffff !important;
+            color: #111827 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          body * {
+            visibility: hidden !important;
+          }
+
+          .incident-print-report,
+          .incident-print-report * {
+            visibility: visible !important;
+          }
+
+          .incident-print-report {
+            display: block !important;
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+          }
+
+          .incident-print-report * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .incident-print-page {
+            width: 100%;
+            box-sizing: border-box;
+          }
+
+          .incident-print-section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            margin-bottom: 14px;
+          }
+
+          .incident-print-section h2,
+          .incident-print-section h3 {
+            break-after: avoid;
+            page-break-after: avoid;
+          }
+
+          .incident-print-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+          }
+
+          .incident-print-table th,
+          .incident-print-table td {
+            border: 1px solid #d1d5db;
+            padding: 7px 8px;
+            vertical-align: top;
+            font-size: 10px;
+            line-height: 1.45;
+          }
+
+          .incident-print-table th {
+            background: #f3f4f6 !important;
+            font-weight: 700;
+          }
+
+          .incident-print-card {
+            border: 1px solid #d1d5db;
+            border-radius: 7px;
+            padding: 10px;
+            background: #ffffff !important;
+          }
+
+          .incident-print-muted {
+            color: #6b7280 !important;
+          }
+
+          .incident-print-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 9px;
+            font-weight: 700;
+            line-height: 1.2;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .incident-print-header {
+            border: 2px solid #b91c1c;
+            border-radius: 9px;
+            overflow: hidden;
+            margin-bottom: 12px;
+          }
+
+          .incident-print-header-title {
+            background: #b91c1c !important;
+            color: #ffffff !important;
+            padding: 12px 14px;
+            font-size: 18px;
+            font-weight: 800;
+          }
+
+          .incident-print-header-subtitle {
+            padding: 7px 14px;
+            background: #fef2f2 !important;
+            color: #7f1d1d !important;
+            font-size: 10px;
+          }
+
+          .incident-print-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+          }
+
+          .incident-print-label {
+            display: block;
+            color: #6b7280 !important;
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+          }
+
+          .incident-print-value {
+            font-size: 10px;
+            font-weight: 600;
+          }
+
+          .incident-print-title {
+            color: #991b1b !important;
+            font-size: 13px;
+            font-weight: 800;
+            margin: 0 0 7px;
+          }
+
+          .incident-print-section-title {
+            background: #1f2937 !important;
+            color: #ffffff !important;
+            padding: 7px 9px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 800;
+            margin-bottom: 7px;
+          }
+
+          .incident-print-why {
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 7px;
+            margin-bottom: 6px;
+            background: #eff6ff !important;
+          }
+
+          .incident-print-why strong {
+            color: #1d4ed8 !important;
+          }
+
+          .incident-print-fishbone {
+            border: 1px solid #ddd6fe;
+            border-radius: 6px;
+            padding: 7px;
+            margin-bottom: 6px;
+            background: #f5f3ff !important;
+          }
+
+          .incident-print-action-open {
+            background: #fff7ed !important;
+          }
+
+          .incident-print-action-closed {
+            background: #f0fdf4 !important;
+          }
+
+          .incident-print-footer {
+            border-top: 1px solid #d1d5db;
+            margin-top: 14px;
+            padding-top: 6px;
+            font-size: 8px;
+            color: #6b7280 !important;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+          }
+        }
+      `}</style>
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20">
@@ -195,9 +412,7 @@ export default function AdminIncidentsPage() {
                   <TableCell className="font-mono text-xs font-semibold">{inc.refNo}</TableCell>
                   <TableCell>
                     <p className="font-semibold text-sm">{inc.title}</p>
-                    <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-600 mt-0.5">
-                      {inc.type}
-                    </Badge>
+                    <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-600 mt-0.5">{inc.type}</Badge>
                   </TableCell>
                   <TableCell>
                     <p className="text-xs font-medium">{inc.location}</p>
@@ -205,29 +420,22 @@ export default function AdminIncidentsPage() {
                   </TableCell>
                   <TableCell>
                     <p className="text-xs">{inc.date}</p>
-                    <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600">
-                      {inc.severity} Severity
-                    </Badge>
+                    <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600">{inc.severity} Severity</Badge>
                   </TableCell>
                   <TableCell>
                     <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">{inc.status}</Badge>
                   </TableCell>
                   <TableCell className="text-right rtl:text-left">
-                    
                     <Button
                       size="icon"
                       variant="ghost"
                       className="text-rose-500 hover:text-rose-700 hover:bg-rose-50"
                       onClick={() => window.location.href = "/admin/escalations?source=" + encodeURIComponent(inc.refNo)}
-                      title={isAr ? 'تصعيد للإدارة' : 'Escalate to Mgmt'}
+                      title={isAr ? "تصعيد للإدارة" : "Escalate to Mgmt"}
                     >
                       <ShieldAlert className="h-4 w-4" />
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => { setActiveIncident(inc); setIsDialogOpen(true); }}
-                    >
+                    <Button size="icon" variant="ghost" onClick={() => { setActiveIncident(inc); setIsDialogOpen(true); }}>
                       <Eye className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -238,14 +446,13 @@ export default function AdminIncidentsPage() {
         </div>
       </Card>
 
-      {/* Detail / Investigation Dialog */}
       {activeIncident && isDialogOpen && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
                 <span>{isAr ? "تحليل الحادث والسبب الجذر (RCA)" : "Incident Investigation & Root Cause Analysis"}</span>
-                <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
+                <Button variant="outline" size="sm" onClick={printIncident} className="gap-2">
                   <Printer className="h-4 w-4" />
                   {isAr ? "طباعة التقرير" : "Print Investigation"}
                 </Button>
@@ -264,68 +471,43 @@ export default function AdminIncidentsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-semibold">{isAr ? "عنوان الوقيعة / الحادث" : "Incident Title"}</label>
-                    <Input
-                      value={activeIncident.title}
-                      onChange={(e) => setActiveIncident({ ...activeIncident, title: e.target.value })}
-                    />
+                    <Input value={activeIncident.title} onChange={(e) => setActiveIncident({ ...activeIncident, title: e.target.value })} />
                   </div>
                   <div>
                     <label className="text-xs font-semibold">{isAr ? "الموقع" : "Location"}</label>
-                    <Input
-                      value={activeIncident.location}
-                      onChange={(e) => setActiveIncident({ ...activeIncident, location: e.target.value })}
-                    />
+                    <Input value={activeIncident.location} onChange={(e) => setActiveIncident({ ...activeIncident, location: e.target.value })} />
                   </div>
                 </div>
-
                 <div>
                   <label className="text-xs font-semibold">{isAr ? "وصف الحادث التفصيلي" : "Detailed Description"}</label>
-                  <textarea
-                    className="w-full p-2 text-xs border rounded-md h-20 bg-background"
-                    value={activeIncident.description}
-                    onChange={(e) => setActiveIncident({ ...activeIncident, description: e.target.value })}
-                  />
+                  <textarea className="w-full p-2 text-xs border rounded-md h-20 bg-background" value={activeIncident.description} onChange={(e) => setActiveIncident({ ...activeIncident, description: e.target.value })} />
                 </div>
               </TabsContent>
 
               <TabsContent value="fivewhy" className="space-y-3 pt-4">
-                <h4 className="font-semibold text-sm flex items-center gap-2">
-                  <HelpCircle className="h-4 w-4 text-blue-500" />
-                  {isAr ? "منهجية الأسباب الخمسة (5-Why Analysis)" : "5-Why Root Cause Methodology"}
-                </h4>
+                <h4 className="font-semibold text-sm flex items-center gap-2"><HelpCircle className="h-4 w-4 text-blue-500" />{isAr ? "منهجية الأسباب الخمسة (5-Why Analysis)" : "5-Why Root Cause Methodology"}</h4>
                 {activeIncident.fiveWhys.map((fw, idx) => (
                   <div key={idx} className="p-3 border rounded-lg bg-muted/30 space-y-1 text-xs">
                     <p className="font-bold text-blue-600">Why #{fw.whyNo}: {fw.question}</p>
-                    <Input
-                      value={fw.answer}
-                      placeholder={`Answer for Why #${fw.whyNo}`}
-                      onChange={(e) => {
-                        const updated = [...activeIncident.fiveWhys];
-                        updated[idx].answer = e.target.value;
-                        setActiveIncident({ ...activeIncident, fiveWhys: updated });
-                      }}
-                    />
+                    <Input value={fw.answer} placeholder={`Answer for Why #${fw.whyNo}`} onChange={(e) => {
+                      const updated = [...activeIncident.fiveWhys];
+                      updated[idx].answer = e.target.value;
+                      setActiveIncident({ ...activeIncident, fiveWhys: updated });
+                    }} />
                   </div>
                 ))}
               </TabsContent>
 
               <TabsContent value="fishbone" className="space-y-3 pt-4">
-                <h4 className="font-semibold text-sm flex items-center gap-2">
-                  <GitMerge className="h-4 w-4 text-purple-500" />
-                  {isAr ? "مخطط عظم السمكة (Ishikawa Diagram Categories)" : "Ishikawa Fishbone Cause Diagram"}
-                </h4>
+                <h4 className="font-semibold text-sm flex items-center gap-2"><GitMerge className="h-4 w-4 text-purple-500" />{isAr ? "مخطط عظم السمكة (Ishikawa Diagram Categories)" : "Ishikawa Fishbone Cause Diagram"}</h4>
                 {activeIncident.fishbone.map((fb, idx) => (
                   <div key={idx} className="flex items-center gap-3 border p-2.5 rounded-md text-xs">
                     <span className="font-bold w-44">{fb.category}:</span>
-                    <Input
-                      value={fb.cause}
-                      placeholder="Identified cause factor..."
-                      onChange={(e) => {
-                        const updated = [...activeIncident.fishbone];
-                        updated[idx].cause = e.target.value;
-                        setActiveIncident({ ...activeIncident, fishbone: updated });
-                      }}
-                    />
+                    <Input value={fb.cause} placeholder="Identified cause factor..." onChange={(e) => {
+                      const updated = [...activeIncident.fishbone];
+                      updated[idx].cause = e.target.value;
+                      setActiveIncident({ ...activeIncident, fishbone: updated });
+                    }} />
                   </div>
                 ))}
               </TabsContent>
@@ -333,35 +515,112 @@ export default function AdminIncidentsPage() {
               <TabsContent value="actions" className="space-y-3 pt-4">
                 <div>
                   <h4 className="font-semibold text-sm mb-2">{isAr ? "الدروس المستفادة (Lessons Learned)" : "Lessons Learned Bulletin"}</h4>
-                  <textarea
-                    className="w-full p-2 text-xs border rounded-md h-16 bg-background"
-                    value={activeIncident.lessonsLearned}
-                    onChange={(e) => setActiveIncident({ ...activeIncident, lessonsLearned: e.target.value })}
-                  />
+                  <textarea className="w-full p-2 text-xs border rounded-md h-16 bg-background" value={activeIncident.lessonsLearned} onChange={(e) => setActiveIncident({ ...activeIncident, lessonsLearned: e.target.value })} />
                 </div>
               </TabsContent>
             </Tabs>
 
             <DialogFooter className="mt-4 gap-2">
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{isAr ? "إلغاء" : "Cancel"}</Button>
-              <Button variant="outline" onClick={() => window.print()} className="gap-2">
-                <Printer className="h-4 w-4" />
-                {isAr ? "طباعة تقرير RCA" : "Print RCA Report"}
-              </Button>
-              <Button
-                onClick={() => {
-                  if (activeIncident) {
-                    setIncidents(prev => prev.some(i => i.id === activeIncident.id) ? prev.map(i => i.id === activeIncident.id ? activeIncident : i) : [activeIncident, ...prev]);
-                  }
-                  setIsDialogOpen(false);
-                }}
-                className="bg-red-600 hover:bg-red-700"
-              >
+              <Button variant="outline" onClick={printIncident} className="gap-2"><Printer className="h-4 w-4" />{isAr ? "طباعة تقرير RCA" : "Print RCA Report"}</Button>
+              <Button onClick={() => {
+                if (activeIncident) {
+                  setIncidents(prev => prev.some(i => i.id === activeIncident.id) ? prev.map(i => i.id === activeIncident.id ? activeIncident : i) : [activeIncident, ...prev]);
+                }
+                setIsDialogOpen(false);
+              }} className="bg-red-600 hover:bg-red-700">
                 {isAr ? "حفظ الحادث" : "Save Incident"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      )}
+
+      {activeIncident && (
+        <div className="incident-print-report" dir={isAr ? "rtl" : "ltr"} aria-hidden="true">
+          <div className="incident-print-page">
+            <div className="incident-print-header">
+              <div className="incident-print-header-title">
+                {isAr ? "تقرير تحقيق الحادث وتحليل السبب الجذر (RCA)" : "INCIDENT INVESTIGATION & ROOT CAUSE ANALYSIS"}
+              </div>
+              <div className="incident-print-header-subtitle">
+                {isAr ? "نظام إدارة السلامة — تقرير رسمي للطباعة / PDF" : "Safety Management System — Official Print / PDF Report"}
+              </div>
+            </div>
+
+            <section className="incident-print-section incident-print-card">
+              <h2 className="incident-print-title">{esc(activeIncident.title)}</h2>
+              <div className="incident-print-grid">
+                <div><span className="incident-print-label">{isAr ? "الرقم المرجعي" : "Reference No"}</span><span className="incident-print-value">{esc(activeIncident.refNo)}</span></div>
+                <div><span className="incident-print-label">{isAr ? "نوع الحادث" : "Incident Type"}</span><span className="incident-print-value">{esc(activeIncident.type)}</span></div>
+                <div><span className="incident-print-label">{isAr ? "التاريخ والوقت" : "Date & Time"}</span><span className="incident-print-value">{esc(activeIncident.date)} — {esc(activeIncident.time)}</span></div>
+                <div><span className="incident-print-label">{isAr ? "الخطورة" : "Severity"}</span><span className="incident-print-badge" style={{ background: activeIncident.severity === "Critical" ? "#fee2e2" : activeIncident.severity === "High" ? "#ffedd5" : activeIncident.severity === "Medium" ? "#fef3c7" : "#dcfce7", color: activeIncident.severity === "Critical" ? "#991b1b" : activeIncident.severity === "High" ? "#9a3412" : activeIncident.severity === "Medium" ? "#92400e" : "#166534" }}>{activeIncident.severity}</span></div>
+                <div><span className="incident-print-label">{isAr ? "الموقع" : "Location"}</span><span className="incident-print-value">{esc(activeIncident.location)}</span></div>
+                <div><span className="incident-print-label">{isAr ? "القسم / المصنع" : "Department / Factory"}</span><span className="incident-print-value">{esc(activeIncident.department)} / {esc(activeIncident.factory)}</span></div>
+                <div><span className="incident-print-label">{isAr ? "المبلّغ" : "Reported By"}</span><span className="incident-print-value">{esc(activeIncident.reportedBy)}</span></div>
+                <div><span className="incident-print-label">{isAr ? "الحالة" : "Status"}</span><span className="incident-print-value">{esc(activeIncident.status)}</span></div>
+              </div>
+            </section>
+
+            <section className="incident-print-section">
+              <div className="incident-print-section-title">{isAr ? "1. وصف الحادث" : "1. INCIDENT DESCRIPTION"}</div>
+              <div className="incident-print-card" style={{ whiteSpace: "pre-wrap", fontSize: 10, lineHeight: 1.55 }}>{esc(activeIncident.description)}</div>
+            </section>
+
+            <section className="incident-print-section">
+              <div className="incident-print-section-title">{isAr ? "2. تحليل الأسباب الخمسة (5 Why)" : "2. 5-WHY ROOT CAUSE ANALYSIS"}</div>
+              {activeIncident.fiveWhys.map((fw) => (
+                <div className="incident-print-why" key={fw.whyNo}>
+                  <strong>{isAr ? `لماذا #${fw.whyNo}:` : `Why #${fw.whyNo}:`}</strong> {esc(fw.question)}
+                  <div style={{ marginTop: 3 }}>{esc(fw.answer)}</div>
+                </div>
+              ))}
+            </section>
+
+            <section className="incident-print-section">
+              <div className="incident-print-section-title">{isAr ? "3. تحليل عظم السمكة (Ishikawa)" : "3. FISHBONE / ISHIKAWA ANALYSIS"}</div>
+              {activeIncident.fishbone.map((fb, idx) => (
+                <div className="incident-print-fishbone" key={`${fb.category}-${idx}`}>
+                  <strong>{fb.category}</strong><span> — {esc(fb.cause)}</span>
+                </div>
+              ))}
+            </section>
+
+            <section className="incident-print-section">
+              <div className="incident-print-section-title">{isAr ? "4. الإجراءات التصحيحية والوقائية" : "4. CORRECTIVE & PREVENTIVE ACTIONS"}</div>
+              <table className="incident-print-table">
+                <thead>
+                  <tr>
+                    <th>{isAr ? "الإجراء" : "Action"}</th>
+                    <th>{isAr ? "المسؤول" : "Responsible"}</th>
+                    <th>{isAr ? "التاريخ المستهدف" : "Target Date"}</th>
+                    <th>{isAr ? "الحالة" : "Status"}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeIncident.correctiveActions.map((action, idx) => (
+                    <tr className={action.status === "Closed" ? "incident-print-action-closed" : "incident-print-action-open"} key={idx}>
+                      <td>{esc(action.action)}</td>
+                      <td>{esc(action.responsible)}</td>
+                      <td>{esc(action.targetDate)}</td>
+                      <td><span className="incident-print-badge" style={{ background: action.status === "Closed" ? "#dcfce7" : "#ffedd5", color: action.status === "Closed" ? "#166534" : "#9a3412" }}>{action.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+
+            <section className="incident-print-section">
+              <div className="incident-print-section-title">{isAr ? "5. الدروس المستفادة" : "5. LESSONS LEARNED"}</div>
+              <div className="incident-print-card" style={{ whiteSpace: "pre-wrap", fontSize: 10, lineHeight: 1.55 }}>{esc(activeIncident.lessonsLearned)}</div>
+            </section>
+
+            <div className="incident-print-footer">
+              <span>{isAr ? "تقرير الحوادث — نسخة للطباعة" : "Incident Report — Print Copy"}</span>
+              <span>{activeIncident.refNo}</span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
