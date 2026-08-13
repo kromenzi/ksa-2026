@@ -16,17 +16,27 @@ export default async function handler(req: any, res: any) {
       body: JSON.stringify({ email: String(email).trim().toLowerCase(), password }),
     });
     const auth = await response.json();
-    if (!response.ok || !auth.access_token) return json(res, 401, { error: "Invalid email or password" });
+    if (!response.ok || !auth.access_token) {
+      return json(res, 401, { error: "Invalid email or password" });
+    }
 
-    // Application profile is stored in public.users and must match Supabase Auth.
+    // The production schema stores application profiles in public.profiles.
+    // The Auth user UUID must have a matching active profile.
     const userId = String(auth.user.id);
-    const profileResponse = await supabaseFetch(`/rest/v1/users?id=eq.${encodeURIComponent(userId)}&select=id,name,email,role,is_active,joined_at`);
+    const profileResponse = await supabaseFetch(
+      `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,name,role,is_active,created_at`
+    );
     if (!profileResponse.ok) {
+      const details = await profileResponse.text().catch(() => "");
+      console.error("Failed to load application profile", profileResponse.status, details);
       return json(res, 500, { error: "Failed to load application profile" });
     }
+
     const profiles = await profileResponse.json();
     const profile = profiles[0];
-    if (!profile || !profile.is_active) return json(res, 403, { error: "Account is disabled or has no application profile" });
+    if (!profile || !profile.is_active) {
+      return json(res, 403, { error: "Account is disabled or has no application profile" });
+    }
 
     setAccessCookie(res, auth.access_token);
     return json(res, 200, {
@@ -35,9 +45,10 @@ export default async function handler(req: any, res: any) {
       email: auth.user.email,
       role: profile.role,
       isActive: profile.is_active,
-      joinedAt: profile.joined_at || auth.user.created_at,
+      joinedAt: profile.created_at || auth.user.created_at,
     });
   } catch (error: any) {
+    console.error("Login failed", error);
     return json(res, error.statusCode || 500, { error: error.message || "Login failed" });
   }
 }
