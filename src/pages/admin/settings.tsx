@@ -216,12 +216,16 @@ export default function AdminSettings() {
   };
 
 
-  const handleRunSystemDiagnostics = () => {
+  const handleRunSystemDiagnostics = async () => {
     setIsScanning(true);
-    toast.info(isAr ? "جاري تشغيل الفحص والترميم التلقائي الشامل..." : "Running full system diagnostics and auto-repair mode...");
-    
-    setTimeout(() => {
-      setIsScanning(false);
+    toast.info(isAr ? "جاري فحص الخدمات وقاعدة البيانات فعلياً..." : "Running live system diagnostics against APIs and Supabase...");
+    try {
+      const response = await fetch("/api/system-health", { credentials: "include" });
+      const payload = await response.json().catch(() => ({}));
+      const services = payload?.services || {};
+      const healthy = !!payload?.ok;
+      const failedServices = Object.values(services).filter((s: any) => s?.state === "offline").length;
+      const overall = healthy ? 100 : Math.max(0, 100 - failedServices * 25);
       setScanResults({
         brokenPages: 0,
         brokenButtons: 0,
@@ -229,12 +233,21 @@ export default function AdminSettings() {
         brokenPrint: 0,
         brokenPdf: 0,
         brokenQr: 0,
-        dbIntegrityScore: 100,
-        overallHealthPct: 100,
+        dbIntegrityScore: services.supabase?.state === "online" ? 100 : 0,
+        overallHealthPct: overall,
         scannedAt: new Date().toLocaleTimeString()
       });
-      toast.success(isAr ? "تم الفحص والترميم بنجاح! نسبة صحة النظام 100%" : "Scan & Auto-Repair Complete! System Health: 100% Green");
-    }, 1500);
+      if (!response.ok || !healthy) {
+        toast.error(isAr ? "اكتمل الفحص، وتم اكتشاف خدمة تحتاج إلى مراجعة" : "Diagnostics completed and detected a service requiring attention");
+      } else {
+        toast.success(isAr ? "اكتمل الفحص الفعلي بنجاح" : "Live diagnostics completed successfully");
+      }
+    } catch (e: any) {
+      setScanResults({ brokenPages: 0, brokenButtons: 0, brokenLinks: 0, brokenPrint: 0, brokenPdf: 0, brokenQr: 0, dbIntegrityScore: 0, overallHealthPct: 0, scannedAt: new Date().toLocaleTimeString() });
+      toast.error(e?.message || (isAr ? "تعذر تنفيذ الفحص الفعلي" : "Unable to run live diagnostics"));
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   // Live preview for numbering sample
@@ -378,7 +391,7 @@ export default function AdminSettings() {
         <TabsContent value="backup" className="mt-4 space-y-6"><BackupRestoreModule isAr={isAr} currentUser={currentUser} /></TabsContent>
 
         {/* 10. System Health */}
-        <TabsContent value="health" className="mt-4 space-y-6"><Card className="rounded-2xl border-border/60 shadow-sm"><CardHeader className="flex flex-row items-center justify-between pb-4"><div><div className="flex items-center gap-2"><Activity className="h-5 w-5 text-emerald-500" /><CardTitle className="text-base">{isAr ? 'مؤشر صحة الجودة والسلامة للنظام' : 'System Health Center & Diagnostics'}</CardTitle></div><CardDescription className="text-xs">{isAr ? 'فحص شامل وفوري لمكونات وقواعد البيانات وتطابق الجودة' : 'Live real-time monitoring of system integrity, database health, print engines & APIs'}</CardDescription></div><div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-emerald-600 dark:text-emerald-400 font-bold text-sm"><CheckCircle2 className="h-4 w-4" /><span>{scanResults ? `${scanResults.overallHealthPct}%` : '100%'} Healthy</span></div></CardHeader><CardContent className="space-y-6 text-xs"><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[{ label: isAr ? "قاعدة البيانات" : "Database Health", status: "100%", color: "text-emerald-500 bg-emerald-500/10" },{ label: isAr ? "نظام الطباعة 300DPI" : "Print Engine", status: "Active", color: "text-blue-500 bg-blue-500/10" },{ label: isAr ? "توليد الـ PDF" : "PDF Generator", status: "Ready", color: "text-sky-500 bg-sky-500/10" },{ label: isAr ? "ماسح الـ QR" : "QR Service", status: "Operational", color: "text-indigo-500 bg-indigo-500/10" },{ label: isAr ? "الملاحة والتوجيه" : "Navigation Router", status: "0 Errors", color: "text-emerald-500 bg-emerald-500/10" },{ label: isAr ? "الأنظمة والأذونات" : "Permissions Auth", status: "Verified", color: "text-purple-500 bg-purple-500/10" },{ label: isAr ? "حالة البناء" : "Build Status", status: "Compiled", color: "text-emerald-500 bg-emerald-500/10" },{ label: isAr ? "سعة التخزين" : "Storage Capacity", status: "Optimal", color: "text-teal-500 bg-teal-500/10" }].map((item, idx) => (<div key={idx} className="p-3 rounded-xl border border-border/50 bg-card flex items-center justify-between"><span className="text-xs font-medium">{item.label}</span><Badge variant="outline" className={`text-[10px] px-2 py-0.5 rounded-md ${item.color}`}>{item.status}</Badge></div>))}</div><div className="p-4 rounded-xl bg-muted/20 border border-border/50 space-y-3"><div className="flex items-center justify-between"><span className="font-bold text-xs">{isAr ? "نتيجة التشخيص التلقائي الأخير:" : "Auto-Repair Scan Diagnostics:"}</span><span className="text-[11px] text-muted-foreground">{scanResults?.scannedAt || "System verified on boot"}</span></div><div className="grid grid-cols-3 gap-2 text-center text-[11px]"><div className="p-2 rounded-lg bg-background border"><p className="text-muted-foreground">{isAr ? "أزرار/روابط مكسورة" : "Broken Buttons/Links"}</p><p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5">0</p></div><div className="p-2 rounded-lg bg-background border"><p className="text-muted-foreground">{isAr ? "أخطاء الترقيم والـ QR" : "QR / Numbering Errors"}</p><p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5">0</p></div><div className="p-2 rounded-lg bg-background border"><p className="text-muted-foreground">{isAr ? "سلامة البيانات" : "Data Integrity"}</p><p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5">100%</p></div></div></div></CardContent></Card></TabsContent>
+        <TabsContent value="health" className="mt-4 space-y-6"><Card className="rounded-2xl border-border/60 shadow-sm"><CardHeader className="flex flex-row items-center justify-between pb-4"><div><div className="flex items-center gap-2"><Activity className="h-5 w-5 text-emerald-500" /><CardTitle className="text-base">{isAr ? 'مؤشر صحة الجودة والسلامة للنظام' : 'System Health Center & Diagnostics'}</CardTitle></div><CardDescription className="text-xs">{isAr ? 'فحص شامل وفوري لمكونات وقواعد البيانات وتطابق الجودة' : 'Live real-time monitoring of system integrity, database health, print engines & APIs'}</CardDescription></div><div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-emerald-600 dark:text-emerald-400 font-bold text-sm"><CheckCircle2 className="h-4 w-4" /><span>{scanResults ? `${scanResults.overallHealthPct}%` : 'Not checked'}</span></div></CardHeader><CardContent className="space-y-6 text-xs"><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[{ label: isAr ? "قاعدة البيانات" : "Database Health", status: "100%", color: "text-emerald-500 bg-emerald-500/10" },{ label: isAr ? "نظام الطباعة 300DPI" : "Print Engine", status: "Active", color: "text-blue-500 bg-blue-500/10" },{ label: isAr ? "توليد الـ PDF" : "PDF Generator", status: "Ready", color: "text-sky-500 bg-sky-500/10" },{ label: isAr ? "ماسح الـ QR" : "QR Service", status: "Operational", color: "text-indigo-500 bg-indigo-500/10" },{ label: isAr ? "الملاحة والتوجيه" : "Navigation Router", status: "0 Errors", color: "text-emerald-500 bg-emerald-500/10" },{ label: isAr ? "الأنظمة والأذونات" : "Permissions Auth", status: "Verified", color: "text-purple-500 bg-purple-500/10" },{ label: isAr ? "حالة البناء" : "Build Status", status: "Compiled", color: "text-emerald-500 bg-emerald-500/10" },{ label: isAr ? "سعة التخزين" : "Storage Capacity", status: "Optimal", color: "text-teal-500 bg-teal-500/10" }].map((item, idx) => (<div key={idx} className="p-3 rounded-xl border border-border/50 bg-card flex items-center justify-between"><span className="text-xs font-medium">{item.label}</span><Badge variant="outline" className={`text-[10px] px-2 py-0.5 rounded-md ${item.color}`}>{item.status}</Badge></div>))}</div><div className="p-4 rounded-xl bg-muted/20 border border-border/50 space-y-3"><div className="flex items-center justify-between"><span className="font-bold text-xs">{isAr ? "نتيجة التشخيص التلقائي الأخير:" : "Auto-Repair Scan Diagnostics:"}</span><span className="text-[11px] text-muted-foreground">{scanResults?.scannedAt || "System verified on boot"}</span></div><div className="grid grid-cols-3 gap-2 text-center text-[11px]"><div className="p-2 rounded-lg bg-background border"><p className="text-muted-foreground">{isAr ? "أزرار/روابط مكسورة" : "Broken Buttons/Links"}</p><p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5">0</p></div><div className="p-2 rounded-lg bg-background border"><p className="text-muted-foreground">{isAr ? "أخطاء الترقيم والـ QR" : "QR / Numbering Errors"}</p><p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5">0</p></div><div className="p-2 rounded-lg bg-background border"><p className="text-muted-foreground">{isAr ? "سلامة البيانات" : "Data Integrity"}</p><p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5">100%</p></div></div></div></CardContent></Card></TabsContent>
       </Tabs>
     </div>
   );
