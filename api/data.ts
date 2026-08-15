@@ -2,7 +2,7 @@ import { getAuthUser, getProfile, json, supabaseFetchForRequest } from "./_lib/s
 
 const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boolean; adminOnly?: boolean }> = {
   users: { table: "users", module: "users", adminOnly: true }, posts: { table: "posts", module: "content" }, sections: { table: "sections", module: "content" }, forms: { table: "form_templates", module: "content" }, reports: { table: "reports", module: "reports" },
-  "activity-logs": { table: "activity_logs", module: "activity" }, employees: { table: "employees", module: "users" }, routingRules: { table: "routing_rules", module: "settings" }, permissions: { table: "permissions", module: "settings", adminOnly: true },
+  "activity-logs": { table: "activity_logs", module: "activity" }, employees: { table: "employees", module: "users" }, "routing-rules": { table: "routing_rules", module: "settings" }, permissions: { table: "permissions", module: "settings", adminOnly: true },
   documents: { table: "documents", module: "documents" }, "section-config": { table: "section_config", module: "settings" }, "email-settings": { table: "email_config", module: "settings", single: true, adminOnly: true },
   "report-settings": { table: "report_settings", module: "settings", single: true, adminOnly: true }, "site-settings": { table: "site_settings", module: "settings", single: true, adminOnly: true },
   plants: { table: "plants", module: "settings" },
