@@ -1,10 +1,11 @@
 import { json, setAccessCookie } from "../_lib/supabase.js";
 
-const SUPABASE_URL = (process.env.SUPABASE_URL || "https://sfdpkpqokazsegsstjfs.supabase.co").replace(/\/$/, "");
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable__ve50anGhjvRKxXi6UdrcQ_SQ945faS";
+const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return json(res, 503, { error: "Authentication backend is not configured" });
   try {
     const { email, password } = req.body || {};
     if (!email || !password) return json(res, 400, { error: "Email and password are required" });
@@ -49,6 +50,6 @@ export default async function handler(req: any, res: any) {
     });
   } catch (error: any) {
     console.error("Login failed", error);
-    return json(res, 500, { error: error.message || "Login failed" });
+    return json(res, 500, { error: "Login failed" });
   }
 }
