@@ -1,0 +1,35 @@
+from pathlib import Path
+
+p = Path('src/pages/admin/safety-pyramid.tsx')
+s = p.read_text(encoding='utf-8')
+
+start = s.find('  // Print State\n')
+end = s.find('\n  const exportCSV = () => {', start)
+if start < 0 or end < 0:
+    raise SystemExit('print block markers not found')
+
+new_block = '''  // Print State — same-page print, no popup window\n  const [isNativePrinting, setIsNativePrinting] = useState(false);\n\n  const handlePrint = () => {\n    const enabledLevels = pyramidLevels.filter(lvl => lvl.enabled).sort((a, b) => a.order - b.order);\n    if (!enabledLevels.length) {\n      toast.error(isAr ? \"لا توجد مستويات مفعلة للطباعة\" : \"No enabled pyramid levels to print\");\n      return;\n    }\n\n    setIsNativePrinting(true);\n    logActivity(\"Print Safety Pyramid\", \"Printed visual safety pyramid\", \"reports\");\n    requestAnimationFrame(() => {\n      requestAnimationFrame(() => window.print());\n    });\n  };\n\n  useEffect(() => {\n    const afterPrint = () => setIsNativePrinting(false);\n    window.addEventListener(\"afterprint\", afterPrint);\n    return () => window.removeEventListener(\"afterprint\", afterPrint);\n  }, []);\n'''
+s = s[:start] + new_block + s[end:]
+
+marker = '    <div className="space-y-6 print:space-y-4" dir={isAr ? \'rtl\' : \'ltr\'}>\n'
+if marker not in s:
+    raise SystemExit('root marker not found')
+
+print_block = '''    <div className="hidden print:block bg-white text-slate-900 min-h-screen p-0" dir={isAr ? "rtl" : "ltr"}>\n      <div className="w-full max-w-[794px] mx-auto px-6 py-5">\n        <div className="flex items-start justify-between gap-6 border-b-4 border-red-600 pb-3 mb-4">\n          <div>\n            <h1 className="text-2xl font-extrabold leading-tight">{isAr ? "الهرم الأمني الديناميكي" : "Dynamic Safety Pyramid"}</h1>\n            <p className="text-xs text-slate-500 mt-1">{isAr ? "التقرير المرئي للهرم الأمني" : "Visual Safety Pyramid Report"}</p>\n          </div>\n          <div className="text-[11px] text-slate-500 text-end whitespace-nowrap">\n            HSE-PYRAMID-01<br />\n            {new Date().toLocaleDateString(isAr ? "ar-SA" : "en-US")}\n          </div>\n        </div>\n        <div className="grid grid-cols-3 gap-2 mb-4">\n          <div className="border rounded-lg p-2 text-center bg-slate-50"><div className="text-xl font-extrabold">{totalIncidents}</div><div className="text-[10px] text-slate-500">{isAr ? "إجمالي الحوادث" : "Total Incidents"}</div></div>\n          <div className="border rounded-lg p-2 text-center bg-slate-50"><div className="text-xl font-extrabold">{totalNearMisses}</div><div className="text-[10px] text-slate-500">{isAr ? "الوقائع الوشيكة" : "Near Misses"}</div></div>\n          <div className="border rounded-lg p-2 text-center bg-slate-50"><div className="text-xl font-extrabold">{totalObservations}</div><div className="text-[10px] text-slate-500">{isAr ? "الأفعال والظروف غير الآمنة" : "Unsafe Acts & Conditions"}</div></div>\n        </div>\n        <div className="w-full flex justify-center">\n          {(() => {\n            const levels = enabledLevelsForPrint(pyramidLevels);\n            const center = 450;\n            const topWidth = 120;\n            const bottomWidth = 760;\n            const segmentHeight = 84;\n            const topY = 12;\n            const step = levels.length > 1 ? (bottomWidth - topWidth) / (levels.length - 1) : 0;\n            const colors = [\"#991b1b\", \"#dc2626\", \"#f59e0b\", \"#eab308\", \"#f97316\", \"#2563eb\", \"#059669\"];\n            return (\n              <svg viewBox={`0 0 900 ${topY + levels.length * segmentHeight + 12}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">\n                {levels.map((lvl, index) => {\n                  const wTop = topWidth + step * index;\n                  const wBottom = index === levels.length - 1 ? bottomWidth : topWidth + step * (index + 1);\n                  const y = topY + index * segmentHeight;\n                  const label = isAr ? lvl.nameAr : lvl.nameEn;\n                  const count = getLevelCount(lvl.id);\n                  return (\n                    <g key={lvl.id}>\n                      <polygon points={`${center-wTop/2},${y} ${center+wTop/2},${y} ${center+wBottom/2},${y+segmentHeight} ${center-wBottom/2},${y+segmentHeight}`} fill={colors[index % colors.length]} stroke="#ffffff" strokeWidth="4" />\n                      <text x={center} y={y + 34} textAnchor="middle" fontSize={label.length > 28 ? 13 : 16} fontWeight="700" fill="#ffffff">{label}</text>\n                      <text x={center} y={y + 67} textAnchor="middle" fontSize="25" fontWeight="800" fill="#ffffff">{count}</text>\n                    </g>\n                  );\n                })}\n              </svg>\n            );\n          })()}\n        </div>\n        <div className="border-t mt-3 pt-2 text-[9px] text-slate-500 flex justify-between">\n          <span>{isAr ? "تم إنشاء التقرير من ABDULKAREM SAFETY BOARD" : "Generated by ABDULKAREM SAFETY BOARD"}</span>\n          <span>{isAr ? "الهرم الأمني الديناميكي" : "Dynamic Safety Pyramid"}</span>\n        </div>\n      </div>\n    </div>\n\n'''
+
+# Avoid needing a helper function outside the component by define it before return via a local function.
+helper = '''\n  const enabledLevelsForPrint = (levels: PyramidLevelConfig[]) => levels.filter(lvl => lvl.enabled).sort((a, b) => a.order - b.order);\n'''
+return_marker = '  return (\n'
+if helper.strip() not in s:
+    pos = s.find(return_marker)
+    if pos < 0:
+        raise SystemExit('return marker not found')
+    s = s[:pos] + helper + s[pos:]
+
+s = s.replace(marker, marker + print_block, 1)
+
+# Ensure print rendering is only active when requested; all normal UI stays hidden by print:hidden.
+s = s.replace('className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/60 p-6 rounded-3xl border border-border/50 shadow-sm backdrop-blur-sm print:hidden"', 'className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/60 p-6 rounded-3xl border border-border/50 shadow-sm backdrop-blur-sm print:hidden"', 1)
+
+p.write_text(s, encoding='utf-8')
+print('patched same-page pyramid print')
