@@ -1,0 +1,154 @@
+name: Add Dashboard HSE KPIs
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[dashboard-hse-kpis]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch dashboard
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/pages/admin/dashboard.tsx')
+          s = p.read_text(encoding='utf-8')
+          if 'nearMissCount' in s:
+              raise SystemExit('already patched')
+
+          anchor = "  const ncrClosureRate = totalNCRs > 0 ? Math.round((closedNCRs / totalNCRs) * 100) : 0;\n"
+          if anchor not in s:
+              raise SystemExit('KPI calculation anchor not found')
+
+          derived = r'''  const nearMissCount = safetyReports.filter(r => String(r.category || '').toLowerCase().includes('near miss')).length;
+  const criticalRiskCount = safetyReports.filter(r => r.riskLevel === 'critical').length;
+  const openActionItems = openReports + openNCRs;
+  const overdueNCRs = ncrs.filter(n => {
+    if (n.status === 'closed') return false;
+    const due = (n as any).dueDate;
+    return !!due && new Date(due).getTime() < Date.now();
+  }).length;
+  const reportClosureRate = totalReports > 0 ? Math.round(((totalReports - openReports) / totalReports) * 100) : 0;
+  const activeDocumentCount = documents.filter(d => (d as any).status !== 'archived').length;
+'''
+          s = s.replace(anchor, anchor + derived, 1)
+
+          cards_anchor = """        <KPICard
+          title={isAr ? \"جاهزية الطوارئ والتدقيق\" : \"Audit & Readiness\"}
+"""
+          idx = s.find(cards_anchor)
+          if idx < 0:
+              raise SystemExit('card anchor not found')
+
+          end_marker = "      </div>\n\n      <Tabs defaultValue=\"overview\""
+          if end_marker not in s:
+              raise SystemExit('KPI grid end marker not found')
+
+          extra = r'''        <KPICard
+          title={isAr ? "بلاغات شبه الحوادث" : "Near Miss Reports"}
+          value={nearMissCount}
+          subtitle={<span className="text-[11px] text-muted-foreground">{isAr ? "لرفع التعلم الوقائي" : "Leading indicator"}</span>}
+          icon={Eye}
+          color="bg-cyan-500"
+          borderColor="bg-cyan-500"
+          loading={statsLoading}
+          testId="card-near-miss"
+          badgeText="Near Miss"
+        />
+
+        <KPICard
+          title={isAr ? "المخاطر الحرجة" : "Critical Risks"}
+          value={criticalRiskCount}
+          subtitle={<span className="text-[11px] text-red-600 font-medium">{isAr ? "تحتاج معالجة فورية" : "Immediate action"}</span>}
+          icon={AlertTriangle}
+          color="bg-purple-500"
+          borderColor="bg-purple-500"
+          loading={statsLoading}
+          testId="card-critical-risk"
+          badgeText="Critical"
+        />
+
+        <KPICard
+          title={isAr ? "إجمالي الإجراءات المفتوحة" : "Open Action Items"}
+          value={openActionItems}
+          subtitle={<span className="text-[11px] text-amber-600 font-medium">{isAr ? "تقارير + NCR" : "Reports + NCRs"}</span>}
+          icon={Clock}
+          color="bg-orange-500"
+          borderColor="bg-orange-500"
+          loading={statsLoading}
+          testId="card-open-actions"
+          badgeText="Actions"
+        />
+
+        <KPICard
+          title={isAr ? "NCR متأخرة" : "Overdue NCRs"}
+          value={overdueNCRs}
+          subtitle={<span className="text-[11px] text-rose-600 font-medium">{isAr ? "حسب تاريخ الاستحقاق" : "Past due date"}</span>}
+          icon={Clock}
+          color="bg-rose-500"
+          borderColor="bg-rose-500"
+          loading={statsLoading}
+          testId="card-overdue-ncrs"
+          badgeText="Overdue"
+        />
+
+        <KPICard
+          title={isAr ? "إغلاق التقارير" : "Report Closure Rate"}
+          value={`${reportClosureRate}%`}
+          subtitle={<Progress value={reportClosureRate} className="h-1.5 mt-1" />}
+          icon={CheckCircle2}
+          color="bg-emerald-500"
+          borderColor="bg-emerald-500"
+          loading={statsLoading}
+          testId="card-report-closure"
+          badgeText="Closeout"
+        />
+
+        <KPICard
+          title={isAr ? "الوثائق النشطة" : "Active Documents"}
+          value={activeDocumentCount}
+          subtitle={<span className="text-[11px] text-muted-foreground">{isAr ? "المستندات غير المؤرشفة" : "Not archived"}</span>}
+          icon={FileText}
+          color="bg-sky-500"
+          borderColor="bg-sky-500"
+          loading={statsLoading}
+          testId="card-active-documents"
+          badgeText="Docs"
+        />
+
+'''
+          s = s.replace(end_marker, extra + end_marker, 1)
+          p.write_text(s, encoding='utf-8')
+
+      - name: Verify
+        run: |
+          grep -q 'nearMissCount' src/pages/admin/dashboard.tsx
+          grep -q 'card-overdue-ncrs' src/pages/admin/dashboard.tsx
+          grep -q 'card-open-actions' src/pages/admin/dashboard.tsx
+
+      - name: Build verification
+        run: |
+          npm ci
+          npm run build
+
+      - name: Commit and clean up
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/pages/admin/dashboard.tsx
+          git commit -m 'feat: add HSE dashboard KPIs [dashboard-hse-kpis]'
+          git push
+          rm -f .github/workflows/add-dashboard-hse-kpis.yml
+          git add .github/workflows/add-dashboard-hse-kpis.yml
+          git commit -m 'chore: remove dashboard KPI patch workflow' || true
+          git push
