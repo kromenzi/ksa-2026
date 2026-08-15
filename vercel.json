@@ -1,29 +1,35 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    {
-      "source": "/api/departments",
-      "destination": "/api/ncr?resource=departments"
-    },
-    {
-      "source": "/api/departments/:id",
-      "destination": "/api/ncr?resource=departments&id=:id"
-    },
-    {
-      "source": "/api/safety-signs",
-      "destination": "/api/ncr?resource=safety-signs"
-    },
-    {
-      "source": "/api/safety-signs/:id",
-      "destination": "/api/ncr?resource=safety-signs&id=:id"
-    },
-    {
-      "source": "/api/safety-signs/:id/:action",
-      "destination": "/api/ncr?resource=safety-signs&id=:id&action=:action"
-    },
-    {
-      "source": "/((?!api(?:/|$)).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/api/users", "destination": "/api/data?resource=users" },
+    { "source": "/api/users/:id", "destination": "/api/data?resource=users&id=:id" },
+    { "source": "/api/posts", "destination": "/api/data?resource=posts" },
+    { "source": "/api/posts/:id", "destination": "/api/data?resource=posts&id=:id" },
+    { "source": "/api/sections", "destination": "/api/data?resource=sections" },
+    { "source": "/api/sections/:id", "destination": "/api/data?resource=sections&id=:id" },
+    { "source": "/api/forms", "destination": "/api/data?resource=forms" },
+    { "source": "/api/forms/:id", "destination": "/api/data?resource=forms&id=:id" },
+    { "source": "/api/reports", "destination": "/api/data?resource=reports" },
+    { "source": "/api/reports/:id", "destination": "/api/data?resource=reports&id=:id" },
+    { "source": "/api/activity-logs", "destination": "/api/data?resource=activity-logs" },
+    { "source": "/api/activity-logs/:id", "destination": "/api/data?resource=activity-logs&id=:id" },
+    { "source": "/api/employees", "destination": "/api/data?resource=employees" },
+    { "source": "/api/employees/:id", "destination": "/api/data?resource=employees&id=:id" },
+    { "source": "/api/routing-rules", "destination": "/api/data?resource=routing-rules" },
+    { "source": "/api/routing-rules/:id", "destination": "/api/data?resource=routing-rules&id=:id" },
+    { "source": "/api/permissions", "destination": "/api/data?resource=permissions" },
+    { "source": "/api/documents", "destination": "/api/data?resource=documents" },
+    { "source": "/api/documents/:id", "destination": "/api/data?resource=documents&id=:id" },
+    { "source": "/api/section-config", "destination": "/api/data?resource=section-config" },
+    { "source": "/api/section-config/:id", "destination": "/api/data?resource=section-config&id=:id" },
+    { "source": "/api/email-settings", "destination": "/api/data?resource=email-settings" },
+    { "source": "/api/report-settings", "destination": "/api/data?resource=report-settings" },
+    { "source": "/api/site-settings", "destination": "/api/data?resource=site-settings" },
+    { "source": "/api/departments", "destination": "/api/ncr?resource=departments" },
+    { "source": "/api/departments/:id", "destination": "/api/ncr?resource=departments&id=:id" },
+    { "source": "/api/safety-signs", "destination": "/api/safety-signs" },
+    { "source": "/api/safety-signs/:id", "destination": "/api/safety-signs?id=:id" },
+    { "source": "/api/safety-signs/:id/:action", "destination": "/api/safety-signs?id=:id&action=:action" },
+    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
   ]
 }
