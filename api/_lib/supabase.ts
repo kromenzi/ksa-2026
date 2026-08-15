@@ -66,11 +66,10 @@ export async function getProfile(req: any) {
   const token = getAccessToken(req);
   if (!token) return null;
 
-  // Application profile reads intentionally use the same verified Supabase user JWT
-  // that successfully authenticated the request. This keeps RLS and Auth aligned
-  // and avoids depending on a potentially stale/mismatched server-role variable.
+  // Use the same verified Supabase user JWT for the application profile lookup.
+  // The users table uses joined_at (not created_at).
   const response = await fetch(
-    `${url}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(user.id))}&select=id,name,role,is_active,joined_at,created_at&limit=1`,
+    `${url}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(user.id))}&select=id,name,role,is_active,joined_at&limit=1`,
     {
       headers: {
         apikey: anonKey,
