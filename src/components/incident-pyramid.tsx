@@ -125,9 +125,21 @@ body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!importa
 <footer class="footer"><span>ABDULKAREM SAFETY BOARD</span><span>${isAr ? "تقرير هرم الحوادث" : "Incident Pyramid Report"}</span></footer>
 </main><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),120));</script></body></html>`;
 
-  const popup = window.open("", "_blank", "noopener,noreferrer");
-  if (!popup) { window.print(); return; }
-  popup.document.open(); popup.document.write(printHtml); popup.document.close();
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  Object.assign(iframe.style, { position: "fixed", right: "0", bottom: "0", width: "1px", height: "1px", border: "0", opacity: "0", pointerEvents: "none" });
+  document.body.appendChild(iframe);
+  const frameDoc = iframe.contentDocument;
+  const frameWin = iframe.contentWindow;
+  if (!frameDoc || !frameWin) { iframe.remove(); window.print(); return; }
+  frameDoc.open();
+  frameDoc.write(printHtml);
+  frameDoc.close();
+  window.setTimeout(() => {
+    try { frameWin.focus(); frameWin.print(); }
+    finally { window.setTimeout(() => iframe.remove(), 1000); }
+  }, 300);
+
 }
 
 export function IncidentPyramid({ month: propMonth, year: propYear, monthlyData: propMonthlyData, ytdData: propYtdData, className, onNavigateToRecords }: IncidentPyramidProps) {
