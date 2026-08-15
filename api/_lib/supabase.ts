@@ -37,11 +37,19 @@ export function json(res: any, status: number, body: unknown) {
 }
 
 export function getAccessToken(req: any) {
-  const authorization = req.headers.authorization;
+  const authorization = req?.headers?.authorization;
   if (authorization?.startsWith("Bearer ")) return authorization.slice(7);
-  const cookie = req.headers.cookie || "";
-  const match = cookie.match(/(?:^|;\s*)sb_access_token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  const cookieHeader = req?.headers?.cookie || "";
+  const parts = cookieHeader.split(/;\s*/);
+  for (const part of parts) {
+    const eq = part.indexOf("=");
+    if (eq < 0) continue;
+    const key = part.slice(0, eq);
+    const value = part.slice(eq + 1);
+    if (key !== "sb_access_token") continue;
+    try { return decodeURIComponent(value); } catch { return value; }
+  }
+  return null;
 }
 
 export async function getAuthUser(req: any) {
@@ -60,7 +68,7 @@ export async function getProfile(req: any) {
   if (!user?.id) return null;
   const token = getAccessToken(req);
   const response = await fetch(
-    `${url}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(user.id)}&select=id,name,email,role,is_active,joined_at,auth_user_id`,
+    `${url}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(user.id))}&select=id,name,email,role,is_active,joined_at,auth_user_id`,
     {
       headers: {
         apikey: anonKey,
