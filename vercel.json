@@ -10,6 +10,18 @@
       "destination": "/api/ncr?resource=departments&id=:id"
     },
     {
+      "source": "/api/safety-signs",
+      "destination": "/api/ncr?resource=safety-signs"
+    },
+    {
+      "source": "/api/safety-signs/:id",
+      "destination": "/api/ncr?resource=safety-signs&id=:id"
+    },
+    {
+      "source": "/api/safety-signs/:id/:action",
+      "destination": "/api/ncr?resource=safety-signs&id=:id&action=:action"
+    },
+    {
       "source": "/((?!api(?:/|$)).*)",
       "destination": "/index.html"
     }
