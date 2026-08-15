@@ -44,6 +44,7 @@ import AdminCompliance from "@/pages/admin/compliance";
 import AdminLicenses from "@/pages/admin/licenses";
 import AdminEquipmentAuth from "@/pages/admin/equipment-auth";
 import AdminSafetyPyramid from "@/pages/admin/safety-pyramid";
+import AdminSafetyPyramidPrint from "@/pages/admin/safety-pyramid-print";
 import EscalationDashboard from "@/pages/admin/escalations/dashboard";
 import EscalationHistory from "@/pages/admin/escalations/history";
 import EscalationMatrix from "@/pages/admin/escalations/matrix";
@@ -133,6 +134,7 @@ function Router() {
       <Route path="/admin/licenses"><ProtectedRoute component={AdminLicenses} /></Route>
       <Route path="/admin/equipment-auth"><ProtectedRoute component={AdminEquipmentAuth} /></Route>
       <Route path="/admin/safety-pyramid"><ProtectedRoute component={AdminSafetyPyramid} /></Route>
+      <Route path="/admin/safety-pyramid-print" component={AdminSafetyPyramidPrint} />
       <Route path="/admin/escalations"><ProtectedRoute component={EscalationDashboard} /></Route>
       <Route path="/admin/escalations/history"><ProtectedRoute component={EscalationHistory} /></Route>
       <Route path="/admin/escalations/matrix"><ProtectedRoute component={EscalationMatrix} /></Route>
