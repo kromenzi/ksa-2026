@@ -15,7 +15,11 @@ import {
   Lock, 
   Activity, 
   Award, 
-  Trash2
+  Trash2,
+  Eye,
+  Printer,
+  Send,
+  Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -140,6 +144,9 @@ export default function AdminEquipmentAuth() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isViewQRModal, setIsViewQRModal] = useState(false);
   const [activeAuth, setActiveAuth] = useState<EquipmentAuth | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isSendOpen, setIsSendOpen] = useState(false);
+  const [sendEmail, setSendEmail] = useState("");
 
   const [formData, setFormData] = useState({
     employeeName: "",
@@ -197,6 +204,24 @@ export default function AdminEquipmentAuth() {
   const deleteAuth = (id: string) => {
     setAuthorizations(authorizations.filter(a => a.id !== id));
     toast.success(isAr ? "تم الحذف بنجاح" : "Authorization deleted successfully");
+  };
+
+  const handlePrintAuth = (auth: EquipmentAuth) => {
+    const popup = window.open("", "_blank", "width=1100,height=850");
+    if (!popup) { toast.error(isAr ? "اسمح بالنوافذ المنبثقة للطباعة" : "Allow pop-ups to print"); return; }
+    const escapeHtml = (v: string) => v.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
+    popup.document.write(`<!doctype html><html dir="${isAr ? 'rtl' : 'ltr'}"><head><meta charset="utf-8"><title>${escapeHtml(auth.certificateNo)}</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Arial,Tahoma,sans-serif;background:#fff;color:#0f172a;margin:0}.sheet{border:4px solid #0f766e;border-radius:18px;padding:30px;min-height:185mm;box-sizing:border-box}.brand{font-size:26px;font-weight:800;color:#0f766e}.head{display:flex;justify-content:space-between;border-bottom:2px solid #d1d5db;padding-bottom:15px}.title{font-size:24px;font-weight:800;margin:20px 0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.cell{border:1px solid #cbd5e1;border-radius:9px;padding:10px}.label{font-size:10px;color:#64748b}.value{font-size:14px;font-weight:700;margin-top:3px}.footer{margin-top:28px;display:grid;grid-template-columns:repeat(3,1fr);gap:30px;text-align:center;font-size:11px}.sig{border-top:1px solid #64748b;padding-top:6px}</style></head><body><div class="sheet"><div class="head"><div><div class="brand">ABDULKAREM SAFETY BOARD</div><div style="color:#64748b">${isAr ? 'تفويض رسمي لتشغيل المعدة' : 'Official Equipment Authorization'}</div></div><div style="font-weight:700">${escapeHtml(auth.certificateNo)}</div></div><div class="title">${isAr ? 'تفويض رسمي لتشغيل المعدة' : 'OFFICIAL EQUIPMENT AUTHORIZATION'}</div><div class="grid"><div class="cell"><div class="label">${isAr ? 'اسم الموظف' : 'Employee Name'}</div><div class="value">${escapeHtml(auth.employeeName)}</div></div><div class="cell"><div class="label">${isAr ? 'الرقم الوظيفي' : 'Employee ID'}</div><div class="value">${escapeHtml(auth.employeeId)}</div></div><div class="cell"><div class="label">${isAr ? 'القسم' : 'Department'}</div><div class="value">${escapeHtml(auth.department)}</div></div><div class="cell"><div class="label">${isAr ? 'الفئة' : 'Category'}</div><div class="value">${escapeHtml(auth.category)}</div></div><div class="cell"><div class="label">${isAr ? 'المعدة' : 'Equipment'}</div><div class="value">${escapeHtml(auth.equipmentModel || '—')}</div></div><div class="cell"><div class="label">${isAr ? 'رقم الشهادة' : 'Certificate No.'}</div><div class="value">${escapeHtml(auth.certificateNo)}</div></div><div class="cell"><div class="label">${isAr ? 'الإصدار' : 'Issue Date'}</div><div class="value">${escapeHtml(auth.issueDate)}</div></div><div class="cell"><div class="label">${isAr ? 'الانتهاء' : 'Expiry Date'}</div><div class="value">${escapeHtml(auth.expiryDate)}</div></div><div class="cell"><div class="label">${isAr ? 'الحالة' : 'Status'}</div><div class="value">${escapeHtml(auth.status)}</div></div></div><div style="margin-top:16px"><b>${isAr ? 'مرجع التدريب:' : 'Training Ref:'}</b> ${escapeHtml(auth.trainingRef || '—')} &nbsp; <b>${isAr ? 'المقيم:' : 'Assessor:'}</b> ${escapeHtml(auth.assessorName || '—')}</div><div class="footer"><div class="sig">HSE Manager / مدير السلامة</div><div class="sig">Assessor / المقيم</div><div class="sig">Employee / الموظف</div></div></div><script>setTimeout(()=>window.print(),250)</script></body></html>`);
+    popup.document.close();
+  };
+
+  const handleSendAuth = () => {
+    if (!activeAuth) return;
+    const email = sendEmail.trim();
+    if (!email) { toast.error(isAr ? "أدخل البريد الإلكتروني" : "Enter an email address"); return; }
+    const subject = `${isAr ? 'تفويض معدات' : 'Equipment Authorization'} - ${activeAuth.certificateNo}`;
+    const body = `${isAr ? 'تفويض تشغيل معدات رسمي' : 'Official Equipment Authorization'}\n\nEmployee: ${activeAuth.employeeName}\nEmployee ID: ${activeAuth.employeeId}\nCategory: ${activeAuth.category}\nEquipment: ${activeAuth.equipmentModel || '—'}\nCertificate: ${activeAuth.certificateNo}\nIssue: ${activeAuth.issueDate}\nExpiry: ${activeAuth.expiryDate}\nStatus: ${activeAuth.status}`;
+    window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setIsSendOpen(false);
   };
 
   const filtered = authorizations.filter(item => {
@@ -398,25 +423,12 @@ export default function AdminEquipmentAuth() {
                       )}
                     </td>
                     <td className="py-4 px-5 text-end">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-xl text-blue-500 hover:bg-blue-500/10"
-                          title={isAr ? "عرض رمز الاستجابة السريعة (QR)" : "View QR Verification"}
-                          onClick={() => { setActiveAuth(item); setIsViewQRModal(true); }}
-                        >
-                          <QrCode className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-xl text-destructive hover:bg-destructive/10"
-                          title={isAr ? "حذف" : "Delete"}
-                          onClick={() => deleteAuth(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-blue-500 hover:bg-blue-500/10" title={isAr ? "معاينة" : "Preview"} onClick={() => { setActiveAuth(item); setIsPreviewOpen(true); }}><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-violet-500 hover:bg-violet-500/10" title={isAr ? "طباعة" : "Print"} onClick={() => handlePrintAuth(item)}><Printer className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-emerald-500 hover:bg-emerald-500/10" title={isAr ? "إرسال" : "Send"} onClick={() => { setActiveAuth(item); setIsSendOpen(true); }}><Send className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-cyan-500 hover:bg-cyan-500/10" title={isAr ? "عرض QR" : "View QR"} onClick={() => { setActiveAuth(item); setIsViewQRModal(true); }}><QrCode className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-red-500 hover:bg-red-500/10" title={isAr ? "حذف" : "Delete"} onClick={() => deleteAuth(item.id)}><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </td>
                   </tr>
@@ -562,6 +574,22 @@ export default function AdminEquipmentAuth() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-3xl rounded-3xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6"><DialogTitle>{isAr ? 'معاينة تفويض المعدات' : 'Equipment Authorization Preview'}</DialogTitle><DialogDescription>{isAr ? 'معاينة المستند الرسمي قبل الطباعة.' : 'Preview the official authorization before printing.'}</DialogDescription></DialogHeader>
+          {activeAuth && <div className="mx-6 mb-6 border-4 border-emerald-700 rounded-3xl bg-white text-slate-900 p-7 shadow-xl" dir={isAr ? 'rtl' : 'ltr'}><div className="flex items-start justify-between border-b pb-5"><div><div className="text-2xl font-extrabold text-emerald-700">ABDULKAREM SAFETY BOARD</div><div className="text-sm text-slate-500">{isAr ? 'تفويض رسمي لتشغيل المعدة' : 'OFFICIAL EQUIPMENT AUTHORIZATION'}</div></div><div className="rounded-xl border px-3 py-2 text-xs font-bold">{activeAuth.certificateNo}</div></div><div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">{[[isAr?'اسم الموظف':'Employee Name',activeAuth.employeeName],[isAr?'الرقم الوظيفي':'Employee ID',activeAuth.employeeId],[isAr?'القسم':'Department',activeAuth.department],[isAr?'الفئة':'Category',activeAuth.category],[isAr?'المعدة':'Equipment',activeAuth.equipmentModel||'—'],[isAr?'الإصدار':'Issue Date',activeAuth.issueDate],[isAr?'الانتهاء':'Expiry Date',activeAuth.expiryDate],[isAr?'الحالة':'Status',activeAuth.status],[isAr?'مرجع التدريب':'Training Ref',activeAuth.trainingRef||'—']].map(([label,value]) => <div key={String(label)} className="border rounded-xl p-3"><div className="text-xs text-slate-500">{label}</div><div className="font-bold mt-1">{value}</div></div>)}</div><div className="mt-6 grid grid-cols-3 gap-6 text-center text-xs text-slate-600"><div className="border-t pt-2">HSE Manager</div><div className="border-t pt-2">Assessor</div><div className="border-t pt-2">Employee</div></div></div>}
+          <DialogFooter className="px-6 pb-6"><Button variant="outline" onClick={() => setIsPreviewOpen(false)}>{isAr ? 'إغلاق' : 'Close'}</Button>{activeAuth && <Button onClick={() => handlePrintAuth(activeAuth)} className="gap-2"><Printer className="h-4 w-4" />{isAr ? 'طباعة' : 'Print'}</Button>}</DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSendOpen} onOpenChange={setIsSendOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-6">
+          <DialogHeader><DialogTitle>{isAr ? 'إرسال تفويض المعدات' : 'Send Equipment Authorization'}</DialogTitle><DialogDescription>{isAr ? 'سيتم فتح تطبيق البريد لإرسال بيانات التفويض.' : 'Your email app will open with the authorization details.'}</DialogDescription></DialogHeader>
+          {activeAuth && <div className="space-y-4"><div className="rounded-2xl border p-4 bg-muted/30"><div className="font-bold">{activeAuth.employeeName}</div><div className="text-sm text-muted-foreground">{activeAuth.certificateNo} • {activeAuth.category}</div></div><div className="space-y-2"><Label>{isAr ? 'البريد الإلكتروني' : 'Email Address'}</Label><div className="relative"><Mail className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="email" className="ps-9 rounded-2xl" value={sendEmail} onChange={e => setSendEmail(e.target.value)} placeholder="name@example.com" /></div></div></div>}
+          <DialogFooter><Button variant="outline" onClick={() => setIsSendOpen(false)}>{isAr ? 'إلغاء' : 'Cancel'}</Button><Button onClick={handleSendAuth} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"><Send className="h-4 w-4" />{isAr ? 'إرسال' : 'Send'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

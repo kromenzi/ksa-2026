@@ -83,6 +83,7 @@ interface NavItem {
   visible: boolean;
   color: string;
   bgColor: string;
+  children?: NavItem[];
 }
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -92,7 +93,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<number, boolean>>({});
+  const [collapsedItems, setCollapsedItems] = useState<Record<string, boolean>>({});
   const isAr = settings.language === 'ar';
+
+  const toggleItem = (key: string) => {
+    setCollapsedItems(prev => ({ ...prev, [key]: !(prev[key] ?? true) }));
+  };
 
   const toggleGroup = (index: number) => {
     setCollapsedGroups(prev => ({
@@ -174,16 +180,22 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         { label: isAr ? 'لوحة القيادة' : 'Dashboard', icon: LayoutDashboard, href: "/admin/licenses", visible: true, color: "text-blue-500", bgColor: "bg-blue-500/10" },
         { label: isAr ? 'التراخيص' : 'Licenses', icon: CreditCard, href: "/admin/licenses", visible: true, color: "text-amber-500", bgColor: "bg-amber-500/10" },
         { label: isAr ? 'التدريب والكفاءة' : 'Training & Competency', icon: GraduationCap, href: "/admin/trainings", visible: true, color: "text-indigo-500", bgColor: "bg-indigo-500/10" },
-        { label: isAr ? 'تفويض المعدات' : 'Equipment Authorization', icon: ShieldCheck, href: "/admin/equipment-auth", visible: true, color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
-        { label: isAr ? 'رافعة شوكية (Forklift)' : 'Forklift', icon: Truck, href: "/admin/equipment-auth", visible: true, color: "text-blue-600", bgColor: "bg-blue-600/10" },
-        { label: isAr ? 'ونش علوي (Overhead Crane)' : 'Overhead Crane', icon: Wrench, href: "/admin/equipment-auth", visible: true, color: "text-orange-500", bgColor: "bg-orange-500/10" },
-        { label: isAr ? 'رافعات الأفراد (Lifter / Manlift)' : 'Lifter / Manlift', icon: Activity, href: "/admin/equipment-auth", visible: true, color: "text-purple-500", bgColor: "bg-purple-500/10" },
-        { label: isAr ? 'منصات العمل المتحركة (MEWP)' : 'MEWP', icon: Truck, href: "/admin/equipment-auth", visible: true, color: "text-cyan-500", bgColor: "bg-cyan-500/10" },
-        { label: isAr ? 'الربط والإشارات (Rigging & Banksman)' : 'Rigging & Banksman', icon: Award, href: "/admin/equipment-auth", visible: true, color: "text-amber-600", bgColor: "bg-amber-600/10" },
-        { label: isAr ? 'التفويض الكهربائي (Electrical)' : 'Electrical Authorization', icon: Zap, href: "/admin/equipment-auth", visible: true, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
-        { label: isAr ? 'عزل الطاقة (LOTO)' : 'LOTO Authorization', icon: Lock, href: "/admin/equipment-auth", visible: true, color: "text-rose-600", bgColor: "bg-rose-600/10" },
-        { label: isAr ? 'العمل على ارتفاعات' : 'Work at Height', icon: ShieldAlert, href: "/admin/equipment-auth", visible: true, color: "text-sky-600", bgColor: "bg-sky-600/10" },
-        { label: isAr ? 'الأماكن المغلقة' : 'Confined Space', icon: AlertTriangle, href: "/admin/equipment-auth", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },
+        {
+          label: isAr ? 'تفويض المعدات' : 'Equipment Authorization',
+          icon: ShieldCheck, href: "/admin/equipment-auth", visible: true, color: "text-emerald-500", bgColor: "bg-emerald-500/10",
+          children: [
+            { label: isAr ? 'لوحة تفويض المعدات' : 'Authorization Dashboard', icon: ShieldCheck, href: "/admin/equipment-auth", visible: true, color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
+            { label: isAr ? 'رافعة شوكية (Forklift)' : 'Forklift', icon: Truck, href: "/admin/equipment-auth", visible: true, color: "text-blue-600", bgColor: "bg-blue-600/10" },
+            { label: isAr ? 'ونش علوي (Overhead Crane)' : 'Overhead Crane', icon: Wrench, href: "/admin/equipment-auth", visible: true, color: "text-orange-500", bgColor: "bg-orange-500/10" },
+            { label: isAr ? 'رافعات الأفراد (Lifter / Manlift)' : 'Lifter / Manlift', icon: Activity, href: "/admin/equipment-auth", visible: true, color: "text-purple-500", bgColor: "bg-purple-500/10" },
+            { label: isAr ? 'منصات العمل المتحركة (MEWP)' : 'MEWP', icon: Truck, href: "/admin/equipment-auth", visible: true, color: "text-cyan-500", bgColor: "bg-cyan-500/10" },
+            { label: isAr ? 'الربط والإشارات (Rigging & Banksman)' : 'Rigging & Banksman', icon: Award, href: "/admin/equipment-auth", visible: true, color: "text-amber-600", bgColor: "bg-amber-600/10" },
+            { label: isAr ? 'التفويض الكهربائي (Electrical)' : 'Electrical Authorization', icon: Zap, href: "/admin/equipment-auth", visible: true, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
+            { label: isAr ? 'عزل الطاقة (LOTO)' : 'LOTO Authorization', icon: Lock, href: "/admin/equipment-auth", visible: true, color: "text-rose-600", bgColor: "bg-rose-600/10" },
+            { label: isAr ? 'العمل على ارتفاعات' : 'Work at Height', icon: ShieldAlert, href: "/admin/equipment-auth", visible: true, color: "text-sky-600", bgColor: "bg-sky-600/10" },
+            { label: isAr ? 'الأماكن المغلقة' : 'Confined Space', icon: AlertTriangle, href: "/admin/equipment-auth", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },
+          ]
+        },
         { label: isAr ? 'العناصر منتهية الصلاحية' : 'Expiring Items', icon: Clock, href: "/admin/licenses", visible: true, color: "text-amber-500", bgColor: "bg-amber-500/10" },
         { label: isAr ? 'مصفوفة الكفاءة' : 'Competency Matrix', icon: Grid, href: "/admin/training-matrix", visible: true, color: "text-teal-500", bgColor: "bg-teal-500/10" },
         { label: isAr ? 'تقارير التفويض' : 'Authorization Reports', icon: ScrollText, href: "/admin/enterprise-reports", visible: true, color: "text-slate-400", bgColor: "bg-slate-500/10" },
@@ -323,6 +335,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 const isActive = location === item.href || location.startsWith(`${item.href}/`);
                 const ItemIcon = item.icon;
                 const uniqueKey = `${item.href}-${ii}`;
+                const hasChildren = Boolean(item.children?.length);
+                const childKey = `${gi}-${ii}`;
+                const isItemCollapsed = collapsedItems[childKey] ?? true;
                 
                 if (isCollapsed && !mobile) {
                   return (
@@ -357,33 +372,45 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   );
                 }
 
+                if (hasChildren) {
+                  return (
+                    <div key={uniqueKey} className="mb-1">
+                      <button type="button" onClick={() => toggleItem(childKey)} className={cn(
+                        "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all duration-150 group relative mx-1 mb-0.5 text-white/80 hover:bg-white/[0.05] hover:text-white"
+                      )}>
+                        <div className="h-6 w-6 rounded-md flex items-center justify-center bg-emerald-500/10 shrink-0"><ItemIcon className={cn("h-3.5 w-3.5", item.color)} /></div>
+                        <span className="truncate leading-none flex-1 text-start">{item.label}</span>
+                        <ChevronDown className={cn("h-3.5 w-3.5 text-white/60 transition-transform", isItemCollapsed && "-rotate-90 rtl:rotate-90")} />
+                      </button>
+                      {!isItemCollapsed && (item.children || []).filter(child => child.visible).map((child, ci) => {
+                        const ChildIcon = child.icon;
+                        const childActive = location === child.href || location.startsWith(`${child.href}/`);
+                        return <Link key={`${child.href}-${ci}`} href={child.href}>
+                          <div className={cn(
+                            "flex items-center gap-2 px-2 py-1.5 rounded-lg text-[10.5px] transition-all mx-3 mb-0.5 border border-transparent",
+                            childActive ? "bg-primary/15 text-white ring-1 ring-primary/20" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                          )} onClick={() => setIsMobileOpen(false)}>
+                            <div className={cn("h-5 w-5 rounded-md flex items-center justify-center", childActive ? child.bgColor : "bg-white/[0.03]")}><ChildIcon className={cn("h-3 w-3", childActive ? child.color : "text-white/50")} /></div>
+                            <span className="truncate">{child.label}</span>
+                          </div>
+                        </Link>;
+                      })}
+                    </div>
+                  );
+                }
+
                 return (
                   <Link key={uniqueKey} href={item.href}>
-                    <div 
-                      className={cn(
-                        "flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-medium transition-all duration-150 cursor-pointer group relative mx-1 mb-0.5",
-                        isActive 
-                          ? "bg-primary/15 text-white shadow-sm ring-1 ring-primary/30 font-semibold" 
-                          : "text-white/70 hover:bg-white/[0.05] hover:text-white"
-                      )}
-                      onClick={() => setIsMobileOpen(false)}
-                    >
-                      {isActive && (
-                        <div className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-primary shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
-                      )}
-                      <div className={cn(
-                        "h-6 w-6 rounded-md flex items-center justify-center transition-all duration-150 shrink-0",
-                        isActive ? item.bgColor : "bg-white/[0.03] group-hover:bg-white/[0.07]"
-                      )}>
-                        <ItemIcon className={cn(
-                          "h-3.5 w-3.5 transition-all duration-150",
-                          isActive ? item.color : "text-white/50 group-hover:text-white"
-                        )} />
+                    <div className={cn(
+                      "flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-medium transition-all duration-150 cursor-pointer group relative mx-1 mb-0.5",
+                      isActive ? "bg-primary/15 text-white shadow-sm ring-1 ring-primary/30 font-semibold" : "text-white/70 hover:bg-white/[0.05] hover:text-white"
+                    )} onClick={() => setIsMobileOpen(false)}>
+                      {isActive && <div className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-primary shadow-[0_0_8px_rgba(59,130,246,0.6)]" />}
+                      <div className={cn("h-6 w-6 rounded-md flex items-center justify-center transition-all duration-150 shrink-0", isActive ? item.bgColor : "bg-white/[0.03] group-hover:bg-white/[0.07]")}>
+                        <ItemIcon className={cn("h-3.5 w-3.5 transition-all duration-150", isActive ? item.color : "text-white/50 group-hover:text-white")} />
                       </div>
                       <span className="truncate leading-none">{item.label}</span>
-                      {isActive && (
-                        <ChevronRight className="h-3 w-3 ms-auto text-primary/70 rtl:rotate-180 shrink-0" />
-                      )}
+                      {isActive && <ChevronRight className="h-3 w-3 ms-auto text-primary/70 rtl:rotate-180 shrink-0" />}
                     </div>
                   </Link>
                 );
