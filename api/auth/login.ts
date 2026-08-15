@@ -15,11 +15,14 @@ export default async function handler(req: any, res: any) {
       headers: { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" },
       body: JSON.stringify({ email: String(email).trim().toLowerCase(), password }),
     });
-    const auth = await response.json();
-    if (!response.ok || !auth.access_token || !auth.user?.id) return json(res, 401, { error: "Invalid email or password" });
+    const auth = await response.json().catch(() => ({}));
+    if (!response.ok || !auth.access_token || !auth.user?.id) {
+      const errorMessage = response.status === 400 || response.status === 401 ? "Invalid email or password" : "Login failed";
+      return json(res, response.status === 400 || response.status === 401 ? 401 : 500, { error: errorMessage });
+    }
 
     const profileResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(auth.user.id))}&select=id,name,email,role,is_active,joined_at,auth_user_id`,
+      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(String(auth.user.id))}&select=id,name,role,is_active,created_at,updated_at`,
       {
         headers: {
           apikey: SUPABASE_ANON_KEY,
@@ -37,7 +40,8 @@ export default async function handler(req: any, res: any) {
 
     const profiles = await profileResponse.json();
     const profile = profiles[0];
-    if (!profile || !profile.is_active) return json(res, 403, { error: "Account is disabled or has no application profile" });
+    if (!profile) return json(res, 403, { error: "Account is not provisioned in the application database" });
+    if (!profile.is_active) return json(res, 403, { error: "Account is disabled" });
 
     setAccessCookie(res, auth.access_token);
     return json(res, 200, {
@@ -46,7 +50,7 @@ export default async function handler(req: any, res: any) {
       email: auth.user.email,
       role: profile.role,
       isActive: profile.is_active,
-      joinedAt: profile.joined_at || auth.user.created_at,
+      joinedAt: profile.created_at || auth.user.created_at,
     });
   } catch (error: any) {
     console.error("Login failed", error);
