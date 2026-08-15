@@ -32,48 +32,26 @@ async function createProfile(userId: string, email: string, name: string) {
   if (!response.ok) console.error("Failed to create profile", response.status);
 }
 
-async function loadApplicationProfile(userId: string, email: string) {
-  if (!SUPABASE_SERVICE_ROLE_KEY) return { profile: null, configured: false, status: 503 };
-
-  const byAuthId = await fetch(
+async function loadApplicationProfile(userId: string, accessToken: string) {
+  const response = await fetch(
     `${SUPABASE_URL}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(userId)}&select=id,name,role,is_active,joined_at,auth_user_id&limit=1`,
-    { headers: serviceHeaders() },
+    {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    },
   );
-  if (!byAuthId.ok) {
-    const body = await byAuthId.text().catch(() => "");
-    console.error("Application profile lookup by auth_user_id failed", byAuthId.status, body.slice(0, 300));
-    return { profile: null, configured: true, status: byAuthId.status };
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    console.error("Application profile lookup failed", response.status, body.slice(0, 300));
+    return { profile: null, status: response.status };
   }
 
-  const authRows = await byAuthId.json().catch(() => []);
-  if (authRows[0]) return { profile: authRows[0], configured: true, status: 200 };
-
-  const byEmail = await fetch(
-    `${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id,name,role,is_active,joined_at,auth_user_id&limit=1`,
-    { headers: serviceHeaders() },
-  );
-  if (!byEmail.ok) {
-    const body = await byEmail.text().catch(() => "");
-    console.error("Application profile lookup by email failed", byEmail.status, body.slice(0, 300));
-    return { profile: null, configured: true, status: byEmail.status };
-  }
-
-  const emailRows = await byEmail.json().catch(() => []);
-  if (emailRows[0]) {
-    const profile = emailRows[0];
-    if (profile.auth_user_id !== userId) {
-      const repair = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(String(profile.id))}`, {
-        method: "PATCH",
-        headers: { ...serviceHeaders(), Prefer: "return=minimal" },
-        body: JSON.stringify({ auth_user_id: userId }),
-      });
-      if (!repair.ok) console.error("Failed to repair auth_user_id link", repair.status);
-      else profile.auth_user_id = userId;
-    }
-    return { profile, configured: true, status: 200 };
-  }
-
-  return { profile: null, configured: true, status: 404 };
+  const rows = await response.json().catch(() => []);
+  return { profile: rows[0] || null, status: 200 };
 }
 
 async function handleSignup(req: any, res: any) {
@@ -140,30 +118,45 @@ export default async function handler(req: any, res: any) {
     }
   }
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return json(res, 503, { error: "Authentication backend is not configured" });
+
   try {
     if (action === "signup") return await handleSignup(req, res);
     if (action === "reset") return await handleReset(req, res);
     if (action === "change-password") return await handlePasswordUpdate(req, res);
+
     const { email, password } = req.body || {};
     if (!email || !password) return json(res, 400, { error: "Email and password are required" });
-    if (!SUPABASE_SERVICE_ROLE_KEY) return json(res, 503, { error: "Authentication backend is not fully configured" });
 
     const normalizedEmail = String(email).trim().toLowerCase();
-    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, { method: "POST", headers: { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ email: normalizedEmail, password }) });
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: normalizedEmail, password }),
+    });
     const auth = await response.json().catch(() => ({}));
     if (!response.ok || !auth.access_token || !auth.user?.id) {
       const isCredentialsError = response.status === 400 || response.status === 401;
       return json(res, isCredentialsError ? 401 : 500, { error: isCredentialsError ? "Invalid email or password" : "Login failed" });
     }
 
-    const profileResult = await loadApplicationProfile(String(auth.user.id), normalizedEmail);
-    if (!profileResult.configured) return json(res, 503, { error: "Application database service credential is not configured" });
-    if (profileResult.status === 403) return json(res, 500, { error: "Application profile access is forbidden. Verify the Vercel SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY point to the active Supabase project." });
-    if (!profileResult.profile) return json(res, 403, { error: "Account exists in Supabase Auth but no matching application profile was found", code: "PROFILE_NOT_FOUND" });
+    const profileResult = await loadApplicationProfile(String(auth.user.id), String(auth.access_token));
+    if (profileResult.status === 403) {
+      return json(res, 500, { error: "Application profile access is forbidden. Supabase profile RLS is blocking the authenticated user." });
+    }
+    if (!profileResult.profile) {
+      return json(res, 403, { error: "Account exists in Supabase Auth but no matching application profile was found", code: "PROFILE_NOT_FOUND" });
+    }
     if (!profileResult.profile.is_active) return json(res, 403, { error: "Account is disabled" });
 
     setAccessCookie(res, auth.access_token);
-    return json(res, 200, { id: profileResult.profile.id, name: profileResult.profile.name, email: auth.user.email, role: profileResult.profile.role, isActive: profileResult.profile.is_active, joinedAt: profileResult.profile.joined_at || auth.user.created_at });
+    return json(res, 200, {
+      id: profileResult.profile.id,
+      name: profileResult.profile.name,
+      email: auth.user.email,
+      role: profileResult.profile.role,
+      isActive: profileResult.profile.is_active,
+      joinedAt: profileResult.profile.joined_at || auth.user.created_at,
+    });
   } catch (error) {
     console.error("Authentication request failed", error);
     return json(res, 500, { error: "Authentication request failed" });
