@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useData } from "@/lib/data-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,12 +22,6 @@ type Role = 'admin' | 'manager' | 'editor' | 'viewer';
 type Module = 'users' | 'content' | 'sections' | 'forms' | 'reports' | 'ncr' | 'documents';
 type Action = 'create' | 'read' | 'update' | 'delete' | 'send_email';
 
-interface PermissionRow {
-  role: Role;
-  module: Module;
-  actions: Action[];
-}
-
 interface FactoryItem {
   id: string;
   code: string;
@@ -44,7 +38,8 @@ interface DepartmentItem {
 }
 
 export default function AdminSettings() {
-  const { settings, updateSettings, currentUser } = useData();
+  const { settings, updateSettings, currentUser, departments, addDepartment, deleteDepartment, plants, addPlant, permissionRows, updatePermission } = useData();
+  // REAL_SETTINGS_BACKEND_V1
   const isAr = settings.language === "ar";
   
   const [localSettings, setLocalSettings] = useState(settings);
@@ -77,20 +72,14 @@ export default function AdminSettings() {
   });
 
   // Factories List
-  const [factories, setFactories] = useState<FactoryItem[]>([
-    { id: "f1", code: "FACT-A", name: "Main Assembly Plant A", address: "Dammam Industrial City 2", manager: "Eng. Fahad Al-Otaibi" },
-    { id: "f2", code: "FACT-B", name: "Chemical Processing Plant B", address: "Jubail Industrial Zone 1", manager: "Eng. Salem Al-Gamdi" },
-    { id: "f3", code: "FACT-C", name: "Riyadh Logistics Center C", address: "Riyadh Third Industrial", manager: "Eng. Tariq Al-Shehri" },
-  ]);
   const [newFactory, setNewFactory] = useState({ code: "", name: "", address: "", manager: "" });
-
-  // Departments List
-  const [departments, setDepartments] = useState<DepartmentItem[]>([
-    { id: "d1", code: "HSE", name: "Health, Safety & Environment", manager: "Mansour Al-Harbi" },
-    { id: "d2", code: "OPS", name: "Plant Operations", manager: "Khaled Al-Zahrani" },
-    { id: "d3", code: "MNT", name: "Maintenance & Reliability", manager: "Yasser Al-Qahtani" },
-    { id: "d4", code: "QA", name: "Quality Assurance & ISO", manager: "Majed Al-Anzi" },
-  ]);
+  const factories: FactoryItem[] = plants.map((p: any) => ({
+    id: p.id,
+    code: String(p.data?.code || p.refNo || "PLANT"),
+    name: String(p.title || "Plant"),
+    address: String(p.data?.address || p.department || ""),
+    manager: String(p.data?.manager || ""),
+  }));
   const [newDept, setNewDept] = useState({ code: "", name: "", manager: "" });
 
   // Job Titles
@@ -171,19 +160,7 @@ export default function AdminSettings() {
     scannedAt?: string;
   } | null>(null);
 
-  // Permissions Matrix
-  const [permissions, setPermissions] = useState<PermissionRow[]>([
-    { role: 'manager', module: 'users', actions: ['read', 'update'] },
-    { role: 'manager', module: 'content', actions: ['create', 'read', 'update', 'delete'] },
-    { role: 'manager', module: 'ncr', actions: ['create', 'read', 'update', 'delete'] },
-    { role: 'manager', module: 'reports', actions: ['create', 'read', 'update', 'delete'] },
-    { role: 'manager', module: 'documents', actions: ['create', 'read', 'update', 'delete'] },
-    { role: 'editor', module: 'users', actions: ['read'] },
-    { role: 'editor', module: 'ncr', actions: ['create', 'read', 'update'] },
-    { role: 'editor', module: 'reports', actions: ['create', 'read', 'update'] },
-    { role: 'viewer', module: 'ncr', actions: ['read'] },
-    { role: 'viewer', module: 'reports', actions: ['read'] },
-  ]);
+  // Permissions Matrix is loaded from Supabase through DataContext.
 
   const handleSaveAll = () => {
     updateSettings({
@@ -206,24 +183,36 @@ export default function AdminSettings() {
     toast.success(isAr ? "تم حفظ كافة إعدادات المؤسسة بنجاح" : "All Enterprise Settings saved successfully");
   };
 
-  const handleAddFactory = () => {
+  const handleAddFactory = async () => {
     if (!newFactory.code || !newFactory.name) {
       toast.error(isAr ? "يرجى تعبئة رمز واسم المصنع" : "Please enter Factory Code and Name");
       return;
     }
-    setFactories(prev => [...prev, { ...newFactory, id: `f-${Date.now()}` }]);
-    setNewFactory({ code: "", name: "", address: "", manager: "" });
-    toast.success(isAr ? "تم إضاف المصنع" : "Factory added");
+    try {
+      await addPlant({
+        title: newFactory.name,
+        department: newFactory.manager || null,
+        data: { code: newFactory.code, address: newFactory.address, manager: newFactory.manager },
+      });
+      setNewFactory({ code: "", name: "", address: "", manager: "" });
+      toast.success(isAr ? "تم حفظ المصنع في قاعدة البيانات" : "Plant saved to database");
+    } catch (e: any) {
+      toast.error(e?.message || (isAr ? "تعذر حفظ المصنع" : "Unable to save plant"));
+    }
   };
 
-  const handleAddDept = () => {
+  const handleAddDept = async () => {
     if (!newDept.code || !newDept.name) {
       toast.error(isAr ? "يرجى تعبئة رمز واسم القسم" : "Please enter Department Code and Name");
       return;
     }
-    setDepartments(prev => [...prev, { ...newDept, id: `d-${Date.now()}` }]);
-    setNewDept({ code: "", name: "", manager: "" });
-    toast.success(isAr ? "تم إضافة القسم" : "Department added");
+    try {
+      await addDepartment({ code: newDept.code.trim(), name: newDept.name.trim() });
+      setNewDept({ code: "", name: "", manager: "" });
+      toast.success(isAr ? "تم حفظ القسم في قاعدة البيانات" : "Department saved to database");
+    } catch (e: any) {
+      toast.error(e?.message || (isAr ? "تعذر حفظ القسم" : "Unable to save department"));
+    }
   };
 
 
@@ -262,23 +251,19 @@ export default function AdminSettings() {
   const modules: Module[] = ['users', 'content', 'sections', 'forms', 'reports', 'ncr', 'documents'];
   const actions: Action[] = ['create', 'read', 'update', 'delete', 'send_email'];
 
-  const togglePermission = (role: Role, module: Module, action: Action) => {
-    setPermissions(prev => {
-      const existing = prev.find(p => p.role === role && p.module === module);
-      if (existing) {
-        const hasAction = existing.actions.includes(action);
-        return prev.map(p => 
-          p.role === role && p.module === module 
-            ? { ...p, actions: hasAction ? p.actions.filter(a => a !== action) : [...p.actions, action] }
-            : p
-        );
-      }
-      return [...prev, { role, module, actions: [action] }];
-    });
+  const togglePermission = async (role: Role, module: Module, action: Action) => {
+    const row = permissionRows.find(p => p.role === role && p.module === module);
+    const granted = !(row?.actions || []).includes(action);
+    try {
+      await updatePermission(role, module, action, granted);
+      toast.success(isAr ? "تم تحديث الصلاحية" : "Permission updated");
+    } catch (e: any) {
+      toast.error(e?.message || (isAr ? "تعذر تحديث الصلاحية" : "Unable to update permission"));
+    }
   };
 
   const hasPermissionRow = (role: Role, module: Module, action: Action) => {
-    return permissions.find(p => p.role === role && p.module === module)?.actions.includes(action) || false;
+    return permissionRows.find(p => p.role === role && p.module === module)?.actions?.includes(action) === true;
   };
 
   return (
@@ -569,7 +554,7 @@ export default function AdminSettings() {
                           <TableCell className="font-mono font-bold text-xs text-blue-600">{d.code}</TableCell>
                           <TableCell className="font-medium text-xs">{d.name}</TableCell>
                           <TableCell className="text-end">
-                            <Button size="icon" variant="ghost" onClick={() => setDepartments(prev => prev.filter(x => x.id !== d.id))} className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg">
+                            <Button size="icon" variant="ghost" onClick={() => void deleteDepartment(d.id)} className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg">
                               <X className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>
