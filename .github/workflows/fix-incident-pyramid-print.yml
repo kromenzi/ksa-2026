@@ -1,0 +1,109 @@
+name: Fix Incident Pyramid Print
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch IncidentPyramid print rendering
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/components/incident-pyramid.tsx')
+          text = p.read_text(encoding='utf-8')
+
+          marker = '        {/* Dual Side-by-Side Pyramid Grid */}'
+          if marker not in text:
+              raise SystemExit('target marker not found')
+
+          svg = r'''        {/* Deterministic print-only SVG: independent of Tailwind layout */}
+          <div className="incident-pyramid-print-only">
+            <svg className="incident-pyramid-print-svg" viewBox="0 0 1000 820" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={isAr ? "الهرم الأمني" : "Incident Pyramid"}>
+              <rect x="0" y="0" width="1000" height="820" fill="#ffffff" />
+              <text x="250" y="48" textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="700" fill="#1e3a8a">{leftSubtitle}</text>
+              <text x="750" y="48" textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="700" fill="#1e3a8a">{rightSubtitle}</text>
+              <line x1="500" y1="70" x2="500" y2="790" stroke="#93c5fd" strokeWidth="2" />
+              {PYRAMID_LEVEL_DEFS.map((lvl, index) => {
+                const leftCount = monthlyCounts[lvl.id] ?? 0;
+                const rightCount = ytdCounts[lvl.id] ?? 0;
+                const widths = [120,180,240,300,360,420,480];
+                const y = 90 + index * 95;
+                const w = widths[index];
+                const color = ['#dc2626','#f43f5e','#f97316','#f59e0b','#facc15','#34d399','#059669'][index];
+                const label = isAr ? lvl.shortNameAr : lvl.shortNameEn;
+                return <g key={`print-${lvl.id}`}>
+                  <rect x={250-w/2} y={y} width={w} height="72" rx="5" fill={color} stroke="#ffffff" strokeWidth="3" />
+                  <text x="250" y={y+30} textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="15" fontWeight="700" fill="#ffffff">{label}</text>
+                  <text x="250" y={y+56} textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="800" fill="#ffffff">{leftCount}</text>
+                  <rect x={750-w/2} y={y} width={w} height="72" rx="5" fill={color} stroke="#ffffff" strokeWidth="3" />
+                  <text x="750" y={y+30} textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="15" fontWeight="700" fill="#ffffff">{label}</text>
+                  <text x="750" y={y+56} textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="800" fill="#ffffff">{rightCount}</text>
+                </g>;
+              })}
+            </svg>
+          </div>
+
+'''
+          text = text.replace(marker, svg + marker, 1)
+          p.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Add hard print CSS
+        shell: bash
+        run: |
+          cat >> src/index.css <<'CSS'
+
+/* Incident Pyramid deterministic print SVG */
+.incident-pyramid-print-only { display:none; }
+@media print {
+  .incident-pyramid-print-only {
+    display:block !important;
+    width:100% !important;
+    height:auto !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    position:static !important;
+    background:#fff !important;
+    page-break-inside:avoid !important;
+    break-inside:avoid !important;
+  }
+  .incident-pyramid-print-svg {
+    display:block !important;
+    width:100% !important;
+    height:auto !important;
+    max-width:none !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    background:#fff !important;
+  }
+  .incident-pyramid-print-svg * {
+    visibility:visible !important;
+    opacity:1 !important;
+    -webkit-print-color-adjust:exact !important;
+    print-color-adjust:exact !important;
+  }
+  .incident-pyramid-container > .incident-pyramid-grid,
+  .incident-pyramid-container > .incident-pyramid-legacy-print,
+  .incident-pyramid-container .incident-pyramid-screen-only {
+    display:none !important;
+  }
+}
+CSS
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/incident-pyramid.tsx src/index.css
+          git commit -m "fix: print incident pyramid as inline svg" || exit 0
+          git push
