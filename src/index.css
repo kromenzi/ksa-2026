@@ -202,3 +202,117 @@
   [role="dialog"] { position: static !important; box-shadow: none !important; border: none !important; background: #fff !important; max-width: 100% !important; width: 100% !important; padding: 0 !important; transform: none !important; animation: none !important; }
   [role="dialog"] button, [role="dialog"] .no-print { display: none !important; }
 }
+
+/* PRINT RESET V2 - keep admin page content renderable in Chrome print preview */
+@media print {
+  html, body, #root {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    transform: none !important;
+    contain: none !important;
+  }
+
+  #root > *,
+  #root > * > *,
+  #root main,
+  #root main > *,
+  #root main > * > *,
+  #root [role="main"],
+  #root [role="main"] > * {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    transform: none !important;
+    contain: none !important;
+  }
+
+  #root main > .grid,
+  #root main .print-grid,
+  #root main .incident-pyramid-grid {
+    display: grid !important;
+  }
+
+  aside,
+  nav,
+  [data-testid="admin-sidebar"],
+  .admin-top-header,
+  button,
+  .print\:hidden,
+  .no-print,
+  [aria-hidden="true"] {
+    display: none !important;
+  }
+
+  .pyramid-page,
+  .pyramid-page *:not(button) {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .pyramid-page {
+    display: block !important;
+    width: 100% !important;
+    background: #fff !important;
+    color: #111827 !important;
+  }
+
+  .print-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8mm !important;
+    width: 100% !important;
+  }
+
+  .pyramid-card {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background: #fff !important;
+    color: #111827 !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .pyramid-row {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .incident-pyramid-container,
+  .incident-pyramid-container * {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .incident-pyramid-container {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .incident-pyramid-container .incident-pyramid-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
