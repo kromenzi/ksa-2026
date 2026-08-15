@@ -2,6 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/api/departments",
+      "destination": "/api/ncr?resource=departments"
+    },
+    {
+      "source": "/api/departments/:id",
+      "destination": "/api/ncr?resource=departments&id=:id"
+    },
+    {
       "source": "/((?!api(?:/|$)).*)",
       "destination": "/index.html"
     }
