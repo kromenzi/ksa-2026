@@ -30,6 +30,8 @@
     { "source": "/api/safety-signs", "destination": "/api/ncr?resource=safety-signs" },
     { "source": "/api/safety-signs/:id", "destination": "/api/ncr?resource=safety-signs&id=:id" },
     { "source": "/api/safety-signs/:id/:action", "destination": "/api/ncr?resource=safety-signs&id=:id&action=:action" },
+    { "source": "/api/safety-reports", "destination": "/api/safety-reports" },
+    { "source": "/api/safety-reports/:id", "destination": "/api/safety-reports?id=:id" },
     { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
   ]
 }
