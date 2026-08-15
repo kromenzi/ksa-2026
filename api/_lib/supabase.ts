@@ -67,7 +67,7 @@ export async function getProfile(req: any) {
   if (!user?.id || !url || !anonKey) return null;
   const token = getAccessToken(req);
   const response = await fetch(
-    `${url}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(user.id))}&select=id,name,email,role,is_active,joined_at,auth_user_id`,
+    `${url}/rest/v1/profiles?id=eq.${encodeURIComponent(String(user.id))}&select=id,name,role,is_active,created_at,updated_at`,
     {
       headers: {
         apikey: anonKey,
