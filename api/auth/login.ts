@@ -2,7 +2,7 @@ import { checkPasswordSecurity } from "../_lib/password-security.js";
 import { fallbackSupabasePublishableKey, fallbackSupabaseUrl } from "../_lib/supabase-public-config.js";
 import { json, setAccessCookie } from "../_lib/supabase.js";
 
-const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const SUPABASE_URL = (process.env.SUPABASE_URL || fallbackSupabaseUrl).replace(/\\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || fallbackSupabasePublishableKey;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SITE_URL = (process.env.SITE_URL || process.env.VERCEL_URL || "").replace(/^https?:\/\//, "");
