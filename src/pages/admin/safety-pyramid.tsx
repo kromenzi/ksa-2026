@@ -6,13 +6,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 
 const LEVELS = [
-  { id: "fatality", en: "Fatality", ar: "الوفاة", color: "bg-red-700", text: "text-white" },
-  { id: "lostTime", en: "Lost-Time Injury (LTI)", ar: "إصابة وقت ضائع (LTI)", color: "bg-red-500", text: "text-white" },
-  { id: "restrictedWork", en: "Restricted Work (RWD)", ar: "عمل مقيد (RWD)", color: "bg-orange-500", text: "text-white" },
-  { id: "medicalTreatment", en: "Medical Treatment (MTC)", ar: "علاج طبي (MTC)", color: "bg-amber-500", text: "text-slate-950" },
-  { id: "firstAid", en: "First Aid (FAC)", ar: "إسعافات أولية (FAC)", color: "bg-yellow-400", text: "text-slate-950" },
-  { id: "nearMiss", en: "Near Miss", ar: "واقعة وشيكة", color: "bg-emerald-400", text: "text-slate-950" },
-  { id: "unsafeActs", en: "At-Risk / Unsafe", ar: "سلوكيات / ظروف غير آمنة", color: "bg-emerald-700", text: "text-white" },
+  { id: "fatality", en: "Fatality", ar: "الوفاة", color: "#b91c1c", text: "#ffffff" },
+  { id: "lostTime", en: "Lost-Time Injury (LTI)", ar: "إصابة وقت ضائع (LTI)", color: "#ef4444", text: "#ffffff" },
+  { id: "restrictedWork", en: "Restricted Work (RWD)", ar: "عمل مقيد (RWD)", color: "#f97316", text: "#ffffff" },
+  { id: "medicalTreatment", en: "Medical Treatment (MTC)", ar: "علاج طبي (MTC)", color: "#f59e0b", text: "#111827" },
+  { id: "firstAid", en: "First Aid (FAC)", ar: "إسعافات أولية (FAC)", color: "#facc15", text: "#111827" },
+  { id: "nearMiss", en: "Near Miss", ar: "واقعة وشيكة", color: "#34d399", text: "#111827" },
+  { id: "unsafeActs", en: "At-Risk / Unsafe", ar: "سلوكيات / ظروف غير آمنة", color: "#059669", text: "#ffffff" },
 ] as const;
 
 type LevelId = typeof LEVELS[number]["id"];
@@ -106,7 +106,7 @@ export default function SafetyPyramidPage() {
           return (
             <div key={level.id} className="flex items-center min-h-9">
               <div className="flex-1 flex justify-center">
-                <div className={`${level.color} ${level.text} pyramid-row h-9 rounded-md flex items-center justify-between px-3 shadow-sm`} style={{ width: `${24 + i * 12}%` }}>
+                <div className="pyramid-row h-9 rounded-md flex items-center justify-between px-3 shadow-sm" style={{ width: `${24 + i * 12}%`, backgroundColor: level.color, color: level.text }}>
                   <span className="text-[10px] sm:text-xs font-extrabold truncate">{isAr ? level.ar : level.en}</span>
                   <span className="font-mono font-black text-sm ms-2">{data[level.id]}</span>
                 </div>
@@ -131,8 +131,42 @@ export default function SafetyPyramidPage() {
   };
 
   const print = () => {
+    const popup = window.open("", "incident-pyramid-print", "width=1200,height=900");
+    if (!popup) {
+      toast.error(isAr ? "يرجى السماح بالنوافذ المنبثقة للطباعة" : "Please allow pop-ups to print the report");
+      return;
+    }
+    const esc = (value: unknown) => String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[ch] || ch));
+    const renderColumn = (data: Record<LevelId, number>, totalValue: number) => LEVELS.map((level, i) => {
+      if (!enabled[level.id]) return "";
+      const width = 24 + i * 12;
+      return `<div class="row"><div class="bar" style="width:${width}%;background:${level.color};color:${level.text}"><span>${esc(isAr ? level.ar : level.en)}</span><b>${data[level.id]}</b></div></div>`;
+    }).join("") + `<div class="total">${esc(totalValue)} ${esc(isAr ? "إجمالي السجلات" : "total records")}</div>`;
+    popup.document.open();
+    popup.document.write(`<!doctype html><html lang="${isAr ? "ar" : "en"}" dir="${isAr ? "rtl" : "ltr"}><head><meta charset="utf-8"><title>Incident Pyramid - ${esc(selectedYear)}</title><style>
+      @page{size:A4 landscape;margin:10mm}
+      *{box-sizing:border-box}
+      html,body{margin:0;padding:0;background:#fff;color:#111827;font-family:Arial,Segoe UI,sans-serif}
+      body{padding:12mm}
+      .toolbar{display:flex;justify-content:flex-end;margin-bottom:8mm}
+      .print-btn{border:0;border-radius:8px;background:#1d4ed8;color:#fff;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer}
+      .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #dc2626;padding-bottom:8mm;margin-bottom:8mm}
+      .header h1{margin:0;font-size:25px}.header p{margin:4px 0 0;color:#64748b;font-size:11px}.meta{text-align:right;font-size:10px;color:#475569}
+      .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm;margin-bottom:7mm}.kpi{border:1px solid #cbd5e1;border-radius:8px;padding:4mm;text-align:center}.kpi b{display:block;font-size:22px}.kpi span{display:block;margin-top:1mm;color:#64748b;font-size:10px}
+      .columns{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.card{border:1px solid #cbd5e1;border-radius:8px;padding:5mm}.card h2{text-align:center;margin:0;font-size:15px;color:#1e3a8a}.card p{text-align:center;margin:2mm 0 4mm;color:#64748b;font-size:10px}
+      .row{height:11mm;display:flex;align-items:center;justify-content:center}.bar{height:9mm;border-radius:4px;display:flex;align-items:center;justify-content:space-between;padding:0 3mm;font-size:10px;font-weight:700;print-color-adjust:exact;-webkit-print-color-adjust:exact}.bar b{font-size:12px}.total{text-align:center;border-top:1px solid #cbd5e1;margin-top:3mm;padding-top:3mm;color:#475569;font-size:10px;font-weight:700}.footer{margin-top:7mm;padding-top:3mm;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;color:#64748b;font-size:8px}
+      @media print{.toolbar{display:none}.card{break-inside:avoid}.bar{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+    </style></head><body>
+      <div class="toolbar"><button class="print-btn" onclick="window.print()">${esc(isAr ? "طباعة التقرير" : "Print Report")}</button></div>
+      <div class="header"><div><h1>${esc(isAr ? `هرم الحوادث - ${selectedYear}` : `Incident Pyramid - ${selectedYear}`)}</h1><p>${esc(isAr ? `مقارنة ${monthName} مع التراكمي ${selectedYear}` : `Monthly ${monthName} vs YTD ${selectedYear}`)}</p></div><div class="meta">HSE-PYRAMID-01<br>${esc(new Date().toLocaleDateString(isAr ? "ar-SA" : "en-US"))}</div></div>
+      <div class="kpis"><div class="kpi"><b>${monthTotal}</b><span>${esc(isAr ? `إجمالي ${monthName}` : `Total ${monthName}`)}</span></div><div class="kpi"><b>${counts.monthly.nearMiss}</b><span>${esc(isAr ? "الوقائع الوشيكة" : "Near Misses")}</span></div><div class="kpi"><b>${counts.monthly.unsafeActs}</b><span>${esc(isAr ? "السلوكيات والظروف غير الآمنة" : "At-Risk / Unsafe")}</span></div></div>
+      <div class="columns"><section class="card"><h2>Monthly • ${esc(monthName)}</h2><p>${esc(isAr ? "المستويات والأعداد الشهرية" : "Monthly levels and counts")}</p>${renderColumn(counts.monthly, monthTotal)}</section><section class="card"><h2>YTD • ${esc(selectedYear)}</h2><p>${esc(isAr ? "المستويات والأعداد التراكمية" : "Year-to-date levels and counts")}</p>${renderColumn(counts.ytd, ytdTotal)}</section></div>
+      <div class="footer"><span>ABDULKAREM SAFETY BOARD</span><span>Incident Pyramid Report</span></div>
+    </body></html>`);
+    popup.document.close();
+    popup.focus();
+    setTimeout(() => popup.print(), 500);
     logActivity("Print Incident Pyramid", `Printed ${monthName} ${selectedYear} Monthly vs YTD`, "reports");
-    window.print();
   };
 
   return (
