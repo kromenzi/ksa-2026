@@ -21,6 +21,6 @@ export default async function handler(req: any, res: any) {
     });
   } catch (error: any) {
     console.error("Authentication check failed", error);
-    return json(res, error.statusCode || 500, { error: error.message || "Authentication check failed" });
+    return json(res, error.statusCode || 500, { error: "Authentication check failed" });
   }
 }
