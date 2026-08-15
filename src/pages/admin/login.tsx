@@ -51,7 +51,7 @@ async function checkPassword(password: string) {
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
-  const { login, logout, isAuthenticated, settings, updateSettings } = useData();
+  const { login, logout, isAuthenticated, settings, toggleLanguage, updateSettings } = useData();
   const { toast } = useToast();
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [isSignupLoading, setIsSignupLoading] = useState(false);
@@ -154,7 +154,6 @@ export default function AdminLogin() {
     loginForm.setValue("password", "password123");
   };
 
-  const toggleLanguage = () => void updateSettings({ language: settings.language === "en" ? "ar" : "en" });
   const toggleTheme = () => void updateSettings({ theme: settings.theme === "light" ? "dark" : "light" });
 
   const accounts = [
