@@ -350,26 +350,40 @@ export default function SafetyPyramidPage() {
   const [printItem, setPrintItem] = useState<any>(null);
 
   const handlePrint = () => {
-    const printObj = {
-      id: "SAFETY-PYRAMID-2026",
-      type: "report" as const,
-      refNo: "HSE-PYRAMID-01",
-      title: isAr ? "التقرير الموحد للهرم الأمني الديناميكي وتحليل الحوادث" : "Enterprise Dynamic Safety Pyramid & Incident Analytics",
-      department: "HSE & Industrial Safety Dept",
-      status: "Active",
-      date: new Date().toISOString().split("T")[0],
-      sections: [
-        { label: isAr ? "إجمالي الحوادث" : "Total Incidents", value: `${totalIncidents}` },
-        { label: isAr ? "الوقائع الوشيكة (Near Misses)" : "Near Misses", value: `${totalNearMisses}` },
-        { label: isAr ? "الملاحظات والأفعال غير الآمنة" : "Observations & Unsafe Acts", value: `${totalObservations} (${isAr ? "ظروف" : "Cond"}: ${totalUnsafeConditions}, ${isAr ? "أفعال" : "Acts"}: ${totalUnsafeActs})` },
-        { label: isAr ? "نسبة الوقائع للحوادث" : "Near Miss / Incident Ratio", value: `${nearMissIncidentRatio}` },
-        { label: isAr ? "الإجراءات التصحيحية المفتوحة" : "Open CAPA Actions", value: `${openCorrectiveActions}` },
-        { label: isAr ? "تفاصيل مستويات الهرم" : "Pyramid Levels Breakdown", value: pyramidLevels.filter(lvl => lvl.enabled).map(lvl => `${isAr ? lvl.nameAr : lvl.nameEn}: ${getLevelCount(lvl.id)} ${isAr ? "سجل" : "records"}`).join("\n") }
-      ]
-    };
-    setPrintItem(printObj);
-    setIsPrintOpen(true);
-    logActivity("Print Safety Pyramid", "Opened dynamic safety pyramid print preview", "reports");
+    // SAFETY_PYRAMID_NATIVE_PRINT_V3
+    const enabledLevels = pyramidLevels.filter(lvl => lvl.enabled).sort((a, b) => a.order - b.order);
+    const colors = ["#991b1b", "#dc2626", "#f59e0b", "#eab308", "#f97316", "#3b82f6", "#059669"];
+    const esc = (value: string) => value.replace(/[&<>\"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[ch] || ch));
+    const minWidth = 150;
+    const maxWidth = 700;
+    const step = enabledLevels.length > 1 ? (maxWidth - minWidth) / (enabledLevels.length - 1) : 0;
+    const topY = 165;
+    const segmentHeight = 82;
+    const center = 450;
+    const pyramidSvg = enabledLevels.map((lvl, index) => {
+      const topWidth = minWidth + step * index;
+      const bottomWidth = minWidth + step * Math.min(index + 1, enabledLevels.length - 1);
+      const y = topY + index * segmentHeight;
+      const count = getLevelCount(lvl.id);
+      const name = isAr ? lvl.nameAr : lvl.nameEn;
+      const textSize = name.length > 28 ? 13 : 15;
+      const top = Math.max(0, center - topWidth / 2);
+      const right = center + topWidth / 2;
+      const bottomRight = center + (index === enabledLevels.length - 1 ? topWidth : bottomWidth) / 2;
+      const bottomLeft = center - (index === enabledLevels.length - 1 ? topWidth : bottomWidth) / 2;
+      return `<polygon points="${top},${y} ${right},${y} ${bottomRight},${y + segmentHeight} ${bottomLeft},${y + segmentHeight}" fill="${colors[index % colors.length]}" stroke="#ffffff" stroke-width="3"/><text x="${center}" y="${y + 31}" text-anchor="middle" font-size="${textSize}" font-weight="700" fill="#ffffff">${esc(name)}</text><text x="${center}" y="${y + 60}" text-anchor="middle" font-size="22" font-weight="800" fill="#ffffff">${count}</text>`;
+    }).join("");
+    const title = isAr ? "الهرم الأمني الديناميكي" : "Dynamic Safety Pyramid";
+    const subtitle = isAr ? "التقرير المرئي للهرم الأمني" : "Visual Safety Pyramid Report";
+    const printWindow = window.open("", "_blank", "width=1000,height=900");
+    if (!printWindow) {
+      toast.error(isAr ? "يرجى السماح بالنوافذ المنبثقة للطباعة" : "Please allow pop-ups to print the pyramid");
+      return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html><html lang="${isAr ? "ar" : "en"}" dir="${isAr ? "rtl" : "ltr"}><head><meta charset="utf-8"/><title>${esc(title)}</title><style>@page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}body{margin:0;background:#fff;color:#111827;font-family:Arial,"Segoe UI",sans-serif}.sheet{width:100%;max-width:794px;margin:0 auto;padding:18px}.header{border-bottom:3px solid #dc2626;padding-bottom:12px;margin-bottom:12px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.header h1{margin:0;font-size:24px;font-weight:800}.sub{margin:4px 0;color:#64748b;font-size:12px}.meta{font-size:11px;color:#475569;text-align:${isAr ? "left" : "right"}}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 14px}.card{border:1px solid #e2e8f0;border-radius:8px;padding:9px;text-align:center;background:#f8fafc}.card strong{display:block;font-size:20px;color:#0f172a}.card span{font-size:10px;color:#64748b}.pyramid{width:100%;display:flex;justify-content:center}.pyramid svg{width:100%;height:auto;display:block}.footer{margin-top:12px;border-top:1px solid #e2e8f0;padding-top:8px;font-size:9px;color:#64748b;display:flex;justify-content:space-between}@media print{.sheet{padding:0}.no-print{display:none!important}}</style></head><body><div class="sheet"><div class="header"><div><h1>${esc(title)}</h1><p class="sub">${esc(subtitle)}</p></div><div class="meta">HSE-PYRAMID-01<br/>${new Date().toLocaleDateString(isAr ? "ar-SA" : "en-US")}</div></div><div class="summary"><div class="card"><strong>${totalIncidents}</strong><span>${isAr ? "إجمالي الحوادث" : "Total Incidents"}</span></div><div class="card"><strong>${totalNearMisses}</strong><span>${isAr ? "الوقائع الوشيكة" : "Near Misses"}</span></div><div class="card"><strong>${totalObservations}</strong><span>${isAr ? "الأفعال والظروف غير الآمنة" : "Unsafe Acts & Conditions"}</span></div></div><div class="pyramid"><svg viewBox="0 0 900 ${topY + enabledLevels.length * segmentHeight + 20}" role="img" aria-label="${esc(title)}">${pyramidSvg}</svg></div><div class="footer"><span>${isAr ? "تم إنشاء التقرير من Safety Board" : "Generated by Safety Board"}</span><span>${esc(title)}</span></div></div><script>window.addEventListener("load",function(){setTimeout(function(){window.focus();window.print()},500)})</script></body></html>`);
+    printWindow.document.close();
+    logActivity("Print Safety Pyramid", "Printed visual safety pyramid", "reports");
   };
 
   const exportCSV = () => {
