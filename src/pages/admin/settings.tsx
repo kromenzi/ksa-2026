@@ -314,6 +314,20 @@ export default function AdminSettings() {
     return permissionRows.find(p => p.role === role && p.module === module)?.actions?.includes(action) === true;
   };
 
+  const handleLogoUpload = (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event: any) => {
+      const result = event.target?.result;
+      if (result) {
+        setCompanyData({...companyData, logoUrl: result as string});
+        toast.success(isAr ? 'تم تحميل الشعار بنجاح! اضغط حفظ التغييرات' : 'Logo uploaded! Click save to apply.');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-5">
@@ -384,7 +398,7 @@ export default function AdminSettings() {
                 </div>
                 <div className="space-y-2 p-3 rounded-xl border bg-muted/20">
                   <div className="flex items-center justify-between"><Label className="text-xs font-bold text-foreground flex items-center gap-1.5"><Palette className="h-3.5 w-3.5 text-primary" />{isAr ? 'شعار المنشأة الموحد (يعمل في كافة الصفحات والتقارير)' : 'Enterprise System Logo (Applies to All Pages & Reports)'}</Label><Button type="button" variant="outline" size="sm" className="h-7 text-[11px] rounded-lg border-primary/30 text-primary hover:bg-primary/10 gap-1" onClick={() => setCompanyData({...companyData, logoUrl: '/logo.png'})}>{isAr ? 'استعادة الشعار الرسمي' : 'Reset to Official Logo'}</Button></div>
-                  <div className="flex flex-col sm:flex-row items-center gap-3"><div className="h-20 w-20 rounded-xl border border-primary/20 bg-background flex items-center justify-center p-1 shadow-sm shrink-0 overflow-hidden"><img src={companyData.logoUrl || "/logo.png"} alt="Logo Preview" className="h-full w-full brand-logo-mark rounded-lg" onError={(e) => {if (e.currentTarget.src !== window.location.origin + '/logo.png') e.currentTarget.src = '/logo.png';}} /></div><div className="flex-1 w-full space-y-2"><Input value={companyData.logoUrl} onChange={e => setCompanyData({...companyData, logoUrl: e.target.value})} className="h-9 rounded-xl text-xs" placeholder="/logo.png or https://example.com/logo.png" /><div className="flex items-center gap-2"><label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow-sm hover:bg-primary/90 transition-all"><Upload className="h-3.5 w-3.5" />{isAr ? 'رفع صورة شعار من الجهاز' : 'Upload Image File'}<input type="file" accept="image/*" className="hidden" onChange={(e) => {const file = e.target.files?.[0];if (file) {const reader = new FileReader();reader.onload = (event) => {if (event.target?.result) {setCompanyData({...companyData, logoUrl: event.target.result as string});toast.success(isAr ? 'تم تحميل الشعار بنجاح! اضغط حفظ التغييرات' : 'Logo uploaded! Click save to apply.');}};reader.readAsDataURL(file);}} /></label><span className="text-[11px] text-muted-foreground">{isAr ? 'يدعم PNG, JPG, SVG' : 'Supports PNG, JPG, SVG'}</span></div></div></div>
+                  <div className="flex flex-col sm:flex-row items-center gap-3"><div className="h-20 w-20 rounded-xl border border-primary/20 bg-background flex items-center justify-center p-1 shadow-sm shrink-0 overflow-hidden"><img src={companyData.logoUrl || "/logo.png"} alt="Logo Preview" className="h-full w-full brand-logo-mark rounded-lg" onError={(e) => {if (e.currentTarget.src !== window.location.origin + '/logo.png') e.currentTarget.src = '/logo.png';}} /></div><div className="flex-1 w-full space-y-2"><Input value={companyData.logoUrl} onChange={e => setCompanyData({...companyData, logoUrl: e.target.value})} className="h-9 rounded-xl text-xs" placeholder="/logo.png or https://example.com/logo.png" /><div className="flex items-center gap-2"><label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow-sm hover:bg-primary/90 transition-all"><Upload className="h-3.5 w-3.5" />{isAr ? 'رفع صورة شعار من الجهاز' : 'Upload Image File'}<input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} /></label><span className="text-[11px] text-muted-foreground">{isAr ? 'يدعم PNG, JPG, SVG' : 'Supports PNG, JPG, SVG'}</span></div></div></div>
                 </div>
                 <div className="space-y-1.5"><Label className="text-xs">{isAr ? 'العنوان الرئيسي' : 'HQ Address'}</Label><Textarea value={companyData.address} onChange={e => setCompanyData({...companyData, address: e.target.value})} className="rounded-xl text-xs min-h-[60px]" /></div>
               </CardContent>
@@ -420,7 +434,44 @@ export default function AdminSettings() {
         </TabsContent>
 
         {/* 8. Permissions */}
-        <TabsContent value="permissions" className="mt-4 space-y-6"><Card className="rounded-2xl border-border/60 shadow-sm"><CardHeader><div className="flex items-center gap-2"><Users className="h-5 w-5 text-pink-500" /><CardTitle className="text-base">{isAr ? 'مصفوفة صلاحيات الأدوار' : 'Role Access Control Matrix'}</CardTitle></div></CardHeader><CardContent className="space-y-4 text-xs"><div className="border border-border/50 rounded-xl overflow-hidden"><Table><TableHeader className="bg-muted/40"><TableRow><TableHead className="text-xs">{isAr ? 'الدور' : 'Role'}</TableHead><TableHead className="text-xs">{isAr ? 'القسم' : 'Module'}</TableHead>{actions.map(act => (<TableHead key={act} className="text-xs text-center capitalize">{act}</TableHead>))}</TableRow></TableHeader><TableBody>{roles.map(r => (modules.map(m => (<TableRow key={`${r}-${m}`} className="h-9"><TableCell className="font-bold text-xs uppercase text-primary">{r}</TableCell><TableCell className="font-medium text-xs capitalize">{m}</TableCell>{actions.map(act => (<TableCell key={act} className="text-center"><Checkbox checked={hasPermissionRow(r, m, act)} onCheckedChange={() => togglePermission(r, m, act)} /></TableCell>))}</TableRow>)))}</TableBody></Table></div></CardContent></Card></TabsContent>
+        <TabsContent value="permissions" className="mt-4 space-y-6">
+  <Card className="rounded-2xl border-border/60 shadow-sm">
+    <CardHeader>
+      <div className="flex items-center gap-2">
+        <Users className="h-5 w-5 text-pink-500" />
+        <CardTitle className="text-base">{isAr ? 'مصفوفة صلاحيات الأدوار' : 'Role Access Control Matrix'}</CardTitle>
+      </div>
+    </CardHeader>
+    <CardContent className="space-y-4 text-xs">
+      <div className="border border-border/50 rounded-xl overflow-hidden">
+        <Table>
+          <TableHeader className="bg-muted/40">
+            <TableRow>
+              <TableHead className="text-xs">{isAr ? 'الدور' : 'Role'}</TableHead>
+              <TableHead className="text-xs">{isAr ? 'القسم' : 'Module'}</TableHead>
+              {actions.map(act => (
+                <TableHead key={act} className="text-xs text-center capitalize">{act}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {roles.flatMap(r => modules.map(m => (
+              <TableRow key={`${r}-${m}`} className="h-9">
+                <TableCell className="font-bold text-xs uppercase text-primary">{r}</TableCell>
+                <TableCell className="font-medium text-xs capitalize">{m}</TableCell>
+                {actions.map(act => (
+                  <TableCell key={act} className="text-center">
+                    <Checkbox checked={hasPermissionRow(r, m, act)} onCheckedChange={() => togglePermission(r, m, act)} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            )))}
+          </TableBody>
+        </Table>
+      </div>
+    </CardContent>
+  </Card>
+</TabsContent>
 
         {/* 9. Backup & Data */}
         <TabsContent value="backup" className="mt-4 space-y-6"><BackupRestoreModule isAr={isAr} currentUser={currentUser} /></TabsContent>
