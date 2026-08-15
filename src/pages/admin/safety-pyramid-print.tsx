@@ -1,16 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 
-type Level = { id: string; nameEn: string; nameAr: string; order: number; color: string };
+type Level = {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  order: number;
+  color: string;
+  textColor: string;
+};
 type Count = { id: string; monthly: number; ytd: number };
 
 const LEVELS: Level[] = [
-  { id: "fatality", nameEn: "Fatality", nameAr: "الوفاة", order: 1, color: "#991b1b" },
-  { id: "lostTime", nameEn: "Lost-Time Injury (LTI)", nameAr: "إصابة وقت ضائع (LTI)", order: 2, color: "#dc2626" },
-  { id: "restrictedWork", nameEn: "Restricted Work (RWD)", nameAr: "عمل مقيد (RWD)", order: 3, color: "#f97316" },
-  { id: "medicalTreatment", nameEn: "Medical Treatment (MTC)", nameAr: "علاج طبي (MTC)", order: 4, color: "#f59e0b" },
-  { id: "firstAid", nameEn: "First Aid (FAC)", nameAr: "إسعافات أولية (FAC)", order: 5, color: "#eab308" },
-  { id: "nearMiss", nameEn: "Near Miss", nameAr: "واقعة وشيكة", order: 6, color: "#34d399" },
-  { id: "unsafeActs", nameEn: "At-Risk / Unsafe", nameAr: "سلوكيات / ظروف غير آمنة", order: 7, color: "#059669" },
+  { id: "fatality", nameEn: "Fatality", nameAr: "الوفاة", order: 1, color: "#991b1b", textColor: "#ffffff" },
+  { id: "lostTime", nameEn: "Lost-Time Injury (LTI)", nameAr: "إصابة وقت ضائع (LTI)", order: 2, color: "#dc2626", textColor: "#ffffff" },
+  { id: "restrictedWork", nameEn: "Restricted Work (RWD)", nameAr: "عمل مقيد (RWD)", order: 3, color: "#f97316", textColor: "#ffffff" },
+  { id: "medicalTreatment", nameEn: "Medical Treatment (MTC)", nameAr: "علاج طبي (MTC)", order: 4, color: "#f59e0b", textColor: "#111827" },
+  { id: "firstAid", nameEn: "First Aid (FAC)", nameAr: "إسعافات أولية (FAC)", order: 5, color: "#eab308", textColor: "#111827" },
+  { id: "nearMiss", nameEn: "Near Miss", nameAr: "واقعة وشيكة", order: 6, color: "#34d399", textColor: "#111827" },
+  { id: "unsafeActs", nameEn: "At-Risk / Unsafe", nameAr: "سلوكيات / ظروف غير آمنة", order: 7, color: "#059669", textColor: "#ffffff" },
 ];
 
 function parseJson<T>(value: string | null, fallback: T): T {
@@ -33,6 +40,33 @@ function normalizeCounts(input: Count[]): Count[] {
   });
 }
 
+function Pyramid({ mode, counts, isAr }: { mode: "monthly" | "ytd"; counts: Count[]; isAr: boolean }) {
+  return (
+    <div className="pyramid" aria-label={mode === "monthly" ? "Monthly Incident Pyramid" : "YTD Incident Pyramid"}>
+      {LEVELS.map((level, index) => {
+        const count = counts.find((item) => item.id === level.id)?.[mode] ?? 0;
+        const width = 24 + index * 12;
+        return (
+          <div className="pyramid-row" key={`${mode}-${level.id}`}>
+            <div
+              className="pyramid-layer"
+              style={{
+                width: `${width}%`,
+                backgroundColor: level.color,
+                color: level.textColor,
+                borderColor: "#ffffff",
+              }}
+            >
+              <span className="pyramid-label">{isAr ? level.nameAr : level.nameEn}</span>
+              <span className="pyramid-value">{count}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function SafetyPyramidPrintPage() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const isAr = params.get("lang") === "ar";
@@ -45,6 +79,7 @@ export default function SafetyPyramidPrintPage() {
   const totalIncidentsParam = Number(params.get("incidents") || 0);
   const nearMissParam = Number(params.get("nearMisses") || 0);
   const observationsParam = Number(params.get("observations") || 0);
+
   const incidents = totalIncidentsParam || counts.reduce((sum, item) => {
     return sum + (item.id === "fatality" || item.id === "lostTime" || item.id === "restrictedWork" || item.id === "medicalTreatment" || item.id === "firstAid" ? item.monthly : 0);
   }, 0);
@@ -57,24 +92,7 @@ export default function SafetyPyramidPrintPage() {
     const markReady = async () => {
       try {
         if (document.fonts?.ready) await document.fonts.ready;
-      } catch {
-        // Ignore font readiness errors.
-      }
-
-      const images = Array.from(document.images);
-      await Promise.all(images.map(async (image) => {
-        if (image.complete) return;
-        await new Promise<void>((resolve) => {
-          const done = () => {
-            image.removeEventListener("load", done);
-            image.removeEventListener("error", done);
-            resolve();
-          };
-          image.addEventListener("load", done, { once: true });
-          image.addEventListener("error", done, { once: true });
-        });
-      }));
-
+      } catch {}
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       setReady(true);
@@ -84,79 +102,51 @@ export default function SafetyPyramidPrintPage() {
   }, [isAr]);
 
   const handlePrint = () => {
-    if (!ready) return;
-    window.print();
+    if (ready) window.print();
   };
-
-  const renderPyramid = (mode: "monthly" | "ytd") => {
-    const centerX = 250;
-    const topWidth = 70;
-    const bottomWidth = 450;
-    const segmentHeight = 61;
-    const topY = 14;
-    const step = (bottomWidth - topWidth) / (LEVELS.length - 1);
-
-    return LEVELS.map((level, index) => {
-      const top = topWidth + step * index;
-      const bottom = topWidth + step * Math.min(index + 1, LEVELS.length - 1);
-      const y = topY + index * segmentHeight;
-      const count = counts.find((item) => item.id === level.id)?.[mode] ?? 0;
-      const label = isAr ? level.nameAr : level.nameEn;
-      return (
-        <g key={`${mode}-${level.id}`}>
-          <polygon
-            points={`${centerX - top / 2},${y} ${centerX + top / 2},${y} ${centerX + bottom / 2},${y + segmentHeight} ${centerX - bottom / 2},${y + segmentHeight}`}
-            fill={level.color}
-            stroke="#ffffff"
-            strokeWidth="3"
-          />
-          <text x={centerX} y={y + 22} textAnchor="middle" fontFamily="Arial,Segoe UI,sans-serif" fontSize={label.length > 28 ? 9 : 12} fontWeight="700" fill="#ffffff">
-            {label}
-          </text>
-          <text x={centerX} y={y + 48} textAnchor="middle" fontFamily="Arial,Segoe UI,sans-serif" fontSize="18" fontWeight="800" fill="#ffffff">
-            {count}
-          </text>
-        </g>
-      );
-    });
-  };
-
-  const svgHeight = 14 + LEVELS.length * 61 + 10;
 
   return (
-    <main dir={isAr ? "rtl" : "ltr"} style={{ minHeight: "100vh", background: "#fff", color: "#111827", fontFamily: "Arial, Segoe UI, sans-serif", padding: "0" }}>
+    <main dir={isAr ? "rtl" : "ltr"}>
       <style>{`
-        @page { size: A4 portrait; margin: 9mm; }
+        @page { size: A4 portrait; margin: 8mm; }
         * { box-sizing: border-box; }
-        html, body, #root { margin:0; padding:0; background:#fff !important; }
-        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        .page { width:100%; max-width:190mm; margin:0 auto; color:#111827 !important; background:#fff !important; }
-        .toolbar { display:flex; justify-content:flex-end; gap:8px; margin:0 0 10px; }
-        .print-button { border:0; border-radius:8px; background:#1d4ed8; color:#fff; font-size:14px; font-weight:700; padding:10px 18px; cursor:pointer; }
-        .print-button:disabled { opacity:.5; cursor:not-allowed; }
-        .header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-bottom:10px; border-bottom:3px solid #dc2626; }
-        .brand { display:flex; align-items:center; gap:10px; }
-        .brand img { width:80px; height:52px; object-fit:contain; }
-        .title h1 { margin:0; font-size:20px; font-weight:800; }
-        .title p { margin:3px 0 0; color:#64748b; font-size:10px; }
-        .meta { text-align:right; font-size:9px; color:#475569; white-space:nowrap; }
-        .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:10px 0; }
-        .kpi { border:1px solid #cbd5e1; border-radius:7px; padding:7px; text-align:center; }
-        .kpi strong { display:block; font-size:17px; font-weight:800; }
-        .kpi span { display:block; margin-top:2px; color:#64748b; font-size:8px; }
-        .columns { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-        .column { border:1px solid #cbd5e1; border-radius:8px; padding:6px; break-inside:avoid; page-break-inside:avoid; }
-        .column h2 { margin:0; text-align:center; font-size:12px; color:#1e3a8a; }
-        .column p { margin:2px 0 4px; text-align:center; font-size:8px; color:#64748b; }
-        svg { display:block !important; width:100% !important; height:auto !important; overflow:visible !important; }
-        .footer { margin-top:8px; padding-top:5px; border-top:1px solid #cbd5e1; display:flex; justify-content:space-between; gap:10px; font-size:7px; color:#64748b; }
+        html, body, #root { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+        body { font-family: Arial, "Segoe UI", sans-serif; color: #111827; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        main { min-height: 100vh; background: #fff; }
+        .page { width: 100%; max-width: 190mm; margin: 0 auto; }
+        .toolbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+        .print-button { border: 0; border-radius: 8px; background: #1d4ed8; color: #fff; padding: 9px 16px; font-weight: 700; cursor: pointer; }
+        .print-button:disabled { opacity: .55; cursor: wait; }
+        .header { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 3px solid #dc2626; padding-bottom: 9px; }
+        .brand { display: flex; align-items: center; gap: 10px; }
+        .brand img { width: 72px; height: 48px; object-fit: contain; }
+        .title h1 { margin: 0; font-size: 20px; font-weight: 800; }
+        .title p { margin: 3px 0 0; color: #64748b; font-size: 9px; }
+        .meta { text-align: right; font-size: 8px; color: #475569; white-space: nowrap; }
+        .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 9px 0; }
+        .kpi { border: 1px solid #cbd5e1; border-radius: 7px; padding: 7px; text-align: center; }
+        .kpi strong { display: block; font-size: 16px; font-weight: 800; }
+        .kpi span { display: block; margin-top: 2px; color: #64748b; font-size: 8px; }
+        .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .column { border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px; break-inside: avoid; page-break-inside: avoid; }
+        .column h2 { margin: 0; text-align: center; color: #1e3a8a; font-size: 12px; }
+        .column p { margin: 2px 0 5px; text-align: center; color: #64748b; font-size: 8px; }
+        .pyramid { display: flex; flex-direction: column; gap: 2px; width: 100%; align-items: center; }
+        .pyramid-row { width: 100%; display: flex; justify-content: center; height: 32px; }
+        .pyramid-layer { min-width: 24%; height: 32px; display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 0 8px; border: 2px solid #fff; border-radius: 3px; font-weight: 800; overflow: hidden; }
+        .pyramid-label { font-size: 8px; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pyramid-value { font-size: 12px; line-height: 1; font-family: Arial, sans-serif; }
+        .footer { margin-top: 7px; padding-top: 5px; border-top: 1px solid #cbd5e1; display: flex; justify-content: space-between; gap: 10px; color: #64748b; font-size: 7px; }
         @media print {
-          .toolbar { display:none !important; }
-          .page { max-width:none; }
-          .header, .brand, .title, .kpis, .kpi, .columns, .column, .footer, svg { visibility:visible !important; opacity:1 !important; }
-          .columns { display:grid !important; grid-template-columns:1fr 1fr !important; }
-          .column { display:block !important; }
-          svg { display:block !important; }
+          .toolbar { display: none !important; }
+          .page { max-width: none; width: 100%; }
+          .header, .kpis, .columns, .column, .pyramid, .pyramid-row, .pyramid-layer, .footer { display: block; visibility: visible !important; opacity: 1 !important; }
+          .header { display: flex !important; }
+          .kpis { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; }
+          .columns { display: grid !important; grid-template-columns: 1fr 1fr !important; }
+          .pyramid { display: flex !important; }
+          .pyramid-row { display: flex !important; }
+          .pyramid-layer { display: flex !important; }
         }
       `}</style>
 
@@ -188,12 +178,12 @@ export default function SafetyPyramidPrintPage() {
           <div className="column">
             <h2>{isAr ? `الشهر • ${monthText}` : `Monthly • ${monthText}`}</h2>
             <p>{isAr ? "المستويات والأعداد الشهرية" : "Monthly levels and counts"}</p>
-            <svg viewBox={`0 0 500 ${svgHeight}`} role="img" aria-label="Monthly Incident Pyramid">{renderPyramid("monthly")}</svg>
+            <Pyramid mode="monthly" counts={counts} isAr={isAr} />
           </div>
           <div className="column">
             <h2>{isAr ? `التراكمي YTD • ${year}` : `YTD • ${year}`}</h2>
             <p>{isAr ? "المستويات والأعداد التراكمية" : "Year-to-date levels and counts"}</p>
-            <svg viewBox={`0 0 500 ${svgHeight}`} role="img" aria-label="YTD Incident Pyramid">{renderPyramid("ytd")}</svg>
+            <Pyramid mode="ytd" counts={counts} isAr={isAr} />
           </div>
         </section>
 
