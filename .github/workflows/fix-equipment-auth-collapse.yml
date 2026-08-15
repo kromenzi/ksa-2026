@@ -1,0 +1,44 @@
+name: Fix Equipment Authorization Collapse
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-equipment-auth-collapse.yml'
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Split equipment authorization into collapsible group
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/components/layouts/admin-layout.tsx')
+          s = p.read_text(encoding='utf-8')
+          old = '''    {\n      title: "Licenses & Equipment Authorization",\n      titleAr: "التراخيص وتفويض المعدات",\n      items: [\n        { label: isAr ? 'لوحة القيادة' : 'Dashboard', icon: LayoutDashboard, href: "/admin/licenses", visible: true, color: "text-blue-500", bgColor: "bg-blue-500/10" },\n        { label: isAr ? 'التراخيص' : 'Licenses', icon: CreditCard, href: "/admin/licenses", visible: true, color: "text-amber-500", bgColor: "bg-amber-500/10" },\n        { label: isAr ? 'التدريب والكفاءة' : 'Training & Competency', icon: GraduationCap, href: "/admin/trainings", visible: true, color: "text-indigo-500", bgColor: "bg-indigo-500/10" },\n        { label: isAr ? 'تفويض المعدات' : 'Equipment Authorization', icon: ShieldCheck, href: "/admin/equipment-auth", visible: true, color: "text-emerald-500", bgColor: "bg-emerald-500/10" },\n        { label: isAr ? 'رافعة شوكية (Forklift)' : 'Forklift', icon: Truck, href: "/admin/equipment-auth", visible: true, color: "text-blue-600", bgColor: "bg-blue-600/10" },\n        { label: isAr ? 'ونش علوي (Overhead Crane)' : 'Overhead Crane', icon: Wrench, href: "/admin/equipment-auth", visible: true, color: "text-orange-500", bgColor: "bg-orange-500/10" },\n        { label: isAr ? 'رافعات الأفراد (Lifter / Manlift)' : 'Lifter / Manlift', icon: Activity, href: "/admin/equipment-auth", visible: true, color: "text-purple-500", bgColor: "bg-purple-500/10" },\n        { label: isAr ? 'منصات العمل المتحركة (MEWP)' : 'MEWP', icon: Truck, href: "/admin/equipment-auth", visible: true, color: "text-cyan-500", bgColor: "bg-cyan-500/10" },\n        { label: isAr ? 'الربط والإشارات (Rigging & Banksman)' : 'Rigging & Banksman', icon: Award, href: "/admin/equipment-auth", visible: true, color: "text-amber-600", bgColor: "bg-amber-600/10" },\n        { label: isAr ? 'التفويض الكهربائي (Electrical)' : 'Electrical Authorization', icon: Zap, href: "/admin/equipment-auth", visible: true, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },\n        { label: isAr ? 'عزل الطاقة (LOTO)' : 'LOTO Authorization', icon: Lock, href: "/admin/equipment-auth", visible: true, color: "text-rose-600", bgColor: "bg-rose-600/10" },\n        { label: isAr ? 'العمل على ارتفاعات' : 'Work at Height', icon: ShieldAlert, href: "/admin/equipment-auth", visible: true, color: "text-sky-600", bgColor: "bg-sky-600/10" },\n        { label: isAr ? 'الأماكن المغلقة' : 'Confined Space', icon: AlertTriangle, href: "/admin/equipment-auth", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },\n        { label: isAr ? 'العناصر منتهية الصلاحية' : 'Expiring Items', icon: Clock, href: "/admin/licenses", visible: true, color: "text-amber-500", bgColor: "bg-amber-500/10" },\n        { label: isAr ? 'مصفوفة الكفاءة' : 'Competency Matrix', icon: Grid, href: "/admin/training-matrix", visible: true, color: "text-teal-500", bgColor: "bg-teal-500/10" },\n        { label: isAr ? 'تقارير التفويض' : 'Authorization Reports', icon: ScrollText, href: "/admin/enterprise-reports", visible: true, color: "text-slate-400", bgColor: "bg-slate-500/10" },\n      ]\n    },'''
+          new = '''    {\n      title: "Licenses & Training",\n      titleAr: "التراخيص والتدريب",\n      items: [\n        { label: isAr ? 'لوحة القيادة' : 'Dashboard', icon: LayoutDashboard, href: "/admin/licenses", visible: true, color: "text-blue-500", bgColor: "bg-blue-500/10" },\n        { label: isAr ? 'التراخيص' : 'Licenses', icon: CreditCard, href: "/admin/licenses", visible: true, color: "text-amber-500", bgColor: "bg-amber-500/10" },\n        { label: isAr ? 'التدريب والكفاءة' : 'Training & Competency', icon: GraduationCap, href: "/admin/trainings", visible: true, color: "text-indigo-500", bgColor: "bg-indigo-500/10" },\n        { label: isAr ? 'العناصر منتهية الصلاحية' : 'Expiring Items', icon: Clock, href: "/admin/licenses", visible: true, color: "text-amber-500", bgColor: "bg-amber-500/10" },\n        { label: isAr ? 'مصفوفة الكفاءة' : 'Competency Matrix', icon: Grid, href: "/admin/training-matrix", visible: true, color: "text-teal-500", bgColor: "bg-teal-500/10" },\n        { label: isAr ? 'تقارير التفويض' : 'Authorization Reports', icon: ScrollText, href: "/admin/enterprise-reports", visible: true, color: "text-slate-400", bgColor: "bg-slate-500/10" },\n      ]\n    },\n    {\n      title: "Equipment Authorization",\n      titleAr: "تفويض المعدات",\n      items: [\n        { label: isAr ? 'لوحة تفويض المعدات' : 'Authorization Dashboard', icon: ShieldCheck, href: "/admin/equipment-auth", visible: true, color: "text-emerald-500", bgColor: "bg-emerald-500/10" },\n        { label: isAr ? 'رافعة شوكية (Forklift)' : 'Forklift', icon: Truck, href: "/admin/equipment-auth", visible: true, color: "text-blue-600", bgColor: "bg-blue-600/10" },\n        { label: isAr ? 'ونش علوي (Overhead Crane)' : 'Overhead Crane', icon: Wrench, href: "/admin/equipment-auth", visible: true, color: "text-orange-500", bgColor: "bg-orange-500/10" },\n        { label: isAr ? 'رافعات الأفراد (Lifter / Manlift)' : 'Lifter / Manlift', icon: Activity, href: "/admin/equipment-auth", visible: true, color: "text-purple-500", bgColor: "bg-purple-500/10" },\n        { label: isAr ? 'منصات العمل المتحركة (MEWP)' : 'MEWP', icon: Truck, href: "/admin/equipment-auth", visible: true, color: "text-cyan-500", bgColor: "bg-cyan-500/10" },\n        { label: isAr ? 'الربط والإشارات (Rigging & Banksman)' : 'Rigging & Banksman', icon: Award, href: "/admin/equipment-auth", visible: true, color: "text-amber-600", bgColor: "bg-amber-600/10" },\n        { label: isAr ? 'التفويض الكهربائي (Electrical)' : 'Electrical Authorization', icon: Zap, href: "/admin/equipment-auth", visible: true, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },\n        { label: isAr ? 'عزل الطاقة (LOTO)' : 'LOTO Authorization', icon: Lock, href: "/admin/equipment-auth", visible: true, color: "text-rose-600", bgColor: "bg-rose-600/10" },\n        { label: isAr ? 'العمل على ارتفاعات' : 'Work at Height', icon: ShieldAlert, href: "/admin/equipment-auth", visible: true, color: "text-sky-600", bgColor: "bg-sky-600/10" },\n        { label: isAr ? 'الأماكن المغلقة' : 'Confined Space', icon: AlertTriangle, href: "/admin/equipment-auth", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },\n      ]\n    },'''
+          if old not in s:
+              raise SystemExit('target navigation block not found')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Verify collapsible group structure
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s = Path('src/components/layouts/admin-layout.tsx').read_text(encoding='utf-8')
+          assert 'title: "Equipment Authorization"' in s
+          assert 'titleAr: "تفويض المعدات"' in s
+          assert 'title: "Licenses & Training"' in s
+          print('Verified: Equipment Authorization is a standalone collapsible navigation group')
+          PY
+      - name: Commit and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/components/layouts/admin-layout.tsx
+          git commit -m 'fix: make equipment authorization collapsible'
+          git push
+          git rm .github/workflows/fix-equipment-auth-collapse.yml
+          git commit -m 'chore: remove temporary equipment authorization workflow'
+          git push
