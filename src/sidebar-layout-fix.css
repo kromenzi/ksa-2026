@@ -154,3 +154,39 @@
 
 /* Print-safe sidebar state styles. */
 /* Trigger CI validation for risk table print repair. */
+
+/* Action icon contrast: visible in both dark and light themes. */
+:root {
+  --action-eye: #60a5fa;
+  --action-print: #a78bfa;
+  --action-download: #34d399;
+  --action-link: #22d3ee;
+  --action-edit: #fb923c;
+  --action-delete: #f87171;
+}
+
+table tbody tr td:last-child button {
+  opacity: 1 !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border) / 0.7);
+  background: hsl(var(--background) / 0.55);
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+table tbody tr td:last-child button:hover {
+  transform: translateY(-1px);
+  background: hsl(var(--background) / 0.95);
+  border-color: hsl(var(--border));
+}
+
+table tbody tr td:last-child button:nth-child(1) svg { color: var(--action-eye) !important; stroke-width: 2.25; }
+table tbody tr td:last-child button:nth-child(2) svg { color: var(--action-print) !important; stroke-width: 2.25; }
+table tbody tr td:last-child button:nth-child(3) svg { color: var(--action-download) !important; stroke-width: 2.25; }
+table tbody tr td:last-child button:nth-child(4) svg { color: var(--action-link) !important; stroke-width: 2.25; }
+table tbody tr td:last-child button:nth-child(5) svg { color: var(--action-edit) !important; stroke-width: 2.25; }
+table tbody tr td:last-child button:nth-child(6) svg { color: var(--action-delete) !important; stroke-width: 2.25; }
+
+table tbody tr td:last-child button:focus-visible {
+  outline: 2px solid #fbbf24;
+  outline-offset: 2px;
+}
