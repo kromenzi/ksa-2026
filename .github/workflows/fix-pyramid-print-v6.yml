@@ -15,97 +15,65 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply deterministic print CSS and DOM
+      - name: Apply incident pyramid print fix
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          page = Path('src/pages/admin/safety-pyramid.tsx')
+          page = Path('src/components/incident-pyramid.tsx')
+          css = Path('src/index.css')
           text = page.read_text(encoding='utf-8')
-
-          start_marker = '  // Print State'
-          end_marker = '  const exportCSV = () => {'
-          start = text.find(start_marker)
-          end = text.find(end_marker)
-          if start < 0 or end < 0 or end <= start:
-              raise SystemExit('print block markers not found')
-
-          block = r'''  // Deterministic print: no popup and no React timing dependency
-  const handlePrint = () => {
-    logActivity("Print Safety Pyramid", "Printed visual safety pyramid", "reports");
-    window.print();
-  };
-
-'''
-          text = text[:start] + block + text[end:]
-
-          old_start = text.find('    <div style={{display: isNativePrinting ? "block" : "none"}}')
-          if old_start < 0:
-              old_start = text.find('    <div className="pyramid-print-sheet"')
-          if old_start >= 0:
-              header = text.find('      {/* Header */}', old_start)
-              if header > 0:
-                  text = text[:old_start] + text[header:]
-
-          marker = '      {/* Header */}'
-          idx = text.find(marker)
-          if idx < 0:
-              raise SystemExit('header marker not found')
-
-          sheet = r'''      <div className="pyramid-print-sheet" dir={isAr ? "rtl" : "ltr"}>
-        <div className="pyramid-print-page">
-          <div className="pyramid-print-header">
-            <div>
-              <h1>{isAr ? "الهرم الأمني الديناميكي" : "Dynamic Safety Pyramid"}</h1>
-              <p>{isAr ? "التقرير المرئي للهرم الأمني" : "Visual Safety Pyramid Report"}</p>
-            </div>
-            <div className="pyramid-print-meta">HSE-PYRAMID-01<br />{new Date().toLocaleDateString(isAr ? "ar-SA" : "en-US")}</div>
-          </div>
-          <div className="pyramid-print-kpis">
-            <div><strong>{totalIncidents}</strong><span>{isAr ? "إجمالي الحوادث" : "Total Incidents"}</span></div>
-            <div><strong>{totalNearMisses}</strong><span>{isAr ? "الوقائع الوشيكة" : "Near Misses"}</span></div>
-            <div><strong>{totalObservations}</strong><span>{isAr ? "الأفعال والظروف غير الآمنة" : "Unsafe Acts & Conditions"}</span></div>
-          </div>
-          <div className="pyramid-print-graphic">
-            <svg viewBox={`0 0 900 ${150 + pyramidLevels.filter(l=>l.enabled).length * 84 + 20}`} xmlns="http://www.w3.org/2000/svg" role="img" aria-label={isAr ? "الهرم الأمني" : "Safety Pyramid"}>
-              {(() => {
-                const levels = pyramidLevels.filter(l=>l.enabled).sort((a,b)=>a.order-b.order);
-                const center = 450, topWidth = 120, bottomWidth = 760, segmentHeight = 84, topY = 12;
-                const step = levels.length > 1 ? (bottomWidth-topWidth)/(levels.length-1) : 0;
-                const colors = ["#991b1b","#dc2626","#f59e0b","#eab308","#f97316","#2563eb","#059669"];
-                return levels.map((lvl,index) => {
-                  const wTop = topWidth + step*index;
-                  const wBottom = index === levels.length-1 ? bottomWidth : topWidth + step*(index+1);
-                  const y = topY + index*segmentHeight;
-                  const label = isAr ? lvl.nameAr : lvl.nameEn;
-                  const count = getLevelCount(lvl.id);
-                  return <g key={lvl.id}>
-                    <polygon points={`${center-wTop/2},${y} ${center+wTop/2},${y} ${center+wBottom/2},${y+segmentHeight} ${center-wBottom/2},${y+segmentHeight}`} fill={colors[index%colors.length]} stroke="#ffffff" strokeWidth="4" />
-                    <text x={center} y={y+34} textAnchor="middle" fontSize={label.length>28?13:16} fontWeight="700" fill="#ffffff">{label}</text>
-                    <text x={center} y={y+67} textAnchor="middle" fontSize="25" fontWeight="800" fill="#ffffff">{count}</text>
-                  </g>;
-                });
-              })()}
+          marker = '        {/* Dual Side-by-Side Pyramid Grid */}'
+          if 'incident-pyramid-print-svg' not in text:
+              if marker not in text:
+                  raise SystemExit('incident pyramid marker not found')
+              svg = r'''        {/* PRINT_ONLY_INCIDENT_PYRAMID_SVG */}
+          <div className="incident-pyramid-print-only">
+            <svg className="incident-pyramid-print-svg" viewBox="0 0 1000 820" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={isAr ? "الهرم الأمني" : "Incident Pyramid"}>
+              <rect x="0" y="0" width="1000" height="820" fill="#ffffff" />
+              <text x="250" y="45" textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="700" fill="#1e3a8a">{leftSubtitle}</text>
+              <text x="750" y="45" textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="700" fill="#1e3a8a">{rightSubtitle}</text>
+              <line x1="500" y1="65" x2="500" y2="790" stroke="#93c5fd" strokeWidth="2" />
+              {PYRAMID_LEVEL_DEFS.map((lvl, index) => {
+                const leftCount = monthlyCounts[lvl.id] ?? 0;
+                const rightCount = ytdCounts[lvl.id] ?? 0;
+                const widths = [120, 180, 240, 300, 360, 420, 480];
+                const y = 85 + index * 95;
+                const w = widths[index];
+                const color = ['#dc2626','#f43f5e','#f97316','#f59e0b','#facc15','#34d399','#059669'][index];
+                const label = isAr ? lvl.shortNameAr : lvl.shortNameEn;
+                return <g key={`print-${lvl.id}`}>
+                  <rect x={250 - w/2} y={y} width={w} height="72" rx="5" fill={color} stroke="#ffffff" strokeWidth="3" />
+                  <text x="250" y={y + 30} textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="15" fontWeight="700" fill="#ffffff">{label}</text>
+                  <text x="250" y={y + 56} textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="800" fill="#ffffff">{leftCount}</text>
+                  <rect x={750 - w/2} y={y} width={w} height="72" rx="5" fill={color} stroke="#ffffff" strokeWidth="3" />
+                  <text x="750" y={y + 30} textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="15" fontWeight="700" fill="#ffffff">{label}</text>
+                  <text x="750" y={y + 56} textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="800" fill="#ffffff">{rightCount}</text>
+                </g>;
+              })}
             </svg>
           </div>
-          <div className="pyramid-print-footer"><span>{isAr ? "تم إنشاء التقرير من ABDULKAREM SAFETY BOARD" : "Generated by ABDULKAREM SAFETY BOARD"}</span><span>{isAr ? "الهرم الأمني الديناميكي" : "Dynamic Safety Pyramid"}</span></div>
-        </div>
-      </div>
 
 '''
-          text = text[:idx] + sheet + text[idx:]
-          page.write_text(text, encoding='utf-8')
+              text = text.replace(marker, svg + marker, 1)
+              page.write_text(text, encoding='utf-8')
+
+          css_text = css.read_text(encoding='utf-8')
+          if 'Incident Pyramid deterministic inline SVG V7' not in css_text:
+              css_text += '''\n\n/* Incident Pyramid deterministic inline SVG V7 */\n.incident-pyramid-print-only { display: none !important; }\n@media print {\n  .incident-pyramid-print-only { display:block !important; width:100% !important; height:auto !important; overflow:visible !important; visibility:visible !important; opacity:1 !important; position:static !important; background:#fff !important; page-break-inside:avoid !important; break-inside:avoid !important; }\n  .incident-pyramid-print-svg { display:block !important; width:100% !important; height:auto !important; max-width:none !important; visibility:visible !important; opacity:1 !important; background:#fff !important; }\n  .incident-pyramid-print-svg * { visibility:visible !important; opacity:1 !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }\n  .incident-pyramid-container > .incident-pyramid-grid { display:none !important; }\n}\n'''
+              css.write_text(css_text, encoding='utf-8')
           PY
 
-      - name: Add print CSS marker
-        shell: bash
+      - name: Verify
         run: |
-          printf '\n/* pyramid print v6 */\n' >> src/index.css
+          grep -q 'incident-pyramid-print-svg' src/components/incident-pyramid.tsx
+          grep -q 'Incident Pyramid deterministic inline SVG V7' src/index.css
 
-      - name: Commit print patch
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/pages/admin/safety-pyramid.tsx src/index.css
-          git commit -m "fix: make safety pyramid print reliably from DOM" || exit 0
+          git add src/components/incident-pyramid.tsx src/index.css
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: print incident pyramid reliably"
           git push
