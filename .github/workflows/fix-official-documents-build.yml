@@ -18,11 +18,8 @@ jobs:
           s = p.read_text(encoding='utf-8')
           marker = '  const isNcr = item.type === "ncr";\n  const showQr = item.type === "ncr" || item.type === "report";\n'
           replacement = marker + '  const isOfficialLicense = Boolean(item.refNo && (item.refNo.startsWith("LIC-") || item.refNo.includes("HSE-LIC")));\n  const isTrainingCertificate = Boolean(item.refNo && item.refNo.startsWith("CERT-"));\n'
-          if 'function PrintView' in s and s.count(marker) < 2:
-              raise SystemExit('unexpected marker count; preview scope patch requires PrintView marker present')
-          # Only add to the second occurrence (PrintView), since the first is already inside buildPrintHtml.
           first = s.find(marker)
-          second = s.find(marker, first + len(marker))
+          second = s.find(marker, first + len(marker)) if first != -1 else -1
           if second == -1:
               raise SystemExit('second marker not found')
           s = s[:second] + replacement + s[second + len(marker):]
