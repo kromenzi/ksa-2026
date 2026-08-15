@@ -1,0 +1,57 @@
+name: Add Full Dashboard Print
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[dashboard-print]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch dashboard print
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/pages/admin/dashboard.tsx')
+          s = p.read_text(encoding='utf-8')
+          if '[dashboard-print]' in s:
+              raise SystemExit(0)
+
+          s = s.replace(
+              'import { useData } from "@/lib/data-context";\n',
+              'import { useData } from "@/lib/data-context";\nimport { Button } from "@/components/ui/button";\n'
+          )
+
+          s = s.replace(
+              '  Eye, Layers, Building2, Award, ShieldCheck, HeartPulse\n',
+              '  Eye, Layers, Building2, Award, ShieldCheck, HeartPulse, Printer\n'
+          )
+
+          marker = '  return (\n    <div className="space-y-5">'
+          replacement = '''  const handlePrintDashboard = () => {\n    const source = document.querySelector('[data-dashboard-print-root="true"]') as HTMLElement | null;\n    if (!source) return;\n\n    const printWindow = window.open('', '_blank', 'width=1400,height=1000');\n    if (!printWindow) return;\n\n    const title = isAr ? 'لوحة التحكم - تقرير الطباعة' : 'Safety Board Dashboard - Print Report';\n    const direction = isAr ? 'rtl' : 'ltr';\n    const dateText = new Date().toLocaleString(isAr ? 'ar-SA' : 'en-US');\n    const stylesheetLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))\n      .map((link) => `<link rel="stylesheet" href="${(link as HTMLLinkElement).href}">`)\n      .join('');\n\n    const printCss = `\n      @page { size: A4 landscape; margin: 10mm; }\n      :root { color-scheme: light !important; }\n      html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }\n      body { color: #111827 !important; font-family: Arial, Helvetica, sans-serif !important; }\n      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }\n      [data-dashboard-print-root="true"] { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }\n      .dashboard-print-toolbar { display: none !important; }\n      [data-dashboard-print-root="true"] .overflow-x-auto { overflow: visible !important; }\n      [data-dashboard-print-root="true"] .overflow-hidden { overflow: visible !important; }\n      [data-dashboard-print-root="true"] .recharts-responsive-container { width: 100% !important; }\n      [data-dashboard-print-root="true"] .recharts-wrapper { width: 100% !important; }\n      [data-dashboard-print-root="true"] svg { max-width: 100% !important; }\n      [data-dashboard-print-root="true"] .shadow-sm,\n      [data-dashboard-print-root="true"] .shadow-md,\n      [data-dashboard-print-root="true"] .shadow-lg { box-shadow: none !important; }\n      [data-dashboard-print-root="true"] .hover\\:shadow-lg { box-shadow: none !important; }\n      .dashboard-print-header {\n        display: flex !important;\n        align-items: center;\n        justify-content: space-between;\n        gap: 16px;\n        padding-bottom: 8px;\n        margin-bottom: 12px;\n        border-bottom: 1px solid #d1d5db;\n        direction: ${direction};\n      }\n      .dashboard-print-header h1 { margin: 0; font-size: 20px; font-weight: 800; }\n      .dashboard-print-header p { margin: 3px 0 0; font-size: 10px; color: #6b7280; }\n      .dashboard-print-header .date { font-size: 10px; color: #6b7280; }\n      @media print {\n        body { background: #fff !important; }\n        .dashboard-print-toolbar { display: none !important; }\n      }\n    `;\n\n    printWindow.document.open();\n    printWindow.document.write(`<!doctype html><html lang="${isAr ? 'ar' : 'en'}" dir="${direction}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title>${stylesheetLinks}<style>${printCss}</style></head><body><div class="dashboard-print-header"><div><h1>${title}</h1><p>${isAr ? 'تقرير كامل من لوحة السلامة' : 'Full report generated from the Safety Board dashboard'}</p></div><div class="date">${dateText}</div></div>${source.outerHTML}</body></html>`);\n    printWindow.document.close();\n\n    setTimeout(() => {\n      printWindow.focus();\n      printWindow.print();\n      printWindow.close();\n    }, 900);\n  };\n\n  return (\n    <div className="space-y-5" data-dashboard-print-root="true">'''
+          if marker not in s:
+              raise SystemExit('dashboard root marker not found')
+          s = s.replace(marker, replacement, 1)
+
+          header_marker = '''          <p className="text-[12px] text-muted-foreground mt-1.5 ms-12">\n            {isAr ? "مؤشرات أداء السلامة" : "Safety performance overview"}\n          </p>\n        </div>\n      </div>'''
+          header_replacement = '''          <p className="text-[12px] text-muted-foreground mt-1.5 ms-12">\n            {isAr ? "مؤشرات أداء السلامة" : "Safety performance overview"}\n          </p>\n        </div>\n        <div className="flex items-center gap-2 dashboard-print-toolbar">\n          <Button\n            type="button"\n            variant="outline"\n            size="sm"\n            onClick={handlePrintDashboard}\n            className="gap-2 rounded-xl"\n          >\n            <Printer className="h-4 w-4" />\n            <span>{isAr ? "طباعة لوحة التحكم" : "Print Dashboard"}</span>\n          </Button>\n        </div>\n      </div>'''
+          if header_marker not in s:
+              raise SystemExit('dashboard header marker not found')
+          s = s.replace(header_marker, header_replacement, 1)
+
+          p.write_text(s, encoding='utf-8')
+      - name: Commit dashboard print
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/pages/admin/dashboard.tsx
+          git commit -m 'feat: add full dashboard print [dashboard-print]' || exit 0
+          git push
