@@ -1,0 +1,75 @@
+name: Fix Theme Colors Direct
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, '[theme-colors-direct-fixed]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch theme state and color classes
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/lib/data-context.tsx')
+          s = p.read_text(encoding='utf-8')
+
+          if 'localColorTheme' not in s:
+              marker = ' const [localTheme,setLocalTheme]=useState<"light"|"dark">(()=>{try{const saved=localStorage.getItem("safety-board-theme");return saved === "light" ? "light" : "dark";}catch{return "dark";}});'
+              if marker not in s:
+                  raise SystemExit('theme state marker not found')
+              replacement = marker + '\n const [localColorTheme,setLocalColorTheme]=useState<ColorTheme>(()=>{try{const saved=localStorage.getItem("safety-board-color-theme");return saved === "ocean" || saved === "violet" || saved === "emerald" ? saved : "emerald";}catch{return "emerald";}});'
+              s = s.replace(marker, replacement, 1)
+
+          old_settings = ' const settings={...emptySettings,...remoteSettings,language:localLanguage,theme:localTheme};'
+          if old_settings in s:
+              new_settings = old_settings + '''\n useEffect(()=>{\n   const root=document.documentElement;\n   root.classList.toggle("dark",localTheme === "dark");\n   root.style.colorScheme=localTheme;\n   root.classList.remove("theme-ocean","theme-emerald","theme-violet");\n   root.classList.add(`theme-${localColorTheme}`);\n },[localTheme,localColorTheme]);\n useEffect(()=>{\n   try{\n     const savedTheme=localStorage.getItem("safety-board-theme");\n     if(savedTheme !== "light" && savedTheme !== "dark" && (remoteSettings.theme === "light" || remoteSettings.theme === "dark")) setLocalTheme(remoteSettings.theme);\n     const savedColor=localStorage.getItem("safety-board-color-theme");\n     if(savedColor !== "ocean" && savedColor !== "emerald" && savedColor !== "violet" && (remoteSettings.colorTheme === "ocean" || remoteSettings.colorTheme === "emerald" || remoteSettings.colorTheme === "violet")) setLocalColorTheme(remoteSettings.colorTheme);\n   }catch{}\n },[remoteSettings.theme,remoteSettings.colorTheme]);'''
+              s = s.replace(old_settings, new_settings, 1)
+
+          old_update = ' const updateSettings=async(d:Partial<SiteSettings>)=>{if(d.language==="ar"||d.language==="en"){setLocalLanguage(d.language);try{localStorage.setItem("safety-board-language",d.language);}catch{}} if(d.theme==="light"||d.theme==="dark"){setLocalTheme(d.theme);try{localStorage.setItem("safety-board-theme",d.theme);}catch{}} try{await apiRequest("PATCH","/api/site-settings",d);}catch{} invalidate("/api/site-settings");};'
+          if old_update in s:
+              new_update = ' const updateSettings=async(d:Partial<SiteSettings>)=>{if(d.language==="ar"||d.language==="en"){setLocalLanguage(d.language);try{localStorage.setItem("safety-board-language",d.language);}catch{}} if(d.theme==="light"||d.theme==="dark"){setLocalTheme(d.theme);try{localStorage.setItem("safety-board-theme",d.theme);}catch{}} if(d.colorTheme==="ocean"||d.colorTheme==="emerald"||d.colorTheme==="violet"){setLocalColorTheme(d.colorTheme);try{localStorage.setItem("safety-board-color-theme",d.colorTheme);}catch{}} try{await apiRequest("PATCH","/api/site-settings",d);}catch{} invalidate("/api/site-settings");};'
+              s = s.replace(old_update, new_update, 1)
+
+          old_color = ' const setColorTheme=(t:ColorTheme)=>{void updateSettings({colorTheme:t});};'
+          if old_color in s:
+              new_color = ' const setColorTheme=(t:ColorTheme)=>{setLocalColorTheme(t);try{localStorage.setItem("safety-board-color-theme",t);}catch{};void apiRequest("PATCH","/api/site-settings",{colorTheme:t}).then(()=>invalidate("/api/site-settings")).catch(()=>{});};'
+              s = s.replace(old_color, new_color, 1)
+
+          p.write_text(s, encoding='utf-8')
+
+      - name: Verify source
+        shell: python
+        run: |
+          from pathlib import Path
+          s = Path('src/lib/data-context.tsx').read_text(encoding='utf-8')
+          required = ['localColorTheme','safety-board-color-theme','theme-ocean','theme-emerald','theme-violet']
+          missing = [x for x in required if x not in s]
+          if missing:
+              raise SystemExit(f'Missing markers: {missing}')
+
+      - name: Build verification
+        run: |
+          npm ci
+          npm run build
+
+      - name: Commit and remove workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/lib/data-context.tsx
+          git commit -m 'fix: make color theme switching functional [theme-colors-direct-fixed]'
+          rm -f .github/workflows/fix-theme-colors-direct.yml
+          git add .github/workflows/fix-theme-colors-direct.yml
+          git commit -m 'chore: remove direct theme colors workflow'
+          git push
