@@ -27,11 +27,14 @@ Replace `AUTH_USER_UUID` with the UUID shown by Supabase.
 
 ## 3. Vercel environment variables
 
-In the `abdulkarem-board-2026` Vercel project, add these to **Production**:
+In the Vercel project, add these to the target environment(s):
 
 ```text
 SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_ANON_KEY=YOUR_ANON_KEY
+SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
+SITE_URL=https://YOUR_DOMAIN_OR_VERCEL_URL
 ```
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY` as a `VITE_*` variable and never put it in browser code.
@@ -57,10 +60,12 @@ It must return:
 
 Implemented server-side:
 - login using Supabase Auth
+- signup with password leak protection
+- password reset email request with leak protection
 - HttpOnly authentication cookie
 - authenticated session lookup
 - logout
-- role/profile lookup
+- profile lookup from `profiles`
 - NCR list/create
 - NCR read/update/delete
 - server-side validation for department/description
