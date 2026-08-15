@@ -1,0 +1,34 @@
+name: Restore Settings File
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: ${{ !contains(github.event.head_commit.message, '[restore-settings]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore settings file from known good commit
+        shell: bash
+        run: |
+          set -e
+          git checkout 28d0480e762741763bfcd6721c0a41615380df6f -- src/pages/admin/settings.tsx
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/pages/admin/settings.tsx')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('import { useState } from "react";', 'import { useEffect, useState } from "react";')
+          p.write_text(s, encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/pages/admin/settings.tsx
+          git commit -m 'fix: restore settings page after bad patch [restore-settings]' || true
+          git push
