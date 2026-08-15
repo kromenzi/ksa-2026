@@ -117,6 +117,17 @@ export default function AdminDashboard() {
   const highRiskReports = safetyReports.filter(r => r.riskLevel === 'high' || r.riskLevel === 'critical').length;
   const openReports = safetyReports.filter(r => r.status !== 'closed').length;
   const ncrClosureRate = totalNCRs > 0 ? Math.round((closedNCRs / totalNCRs) * 100) : 0;
+  const nearMissCount = safetyReports.filter(r => String(r.category || '').toLowerCase().includes('near miss')).length;
+  const criticalRiskCount = safetyReports.filter(r => r.riskLevel === 'critical').length;
+  const openActionItems = openReports + openNCRs;
+  const overdueNCRs = ncrs.filter(n => {
+    if (n.status === 'closed') return false;
+    const due = (n as any).dueDate;
+    return !!due && new Date(due).getTime() < Date.now();
+  }).length;
+  const reportClosureRate = totalReports > 0 ? Math.round(((totalReports - openReports) / totalReports) * 100) : 0;
+  const activeDocumentCount = documents.filter(d => (d as any).status !== 'archived').length;
+
 
   // Risk distribution from safetyReports
   const riskDistribution = safetyReports.reduce(
@@ -442,6 +453,12 @@ export default function AdminDashboard() {
           testId="card-audit-readiness"
           badgeText="SBC"
         />
+        <KPICard title={isAr ? "بلاغات شبه الحوادث" : "Near Miss Reports"} value={nearMissCount} subtitle={<span className="text-[11px] text-muted-foreground">{isAr ? "مؤشر استباقي" : "Leading indicator"}</span>} icon={Eye} color="bg-cyan-500" borderColor="bg-cyan-500" loading={statsLoading} testId="card-near-miss" badgeText="Near Miss" />
+        <KPICard title={isAr ? "المخاطر الحرجة" : "Critical Risks"} value={criticalRiskCount} subtitle={<span className="text-[11px] text-red-600 font-medium">{isAr ? "تحتاج معالجة فورية" : "Immediate action"}</span>} icon={AlertTriangle} color="bg-purple-500" borderColor="bg-purple-500" loading={statsLoading} testId="card-critical-risk" badgeText="Critical" />
+        <KPICard title={isAr ? "الإجراءات المفتوحة" : "Open Action Items"} value={openActionItems} subtitle={<span className="text-[11px] text-amber-600 font-medium">{isAr ? "تقارير + NCR" : "Reports + NCRs"}</span>} icon={Clock} color="bg-orange-500" borderColor="bg-orange-500" loading={statsLoading} testId="card-open-actions" badgeText="Actions" />
+        <KPICard title={isAr ? "NCR متأخرة" : "Overdue NCRs"} value={overdueNCRs} subtitle={<span className="text-[11px] text-rose-600 font-medium">{isAr ? "بعد تاريخ الاستحقاق" : "Past due date"}</span>} icon={Clock} color="bg-rose-500" borderColor="bg-rose-500" loading={statsLoading} testId="card-overdue-ncrs" badgeText="Overdue" />
+        <KPICard title={isAr ? "إغلاق التقارير" : "Report Closure Rate"} value={`${reportClosureRate}%`} subtitle={<Progress value={reportClosureRate} className="h-1.5 mt-1" />} icon={CheckCircle2} color="bg-emerald-500" borderColor="bg-emerald-500" loading={statsLoading} testId="card-report-closure" badgeText="Closeout" />
+        <KPICard title={isAr ? "الوثائق النشطة" : "Active Documents"} value={activeDocumentCount} subtitle={<span className="text-[11px] text-muted-foreground">{isAr ? "غير المؤرشفة" : "Not archived"}</span>} icon={FileText} color="bg-sky-500" borderColor="bg-sky-500" loading={statsLoading} testId="card-active-documents" badgeText="Docs" />
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
