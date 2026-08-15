@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Level = { id: string; nameEn: string; nameAr: string; order: number; color: string };
 type Count = { id: string; monthly: number; ytd: number };
@@ -40,6 +40,7 @@ export default function SafetyPyramidPrintPage() {
   const year = params.get("year") || new Date().getFullYear().toString();
   const incomingCounts = parseJson<Count[]>(params.get("counts"), []);
   const counts = normalizeCounts(incomingCounts);
+  const [ready, setReady] = useState(false);
 
   const totalIncidentsParam = Number(params.get("incidents") || 0);
   const nearMissParam = Number(params.get("nearMisses") || 0);
@@ -53,48 +54,39 @@ export default function SafetyPyramidPrintPage() {
   useEffect(() => {
     document.title = isAr ? "تقرير هرم الحوادث" : "Incident Pyramid Report";
 
-    let cancelled = false;
-
-    const waitForRender = async () => {
+    const markReady = async () => {
       try {
-        if (document.fonts?.ready) {
-          await document.fonts.ready;
-        }
+        if (document.fonts?.ready) await document.fonts.ready;
       } catch {
-        // Continue even if font readiness is unavailable.
+        // Ignore font readiness errors.
       }
 
       const images = Array.from(document.images);
-      await Promise.all(
-        images.map(async (image) => {
-          if (image.complete) return;
-          await new Promise<void>((resolve) => {
-            const done = () => {
-              image.removeEventListener("load", done);
-              image.removeEventListener("error", done);
-              resolve();
-            };
-            image.addEventListener("load", done, { once: true });
-            image.addEventListener("error", done, { once: true });
-          });
-        })
-      );
+      await Promise.all(images.map(async (image) => {
+        if (image.complete) return;
+        await new Promise<void>((resolve) => {
+          const done = () => {
+            image.removeEventListener("load", done);
+            image.removeEventListener("error", done);
+            resolve();
+          };
+          image.addEventListener("load", done, { once: true });
+          image.addEventListener("error", done, { once: true });
+        });
+      }));
 
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-
-      if (cancelled) return;
-      // Give Chromium one extra layout tick so SVG/CSS paint is included in the print snapshot.
-      window.setTimeout(() => {
-        if (!cancelled) window.print();
-      }, 900);
+      setReady(true);
     };
 
-    void waitForRender();
-    return () => {
-      cancelled = true;
-    };
+    void markReady();
   }, [isAr]);
+
+  const handlePrint = () => {
+    if (!ready) return;
+    window.print();
+  };
 
   const renderPyramid = (mode: "monthly" | "ytd") => {
     const centerX = 250;
@@ -139,6 +131,9 @@ export default function SafetyPyramidPrintPage() {
         html, body, #root { margin:0; padding:0; background:#fff !important; }
         body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         .page { width:100%; max-width:190mm; margin:0 auto; color:#111827 !important; background:#fff !important; }
+        .toolbar { display:flex; justify-content:flex-end; gap:8px; margin:0 0 10px; }
+        .print-button { border:0; border-radius:8px; background:#1d4ed8; color:#fff; font-size:14px; font-weight:700; padding:10px 18px; cursor:pointer; }
+        .print-button:disabled { opacity:.5; cursor:not-allowed; }
         .header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-bottom:10px; border-bottom:3px solid #dc2626; }
         .brand { display:flex; align-items:center; gap:10px; }
         .brand img { width:80px; height:52px; object-fit:contain; }
@@ -156,15 +151,22 @@ export default function SafetyPyramidPrintPage() {
         svg { display:block !important; width:100% !important; height:auto !important; overflow:visible !important; }
         .footer { margin-top:8px; padding-top:5px; border-top:1px solid #cbd5e1; display:flex; justify-content:space-between; gap:10px; font-size:7px; color:#64748b; }
         @media print {
-          .page, .header, .brand, .title, .kpis, .kpi, .columns, .column, .footer { visibility:visible !important; opacity:1 !important; }
+          .toolbar { display:none !important; }
           .page { max-width:none; }
-          svg { visibility:visible !important; opacity:1 !important; }
+          .header, .brand, .title, .kpis, .kpi, .columns, .column, .footer, svg { visibility:visible !important; opacity:1 !important; }
           .columns { display:grid !important; grid-template-columns:1fr 1fr !important; }
           .column { display:block !important; }
+          svg { display:block !important; }
         }
       `}</style>
 
       <div className="page">
+        <div className="toolbar">
+          <button className="print-button" type="button" onClick={handlePrint} disabled={!ready}>
+            {ready ? (isAr ? "طباعة التقرير" : "Print Report") : (isAr ? "جاري تجهيز التقرير..." : "Preparing report...")}
+          </button>
+        </div>
+
         <section className="header">
           <div className="brand">
             <img src="/logo.png" alt="ABDULKAREM SAFETY BOARD" onError={(e) => { e.currentTarget.style.display = "none"; }} />
