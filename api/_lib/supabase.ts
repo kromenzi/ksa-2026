@@ -1,6 +1,6 @@
-const url = (process.env.SUPABASE_URL || "https://sfdpkpqokazsegsstjfs.supabase.co").replace(/\/$/, "");
+const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable__ve50anGhjvRKxXi6UdrcQ_SQ945faS";
+const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 
 export function backendConfigured() {
   return Boolean(url && (serviceKey || anonKey));
@@ -17,9 +17,9 @@ export function requireBackend() {
 export async function supabaseFetch(path: string, init: RequestInit = {}) {
   requireBackend();
   const headers = new Headers(init.headers);
-  headers.set("apikey", serviceKey || anonKey);
+  headers.set("apikey", serviceKey || anonKey!);
   if (!headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${serviceKey || anonKey}`);
+    headers.set("Authorization", `Bearer ${serviceKey || anonKey!}`);
   }
   headers.set("Content-Type", "application/json");
   return fetch(`${url}${path}`, { ...init, headers });
@@ -54,8 +54,7 @@ export function getAccessToken(req: any) {
 
 export async function getAuthUser(req: any) {
   const token = getAccessToken(req);
-  if (!token) return null;
-  requireBackend();
+  if (!token || !url || !anonKey) return null;
   const response = await fetch(`${url}/auth/v1/user`, {
     headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
   });
@@ -65,14 +64,14 @@ export async function getAuthUser(req: any) {
 
 export async function getProfile(req: any) {
   const user = await getAuthUser(req);
-  if (!user?.id) return null;
+  if (!user?.id || !url || !anonKey) return null;
   const token = getAccessToken(req);
   const response = await fetch(
     `${url}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(user.id))}&select=id,name,email,role,is_active,joined_at,auth_user_id`,
     {
       headers: {
         apikey: anonKey,
-        Authorization: `Bearer ${token}`,
+        Authorization: token ? `Bearer ${token}` : `Bearer ${anonKey}`,
         "Content-Type": "application/json",
       },
     },
