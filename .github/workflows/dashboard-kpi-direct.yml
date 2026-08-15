@@ -1,0 +1,58 @@
+name: Dashboard KPI Direct Patch
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch dashboard source
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/pages/admin/dashboard.tsx')
+          s = p.read_text(encoding='utf-8')
+          if 'card-near-miss' in s:
+              print('dashboard KPI cards already present')
+              raise SystemExit(0)
+          anchor = "  const ncrClosureRate = totalNCRs > 0 ? Math.round((closedNCRs / totalNCRs) * 100) : 0;\n"
+          if anchor not in s:
+              raise SystemExit('KPI anchor missing')
+          derived = """  const nearMissCount = safetyReports.filter(r => String(r.category || '').toLowerCase().includes('near miss')).length;\n  const criticalRiskCount = safetyReports.filter(r => r.riskLevel === 'critical').length;\n  const openActionItems = openReports + openNCRs;\n  const overdueNCRs = ncrs.filter(n => {\n    if (n.status === 'closed') return false;\n    const due = (n as any).dueDate;\n    return !!due && new Date(due).getTime() < Date.now();\n  }).length;\n  const reportClosureRate = totalReports > 0 ? Math.round(((totalReports - openReports) / totalReports) * 100) : 0;\n  const activeDocumentCount = documents.filter(d => (d as any).status !== 'archived').length;\n\n"""
+          s = s.replace(anchor, anchor + derived, 1)
+          marker = "      </div>\n\n      <Tabs defaultValue=\"overview\""
+          extra = """        <KPICard title={isAr ? \"بلاغات شبه الحوادث\" : \"Near Miss Reports\"} value={nearMissCount} subtitle={<span className=\"text-[11px] text-muted-foreground\">{isAr ? \"مؤشر استباقي\" : \"Leading indicator\"}</span>} icon={Eye} color=\"bg-cyan-500\" borderColor=\"bg-cyan-500\" loading={statsLoading} testId=\"card-near-miss\" badgeText=\"Near Miss\" />\n        <KPICard title={isAr ? \"المخاطر الحرجة\" : \"Critical Risks\"} value={criticalRiskCount} subtitle={<span className=\"text-[11px] text-red-600 font-medium\">{isAr ? \"تحتاج معالجة فورية\" : \"Immediate action\"}</span>} icon={AlertTriangle} color=\"bg-purple-500\" borderColor=\"bg-purple-500\" loading={statsLoading} testId=\"card-critical-risk\" badgeText=\"Critical\" />\n        <KPICard title={isAr ? \"الإجراءات المفتوحة\" : \"Open Action Items\"} value={openActionItems} subtitle={<span className=\"text-[11px] text-amber-600 font-medium\">{isAr ? \"تقارير + NCR\" : \"Reports + NCRs\"}</span>} icon={Clock} color=\"bg-orange-500\" borderColor=\"bg-orange-500\" loading={statsLoading} testId=\"card-open-actions\" badgeText=\"Actions\" />\n        <KPICard title={isAr ? \"NCR متأخرة\" : \"Overdue NCRs\"} value={overdueNCRs} subtitle={<span className=\"text-[11px] text-rose-600 font-medium\">{isAr ? \"بعد تاريخ الاستحقاق\" : \"Past due date\"}</span>} icon={Clock} color=\"bg-rose-500\" borderColor=\"bg-rose-500\" loading={statsLoading} testId=\"card-overdue-ncrs\" badgeText=\"Overdue\" />\n        <KPICard title={isAr ? \"إغلاق التقارير\" : \"Report Closure Rate\"} value={`${reportClosureRate}%`} subtitle={<Progress value={reportClosureRate} className=\"h-1.5 mt-1\" />} icon={CheckCircle2} color=\"bg-emerald-500\" borderColor=\"bg-emerald-500\" loading={statsLoading} testId=\"card-report-closure\" badgeText=\"Closeout\" />\n        <KPICard title={isAr ? \"الوثائق النشطة\" : \"Active Documents\"} value={activeDocumentCount} subtitle={<span className=\"text-[11px] text-muted-foreground\">{isAr ? \"غير المؤرشفة\" : \"Not archived\"}</span>} icon={FileText} color=\"bg-sky-500\" borderColor=\"bg-sky-500\" loading={statsLoading} testId=\"card-active-documents\" badgeText=\"Docs\" />\n"""
+          if marker not in s:
+              raise SystemExit('KPI grid marker missing')
+          s = s.replace(marker, extra + marker, 1)
+          p.write_text(s, encoding='utf-8')
+      - name: Verify
+        shell: bash
+        run: |
+          grep -q 'card-near-miss' src/pages/admin/dashboard.tsx
+          grep -q 'card-critical-risk' src/pages/admin/dashboard.tsx
+          grep -q 'card-open-actions' src/pages/admin/dashboard.tsx
+          grep -q 'card-overdue-ncrs' src/pages/admin/dashboard.tsx
+      - name: Commit source
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/pages/admin/dashboard.tsx
+          git commit -m 'feat: add additional HSE dashboard KPIs [dashboard-kpi-direct]'
+          git push
+      - name: Remove temporary workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/dashboard-kpi-direct.yml .github/workflows/add-dashboard-hse-kpis.yml
+          git add .github/workflows/dashboard-kpi-direct.yml .github/workflows/add-dashboard-hse-kpis.yml
+          git commit -m 'chore: remove dashboard KPI patch workflows' || true
+          git push
