@@ -1,0 +1,55 @@
+name: Repair pyramid print and document logos
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, 'fix: repair pyramid print and document logos') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch source files
+        shell: python
+        run: |
+          from pathlib import Path
+
+          # 1) PrintShareDialog: guarantee a printable logo source and image fallback.
+          p = Path('src/components/print-share-dialog.tsx')
+          s = p.read_text()
+          marker = '  const displayTitle = isNcr ? docTypeLabel : item.title;\n'
+          if marker in s and 'const printLogoSrc' not in s:
+              s = s.replace(marker, marker + "  const printLogoSrc = branding.companyLogo || '/logo.png';\n", 1)
+          s = s.replace('src="${branding.companyLogo}" alt="${escapeHtml(branding.companyName)}"', 'src="${printLogoSrc}" onerror="this.onerror=null;this.src=\'/logo.png\'" alt="${escapeHtml(branding.companyName)}"')
+          s = s.replace('src={branding.companyLogo} alt={branding.companyName}', 'src={printLogoSrc} onError={(e) => { e.currentTarget.src = \'/logo.png\'; }} alt={branding.companyName}')
+          p.write_text(s)
+
+          # 2) Pyramid print: never depend on query data to render the 7 levels.
+          p = Path('src/pages/admin/safety-pyramid-print.tsx')
+          s = p.read_text()
+          old = '  const levels = decode<Level[]>(params.get("levels"), []).sort((a, b) => a.order - b.order);\n'
+          new = '''  const fallbackLevels: Level[] = [\n    { id: "fatality", nameEn: "Fatality", nameAr: "الوفاة", order: 1 },\n    { id: "lostTime", nameEn: "Lost-Time Injury (LTI)", nameAr: "إصابة وقت ضائع (LTI)", order: 2 },\n    { id: "restrictedWork", nameEn: "Restricted Work (RWD)", nameAr: "عمل مقيد (RWD)", order: 3 },\n    { id: "medicalTreatment", nameEn: "Medical Treatment (MTC)", nameAr: "علاج طبي (MTC)", order: 4 },\n    { id: "firstAid", nameEn: "First Aid (FAC)", nameAr: "إسعافات أولية (FAC)", order: 5 },\n    { id: "nearMiss", nameEn: "Near Miss", nameAr: "واقعة وشيكة", order: 6 },\n    { id: "unsafeActs", nameEn: "At-Risk / Unsafe", nameAr: "سلوكيات / ظروف غير آمنة", order: 7 },\n  ];\n  const levels = (decode<Level[]>(params.get("levels"), fallbackLevels).length ? decode<Level[]>(params.get("levels"), fallbackLevels) : fallbackLevels).sort((a, b) => a.order - b.order);\n'''
+          if old in s:
+              s = s.replace(old, new, 1)
+          # Always render all 7 levels even if counts are missing.
+          p.write_text(s)
+
+          # 3) Keep the admin header from affecting report printing while allowing GlobalPrintTemplate to show.
+          p = Path('src/index.css')
+          s = p.read_text()
+          s = s.replace('aside, [data-testid="admin-sidebar"], nav, header, button, .print\\:hidden, .no-print', 'aside, [data-testid="admin-sidebar"], nav, main > header, button, .print\\:hidden, .no-print', 1)
+          p.write_text(s)
+
+      - name: Commit repair
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/print-share-dialog.tsx src/pages/admin/safety-pyramid-print.tsx src/index.css
+          git commit -m "fix: repair pyramid print and document logos" || exit 0
+          git push
