@@ -123,7 +123,7 @@ body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!importa
 <section class="summary"><div class="kpi"><strong>${totalMonth}</strong><span>${isAr ? "إجمالي الإصابات والحوادث للشهر" : "Monthly Incident Cases"}</span></div><div class="kpi"><strong>${monthlyCounts.nearMiss ?? 0}</strong><span>${isAr ? "Near Miss للشهر" : "Monthly Near Misses"}</span></div><div class="kpi"><strong>${monthlyCounts.unsafeActs ?? 0}</strong><span>${isAr ? "السلوكيات/الظروف غير الآمنة" : "Monthly Unsafe Acts/Conditions"}</span></div><div class="kpi"><strong>${totalYtd}</strong><span>${isAr ? "إجمالي الإصابات والحوادث YTD" : "YTD Incident Cases"}</span></div></section>
 <section class="grid"><article class="panel"><h2>${escapeHtml(monthTitle)}</h2><p>${isAr ? "المستويات والأعداد الشهرية" : "Monthly levels and counts"}</p><div class="rows">${renderRows(monthlyCounts)}</div></article><article class="panel"><h2>${escapeHtml(ytdTitle)}</h2><p>${isAr ? "المستويات والأعداد التراكمية" : "Year-to-date levels and counts"}</p><div class="rows">${renderRows(ytdCounts)}</div></article></section>
 <footer class="footer"><span>ABDULKAREM SAFETY BOARD</span><span>${isAr ? "تقرير هرم الحوادث" : "Incident Pyramid Report"}</span></footer>
-</main><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),120));</script></body></html>`;
+</main></body></html>`;
 
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
