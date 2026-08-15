@@ -14,16 +14,19 @@ function getAccessToken(req: any) {
   return match ? decodeURIComponent(match[1]) : "";
 }
 
+function serviceHeaders() {
+  return {
+    apikey: SUPABASE_SERVICE_ROLE_KEY!,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY!}`,
+    "Content-Type": "application/json",
+  };
+}
+
 async function createProfile(userId: string, email: string, name: string) {
   if (!SUPABASE_SERVICE_ROLE_KEY) return;
   const response = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
     method: "POST",
-    headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "resolution=merge-duplicates",
-    },
+    headers: { ...serviceHeaders(), Prefer: "resolution=merge-duplicates" },
     body: JSON.stringify({ id: userId, auth_user_id: userId, email, name, role: "viewer", is_active: true }),
   });
   if (!response.ok) console.error("Failed to create profile", response.status);
@@ -32,15 +35,9 @@ async function createProfile(userId: string, email: string, name: string) {
 async function loadApplicationProfile(userId: string, email: string) {
   if (!SUPABASE_SERVICE_ROLE_KEY) return { profile: null, configured: false, status: 503 };
 
-  const headers = {
-    apikey: SUPABASE_SERVICE_ROLE_KEY,
-    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-    "Content-Type": "application/json",
-  };
-
   const byAuthId = await fetch(
-    `${SUPABASE_URL}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(userId)}&select=id,name,role,is_active,joined_at&limit=1`,
-    { headers },
+    `${SUPABASE_URL}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(userId)}&select=id,name,role,is_active,joined_at,auth_user_id&limit=1`,
+    { headers: serviceHeaders() },
   );
   if (!byAuthId.ok) {
     const body = await byAuthId.text().catch(() => "");
@@ -53,7 +50,7 @@ async function loadApplicationProfile(userId: string, email: string) {
 
   const byEmail = await fetch(
     `${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id,name,role,is_active,joined_at,auth_user_id&limit=1`,
-    { headers },
+    { headers: serviceHeaders() },
   );
   if (!byEmail.ok) {
     const body = await byEmail.text().catch(() => "");
@@ -67,7 +64,7 @@ async function loadApplicationProfile(userId: string, email: string) {
     if (profile.auth_user_id !== userId) {
       const repair = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(String(profile.id))}`, {
         method: "PATCH",
-        headers: { ...headers, Prefer: "return=minimal" },
+        headers: { ...serviceHeaders(), Prefer: "return=minimal" },
         body: JSON.stringify({ auth_user_id: userId }),
       });
       if (!repair.ok) console.error("Failed to repair auth_user_id link", repair.status);
