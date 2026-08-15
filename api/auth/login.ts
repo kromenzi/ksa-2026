@@ -29,6 +29,26 @@ async function createProfile(userId: string, email: string, name: string) {
   if (!response.ok) console.error("Failed to create profile", response.status);
 }
 
+async function loadApplicationProfile(userId: string) {
+  if (!SUPABASE_SERVICE_ROLE_KEY) return null;
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(userId)}&select=id,name,role,is_active,joined_at`,
+    {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+  if (!response.ok) {
+    console.error("Failed to load application user profile", response.status);
+    return null;
+  }
+  const profiles = await response.json();
+  return profiles[0] || null;
+}
+
 async function handleSignup(req: any, res: any) {
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   const password = typeof req.body?.password === "string" ? req.body.password : "";
@@ -99,21 +119,19 @@ export default async function handler(req: any, res: any) {
     if (action === "change-password") return await handlePasswordUpdate(req, res);
     const { email, password } = req.body || {};
     if (!email || !password) return json(res, 400, { error: "Email and password are required" });
+    if (!SUPABASE_SERVICE_ROLE_KEY) return json(res, 503, { error: "Authentication backend is not fully configured" });
+
     const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, { method: "POST", headers: { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ email: String(email).trim().toLowerCase(), password }) });
     const auth = await response.json().catch(() => ({}));
     if (!response.ok || !auth.access_token || !auth.user?.id) {
       const isCredentialsError = response.status === 400 || response.status === 401;
       return json(res, isCredentialsError ? 401 : 500, { error: isCredentialsError ? "Invalid email or password" : "Login failed" });
     }
-    const profileResponse = await fetch(`${SUPABASE_URL}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(auth.user.id))}&select=id,name,role,is_active,joined_at`, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${auth.access_token}`, "Content-Type": "application/json" } });
-    if (!profileResponse.ok) {
-      console.error("Failed to load application user profile", profileResponse.status);
-      return json(res, 500, { error: "Failed to load application user profile" });
-    }
-    const profiles = await profileResponse.json();
-    const profile = profiles[0];
+
+    const profile = await loadApplicationProfile(String(auth.user.id));
     if (!profile) return json(res, 403, { error: "Account is not provisioned in the application database" });
     if (!profile.is_active) return json(res, 403, { error: "Account is disabled" });
+
     setAccessCookie(res, auth.access_token);
     return json(res, 200, { id: profile.id, name: profile.name, email: auth.user.email, role: profile.role, isActive: profile.is_active, joinedAt: profile.joined_at || auth.user.created_at });
   } catch (error) {
