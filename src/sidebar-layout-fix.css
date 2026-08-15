@@ -9,16 +9,16 @@
 }
 
 .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] {
-  min-height: 2.2rem;
-  padding-block: 0.45rem;
-  line-height: 1.35;
+  min-height: 2.25rem;
+  padding-block: 0.5rem;
+  line-height: 1.5;
 }
 
 .sidebar-glass .sidebar-scroll > div > a > div {
-  min-height: 2.55rem;
-  margin-block-end: 0.3rem;
-  padding-block: 0.55rem;
-  line-height: 1.35;
+  min-height: 2.7rem;
+  margin-block-end: 0.35rem;
+  padding-block: 0.6rem;
+  line-height: 1.5;
   align-items: center;
 }
 
@@ -28,35 +28,62 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .sidebar-glass .sidebar-scroll > div > a > div > div {
   flex: 0 0 auto;
 }
 
-@media (max-width: 767px) {
-  .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] {
-    min-height: 2.4rem;
-    padding-inline: 0.85rem;
-    margin-block-end: 0.25rem;
-  }
-
-  .sidebar-glass .sidebar-scroll > div > a > div {
-    min-height: 2.85rem;
-    margin-inline: 0.3rem;
-    margin-block-end: 0.35rem;
-    padding-inline: 0.8rem;
-    padding-block: 0.7rem;
-    border-radius: 0.75rem;
-  }
-
-  .sidebar-glass .sidebar-scroll > div > a > div > span {
-    font-size: 0.76rem;
-    line-height: 1.5;
-  }
+/* Arabic/RTL: give Arabic glyphs more vertical room and use a stable system Arabic font stack. */
+[dir="rtl"] .sidebar-glass .sidebar-scroll > div > a > div {
+  min-height: 3rem;
+  padding-block: 0.7rem;
 }
 
 [dir="rtl"] .sidebar-glass .sidebar-scroll > div > a > div > span {
   text-align: right;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  line-height: 1.85;
+  letter-spacing: 0;
+  font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+  font-size: 0.8rem;
+}
+
+[dir="rtl"] .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] > span {
+  line-height: 1.8;
+  letter-spacing: 0;
+  font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+}
+
+@media (max-width: 767px) {
+  .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] {
+    min-height: 2.6rem;
+    padding-inline: 0.9rem;
+    margin-block-end: 0.25rem;
+  }
+
+  .sidebar-glass .sidebar-scroll > div > a > div {
+    min-height: 3rem;
+    margin-inline: 0.35rem;
+    margin-block-end: 0.4rem;
+    padding-inline: 0.9rem;
+    padding-block: 0.72rem;
+    border-radius: 0.8rem;
+  }
+
+  .sidebar-glass .sidebar-scroll > div > a > div > span {
+    font-size: 0.78rem;
+    line-height: 1.6;
+  }
+
+  [dir="rtl"] .sidebar-glass .sidebar-scroll > div > a > div > span {
+    font-size: 0.82rem;
+    line-height: 1.9;
+    white-space: normal;
+  }
 }
