@@ -52,8 +52,48 @@ export default function SafetyPyramidPrintPage() {
 
   useEffect(() => {
     document.title = isAr ? "تقرير هرم الحوادث" : "Incident Pyramid Report";
-    const timer = window.setTimeout(() => window.print(), 500);
-    return () => window.clearTimeout(timer);
+
+    let cancelled = false;
+
+    const waitForRender = async () => {
+      try {
+        if (document.fonts?.ready) {
+          await document.fonts.ready;
+        }
+      } catch {
+        // Continue even if font readiness is unavailable.
+      }
+
+      const images = Array.from(document.images);
+      await Promise.all(
+        images.map(async (image) => {
+          if (image.complete) return;
+          await new Promise<void>((resolve) => {
+            const done = () => {
+              image.removeEventListener("load", done);
+              image.removeEventListener("error", done);
+              resolve();
+            };
+            image.addEventListener("load", done, { once: true });
+            image.addEventListener("error", done, { once: true });
+          });
+        })
+      );
+
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+      if (cancelled) return;
+      // Give Chromium one extra layout tick so SVG/CSS paint is included in the print snapshot.
+      window.setTimeout(() => {
+        if (!cancelled) window.print();
+      }, 900);
+    };
+
+    void waitForRender();
+    return () => {
+      cancelled = true;
+    };
   }, [isAr]);
 
   const renderPyramid = (mode: "monthly" | "ytd") => {
@@ -98,7 +138,7 @@ export default function SafetyPyramidPrintPage() {
         * { box-sizing: border-box; }
         html, body, #root { margin:0; padding:0; background:#fff !important; }
         body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        .page { width:100%; max-width:190mm; margin:0 auto; }
+        .page { width:100%; max-width:190mm; margin:0 auto; color:#111827 !important; background:#fff !important; }
         .header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-bottom:10px; border-bottom:3px solid #dc2626; }
         .brand { display:flex; align-items:center; gap:10px; }
         .brand img { width:80px; height:52px; object-fit:contain; }
@@ -110,12 +150,18 @@ export default function SafetyPyramidPrintPage() {
         .kpi strong { display:block; font-size:17px; font-weight:800; }
         .kpi span { display:block; margin-top:2px; color:#64748b; font-size:8px; }
         .columns { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-        .column { border:1px solid #cbd5e1; border-radius:8px; padding:6px; }
+        .column { border:1px solid #cbd5e1; border-radius:8px; padding:6px; break-inside:avoid; page-break-inside:avoid; }
         .column h2 { margin:0; text-align:center; font-size:12px; color:#1e3a8a; }
         .column p { margin:2px 0 4px; text-align:center; font-size:8px; color:#64748b; }
-        svg { display:block; width:100%; height:auto; }
+        svg { display:block !important; width:100% !important; height:auto !important; overflow:visible !important; }
         .footer { margin-top:8px; padding-top:5px; border-top:1px solid #cbd5e1; display:flex; justify-content:space-between; gap:10px; font-size:7px; color:#64748b; }
-        @media print { .page { max-width:none; } }
+        @media print {
+          .page, .header, .brand, .title, .kpis, .kpi, .columns, .column, .footer { visibility:visible !important; opacity:1 !important; }
+          .page { max-width:none; }
+          svg { visibility:visible !important; opacity:1 !important; }
+          .columns { display:grid !important; grid-template-columns:1fr 1fr !important; }
+          .column { display:block !important; }
+        }
       `}</style>
 
       <div className="page">
