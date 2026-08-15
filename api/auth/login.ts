@@ -1,8 +1,9 @@
 import { checkPasswordSecurity } from "../_lib/password-security.js";
+import { fallbackSupabasePublishableKey, fallbackSupabaseUrl } from "../_lib/supabase-public-config.js";
 import { json, setAccessCookie } from "../_lib/supabase.js";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || fallbackSupabasePublishableKey;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SITE_URL = (process.env.SITE_URL || process.env.VERCEL_URL || "").replace(/^https?:\/\//, "");
 const PUBLIC_URL = SITE_URL ? `https://${SITE_URL}` : "http://localhost:3000";
@@ -15,7 +16,7 @@ function getAccessToken(req: any) {
 
 async function createProfile(userId: string, email: string, name: string) {
   if (!SUPABASE_SERVICE_ROLE_KEY) return;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
     method: "POST",
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -35,6 +36,8 @@ async function handleSignup(req: any, res: any) {
   const password = typeof req.body?.password === "string" ? req.body.password : "";
   const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
   if (!email || !password) return json(res, 400, { error: "Email and password are required" });
+
+  if (!SUPABASE_SERVICE_ROLE_KEY) return json(res, 503, { error: "Signup is unavailable until the server credential is configured" });
 
   const security = await checkPasswordSecurity(password);
   if (!security.allowed) return json(res, 400, { error: security.message, code: security.reason });
