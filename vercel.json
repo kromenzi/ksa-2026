@@ -27,8 +27,9 @@
     { "source": "/api/site-settings", "destination": "/api/data?resource=site-settings" },
     { "source": "/api/departments", "destination": "/api/ncr?resource=departments" },
     { "source": "/api/departments/:id", "destination": "/api/ncr?resource=departments&id=:id" },
-    { "source": "/api/safety-signs/:id", "destination": "/api/safety-signs?id=:id" },
-    { "source": "/api/safety-signs/:id/:action", "destination": "/api/safety-signs?id=:id&action=:action" },
+    { "source": "/api/safety-signs", "destination": "/api/ncr?resource=safety-signs" },
+    { "source": "/api/safety-signs/:id", "destination": "/api/ncr?resource=safety-signs&id=:id" },
+    { "source": "/api/safety-signs/:id/:action", "destination": "/api/ncr?resource=safety-signs&id=:id&action=:action" },
     { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
   ]
 }
