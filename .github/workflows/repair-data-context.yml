@@ -1,4 +1,4 @@
-name: Repair empty data context
+name: Repair data context and safety signs JSX
 
 on:
   push:
@@ -9,28 +9,44 @@ permissions:
 
 jobs:
   repair:
-    if: ${{ github.event.head_commit.message != 'chore: restore data context from stable commit' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: main
-      - name: Restore data context when empty
+
+      - name: Restore empty data context and repair Safety Signs JSX
         shell: bash
         run: |
           set -euo pipefail
-          if [ -s src/lib/data-context.tsx ]; then
-            echo 'data-context.tsx is present; no repair needed.'
-            exit 0
-          fi
-          git checkout 861df2576a16bc0b4215d5f6594716ff426a5e33 -- src/lib/data-context.tsx
+          changed=0
+
           if [ ! -s src/lib/data-context.tsx ]; then
-            echo 'Stable source did not restore a non-empty file.'
-            exit 1
+            git checkout 861df2576a16bc0b4215d5f6594716ff426a5e33 -- src/lib/data-context.tsx
+            changed=1
           fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/lib/data-context.tsx
-          git commit -m 'chore: restore data context from stable commit'
-          git push origin main
+
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/pages/admin/safety-signs/index.tsx')
+          s = p.read_text(encoding='utf-8')
+          old = '<SelectContent><SelectItem value="a4-portrait">A4 Portrait</SelectItem><SelectItem value="a4-landscape">A4 Landscape</SelectItem><SelectItem value="a3-portrait">A3 Portrait</SelectItem><SelectItem value="a3-landscape">A3 Landscape</SelectItem><SelectItem value="custom">Custom Industrial</SelectItem></SelectContent></div></DialogHeader>'
+          new = '<SelectContent><SelectItem value="a4-portrait">A4 Portrait</SelectItem><SelectItem value="a4-landscape">A4 Landscape</SelectItem><SelectItem value="a3-portrait">A3 Portrait</SelectItem><SelectItem value="a3-landscape">A3 Landscape</SelectItem><SelectItem value="custom">Custom Industrial</SelectItem></SelectContent></Select></div></DialogHeader>'
+          if old in s:
+              p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+
+          if ! git diff --quiet -- src/lib/data-context.tsx src/pages/admin/safety-signs/index.tsx; then
+            changed=1
+          fi
+
+          if [ "$changed" -eq 1 ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add src/lib/data-context.tsx src/pages/admin/safety-signs/index.tsx
+            git commit -m 'chore: repair generated safety signs JSX'
+            git push origin main
+          else
+            echo 'No repair needed.'
+          fi
