@@ -1,36 +1,16 @@
 from pathlib import Path
 
-# 1) Make language switching work before authentication.
-data = Path("src/lib/data-context.tsx")
-text = data.read_text(encoding="utf-8")
-old = ' const updateSettings=async(d:Partial<SiteSettings>)=>{try{await apiRequest("PATCH","/api/site-settings",d);}catch{} invalidate("/api/site-settings")};'
-new = ''' const updateSettings=async(d:Partial<SiteSettings>)=>{
-   if (d.language === "ar" || d.language === "en") {
-     setLocalLanguage(d.language);
-     try { localStorage.setItem("safety-board-language", d.language); } catch {}
-   }
-   try { await apiRequest("PATCH","/api/site-settings",d); } catch {}
-   invalidate("/api/site-settings");
- };'''
-if old in text:
-    text = text.replace(old, new, 1)
-    data.write_text(text, encoding="utf-8")
-    print("Patched pre-auth language persistence")
-else:
-    if 'setLocalLanguage(d.language)' in text:
-        print("Language persistence already patched")
-    else:
-        raise SystemExit("Could not locate updateSettings")
-
-# 2) Replace any previous pyramid print implementation with a stable Blob URL printer.
+# Patch the current Safety Pyramid print handler only.
 pyramid = Path("src/pages/admin/safety-pyramid.tsx")
 text = pyramid.read_text(encoding="utf-8")
 start = text.find("  const openPrintWindow =")
-if start >= 0:
-    end = text.find("\n\n  return (", start)
-    if end < 0:
-        raise SystemExit("Could not locate end of openPrintWindow")
-    new_handler = r'''  const openPrintWindow = (mode: "report" | "image") => {
+if start < 0:
+    raise SystemExit("No current openPrintWindow handler found")
+end = text.find("\n\n  return (", start)
+if end < 0:
+    raise SystemExit("Could not locate end of openPrintWindow")
+
+new_handler = r'''  const openPrintWindow = (mode: "report" | "image") => {
     const popup = window.open("about:blank", "incident-pyramid-print", "width=1400,height=1000");
     if (!popup) {
       toast.error(isAr ? "يرجى السماح بالنوافذ المنبثقة للطباعة" : "Please allow pop-ups to print");
@@ -48,13 +28,6 @@ if start >= 0:
     logActivity(report ? "Print Incident Pyramid Report" : "Print Incident Pyramid Image", `Printed ${monthName} ${selectedYear}`, "reports");
   };
 '''
-    text = text[:start] + new_handler + text[end:]
-    pyramid.write_text(text, encoding="utf-8")
-    print("Installed stable Blob URL pyramid printer")
-else:
-    # Older source shape: replace the old handlePrint block if present.
-    start = text.find("  const handlePrint = () => {")
-    end = text.find("  const exportCSV = () => {", start)
-    if start >= 0 and end > start:
-        raise SystemExit("Older handlePrint source detected; use the dedicated print handler workflow instead")
-    raise SystemExit("No known pyramid print handler found")
+
+pyramid.write_text(text[:start] + new_handler + text[end:], encoding="utf-8")
+print("Installed stable Blob URL pyramid printer")
