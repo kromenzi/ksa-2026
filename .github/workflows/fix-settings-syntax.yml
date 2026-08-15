@@ -24,7 +24,7 @@ jobs:
           p = Path('src/pages/admin/settings.tsx')
           s = p.read_text(encoding='utf-8')
 
-          marker = '  return (\n    <div className="space-y-6"'
+          marker = '  return (\n    <div className="space-y-6 max-w-7xl mx-auto pb-12">'
           if 'const handleLogoUpload = ' not in s:
               helper = '''  const handleLogoUpload = (e: any) => {\n    const file = e.target.files?.[0];\n    if (!file) return;\n    const reader = new FileReader();\n    reader.onload = (event: any) => {\n      const result = event.target?.result;\n      if (result) {\n        setCompanyData({...companyData, logoUrl: result as string});\n        toast.success(isAr ? 'تم تحميل الشعار بنجاح! اضغط حفظ التغييرات' : 'Logo uploaded! Click save to apply.');\n      }\n    };\n    reader.readAsDataURL(file);\n  };\n\n'''
               if marker not in s:
