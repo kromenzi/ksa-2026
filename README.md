@@ -5,6 +5,7 @@
 ## Build status
 - Production build trigger verification after CI configuration update.
 - Risk table image print integration trigger.
+- Risk table image print script restored.
 
 ## 1. SYSTEM OVERVIEW
 
