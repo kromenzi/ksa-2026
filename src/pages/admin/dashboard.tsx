@@ -1,4 +1,5 @@
 import { useData } from "@/lib/data-context";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -10,7 +11,7 @@ import {
   BarChart3, CheckCircle2, Clock,
   Target, Triangle,
   FileWarning, ClipboardCheck,
-  Eye, Layers, Building2, Award, ShieldCheck, HeartPulse
+  Eye, Layers, Building2, Award, ShieldCheck, HeartPulse, Printer
 } from "lucide-react";
 import {
   Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip,
@@ -221,8 +222,69 @@ export default function AdminDashboard() {
         }))
     : [];
 
+  const handlePrintDashboard = () => {
+    const source = document.querySelector('[data-dashboard-print-root="true"]') as HTMLElement | null;
+    if (!source) return;
+
+    const printWindow = window.open('', '_blank', 'width=1400,height=1000');
+    if (!printWindow) return;
+
+    const title = isAr ? 'لوحة التحكم - تقرير الطباعة' : 'Safety Board Dashboard - Print Report';
+    const direction = isAr ? 'rtl' : 'ltr';
+    const dateText = new Date().toLocaleString(isAr ? 'ar-SA' : 'en-US');
+    const stylesheetLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .map((link) => `<link rel="stylesheet" href="${(link as HTMLLinkElement).href}">`)
+      .join('');
+
+    const printCss = `
+      @page { size: A4 landscape; margin: 10mm; }
+      :root { color-scheme: light !important; }
+      html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+      body { color: #111827 !important; font-family: Arial, Helvetica, sans-serif !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      [data-dashboard-print-root="true"] { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+      .dashboard-print-toolbar { display: none !important; }
+      [data-dashboard-print-root="true"] .overflow-x-auto { overflow: visible !important; }
+      [data-dashboard-print-root="true"] .overflow-hidden { overflow: visible !important; }
+      [data-dashboard-print-root="true"] .recharts-responsive-container { width: 100% !important; }
+      [data-dashboard-print-root="true"] .recharts-wrapper { width: 100% !important; }
+      [data-dashboard-print-root="true"] svg { max-width: 100% !important; }
+      [data-dashboard-print-root="true"] .shadow-sm,
+      [data-dashboard-print-root="true"] .shadow-md,
+      [data-dashboard-print-root="true"] .shadow-lg { box-shadow: none !important; }
+      [data-dashboard-print-root="true"] .hover\:shadow-lg { box-shadow: none !important; }
+      .dashboard-print-header {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+        border-bottom: 1px solid #d1d5db;
+        direction: ${direction};
+      }
+      .dashboard-print-header h1 { margin: 0; font-size: 20px; font-weight: 800; }
+      .dashboard-print-header p { margin: 3px 0 0; font-size: 10px; color: #6b7280; }
+      .dashboard-print-header .date { font-size: 10px; color: #6b7280; }
+      @media print {
+        body { background: #fff !important; }
+        .dashboard-print-toolbar { display: none !important; }
+      }
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html><html lang="${isAr ? 'ar' : 'en'}" dir="${direction}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title>${stylesheetLinks}<style>${printCss}</style></head><body><div class="dashboard-print-header"><div><h1>${title}</h1><p>${isAr ? 'تقرير كامل من لوحة السلامة' : 'Full report generated from the Safety Board dashboard'}</p></div><div class="date">${dateText}</div></div>${source.outerHTML}</body></html>`);
+    printWindow.document.close();
+
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 900);
+  };
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" data-dashboard-print-root="true">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-[24px] sm:text-[30px] font-black tracking-tight flex items-center gap-2.5" data-testid="text-dashboard-title">
@@ -234,6 +296,18 @@ export default function AdminDashboard() {
           <p className="text-[12px] text-muted-foreground mt-1.5 ms-12">
             {isAr ? "مؤشرات أداء السلامة" : "Safety performance overview"}
           </p>
+        </div>
+        <div className="flex items-center gap-2 dashboard-print-toolbar">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handlePrintDashboard}
+            className="gap-2 rounded-xl"
+          >
+            <Printer className="h-4 w-4" />
+            <span>{isAr ? "طباعة لوحة التحكم" : "Print Dashboard"}</span>
+          </Button>
         </div>
       </div>
 
