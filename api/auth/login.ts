@@ -23,7 +23,7 @@ async function createProfile(userId: string, name: string) {
       "Content-Type": "application/json",
       Prefer: "resolution=merge-duplicates",
     },
-    body: JSON.stringify({ id: userId, name, role: "viewer", is_active: true }),
+    body: JSON.stringify({ id: userId, auth_user_id: userId, email: "", name, role: "viewer", is_active: true }),
   });
   if (!response.ok) {
     console.error("Failed to create profile", response.status);
@@ -149,7 +149,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const profileResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(String(auth.user.id))}&select=id,name,role,is_active,created_at,updated_at`,
+      `${SUPABASE_URL}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(auth.user.id))}&select=id,name,role,is_active,joined_at`,
       { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${auth.access_token}`, "Content-Type": "application/json" } },
     );
     if (!profileResponse.ok) {
@@ -169,7 +169,7 @@ export default async function handler(req: any, res: any) {
       email: auth.user.email,
       role: profile.role,
       isActive: profile.is_active,
-      joinedAt: profile.created_at || auth.user.created_at,
+      joinedAt: profile.joined_at || auth.user.created_at,
     });
   } catch (error: any) {
     console.error("Authentication request failed", error);
