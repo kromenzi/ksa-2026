@@ -1,3 +1,4 @@
+# trigger retry
 name: Add Risk Table Image Print
 
 on:
@@ -22,64 +23,25 @@ jobs:
           from pathlib import Path
           p = Path('src/pages/admin/risk-assessment.tsx')
           s = p.read_text(encoding='utf-8')
-
           marker = '''  const handlePrintAllRisks = () => {'''
           if marker not in s:
               raise SystemExit('handlePrintAllRisks marker not found')
-
           helper = r'''  const handlePrintRiskTableAsImage = async () => {
     const rows = filteredRisks.length > 0 ? filteredRisks : risks;
     const title = isAr ? "سجل تقييم المخاطر" : "Risk Assessment Register";
     const subtitle = isAr ? "Risk Assessment Matrix 5x5" : "Risk Assessment & Hazard Control Register";
-    const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (ch) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[ch] || ch));
-    const statusLabel = (status: RiskItem['status']) => {
-      if (!isAr) return status;
-      if (status === "Approved") return "معتمد";
-      if (status === "Active") return "نشط";
-      return "قيد المراجعة";
-    };
-    const riskLabel = (score: number) => {
-      if (score >= 15) return isAr ? "حرج / مرتفع" : "High / Critical";
-      if (score >= 8) return isAr ? "متوسط" : "Medium";
-      return isAr ? "منخفض" : "Low";
-    };
-
-    const tableRows = rows.map((item) => `
-      <tr>
-        <td class="ref">${escapeHtml(item.refNo)}</td>
-        <td><strong>${escapeHtml(item.activity)}</strong><div class="muted">${escapeHtml(item.hazard)}</div></td>
-        <td><strong>${escapeHtml(item.location)}</strong><div class="muted">${escapeHtml(item.department)}</div></td>
-        <td><span class="risk r-${item.initialRiskScore >= 15 ? 'critical' : item.initialRiskScore >= 8 ? 'medium' : 'low'}">${item.initialRiskScore} - ${riskLabel(item.initialRiskScore)}</span><div class="muted">L${item.initialLikelihood} × S${item.initialSeverity}</div></td>
-        <td><span class="risk r-${item.residualRiskScore >= 15 ? 'critical' : item.residualRiskScore >= 8 ? 'medium' : 'low'}">${item.residualRiskScore} - ${riskLabel(item.residualRiskScore)}</span><div class="muted">L${item.residualLikelihood} × S${item.residualSeverity}</div></td>
-        <td><span class="status">${escapeHtml(statusLabel(item.status))}</span><div class="muted">${escapeHtml(item.reviewDate)}</div></td>
-      </tr>`).join('');
-
-    const headers = isAr
-      ? ['الرقم المرجعي','النشاط والخطر','الموقع والقسم','المخاطرة الأولية','المخاطرة المتبقية','الحالة']
-      : ['Ref No','Activity & Hazard','Location & Dept','Initial Risk','Residual Risk','Status'];
-
+    const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch] || ch));
+    const statusLabel = (status: RiskItem['status']) => !isAr ? status : status === "Approved" ? "معتمد" : status === "Active" ? "نشط" : "قيد المراجعة";
+    const riskLabel = (score: number) => score >= 15 ? (isAr ? "حرج / مرتفع" : "High / Critical") : score >= 8 ? (isAr ? "متوسط" : "Medium") : (isAr ? "منخفض" : "Low");
+    const tableRows = rows.map((item) => `<tr><td class="ref">${escapeHtml(item.refNo)}</td><td><strong>${escapeHtml(item.activity)}</strong><div class="muted">${escapeHtml(item.hazard)}</div></td><td><strong>${escapeHtml(item.location)}</strong><div class="muted">${escapeHtml(item.department)}</div></td><td><span class="risk">${item.initialRiskScore} - ${riskLabel(item.initialRiskScore)}</span><div class="muted">L${item.initialLikelihood} × S${item.initialSeverity}</div></td><td><span class="risk">${item.residualRiskScore} - ${riskLabel(item.residualRiskScore)}</span><div class="muted">L${item.residualLikelihood} × S${item.residualSeverity}</div></td><td><span class="status">${escapeHtml(statusLabel(item.status))}</span><div class="muted">${escapeHtml(item.reviewDate)}</div></td></tr>`).join('');
+    const headers = isAr ? ['الرقم المرجعي','النشاط والخطر','الموقع والقسم','المخاطرة الأولية','المخاطرة المتبقية','الحالة'] : ['Ref No','Activity & Hazard','Location & Dept','Initial Risk','Residual Risk','Status'];
     const direction = isAr ? 'rtl' : 'ltr';
-    const html = `
-      <div xmlns="http://www.w3.org/1999/xhtml" dir="${direction}" class="sheet">
-        <div class="brand">ABDULKAREM SAFETY BOARD</div>
-        <h1>${escapeHtml(title)}</h1>
-        <div class="subtitle">${escapeHtml(subtitle)} • ${new Date().toLocaleDateString()}</div>
-        <table>
-          <thead><tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
-          <tbody>${tableRows || `<tr><td colspan="6" class="empty">${escapeHtml(isAr ? 'لا توجد سجلات' : 'No records')}</td></tr>`}</tbody>
-        </table>
-        <div class="footer">${escapeHtml(isAr ? `إجمالي السجلات: ${rows.length}` : `Total records: ${rows.length}`)}</div>
-      </div>`;
-
-    const width = 2200;
-    const rowHeight = rows.length > 0 ? 170 : 120;
-    const height = Math.max(900, 250 + Math.max(rows.length, 1) * rowHeight);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px">${html.replace('<div xmlns="http://www.w3.org/1999/xhtml"', '<div style="width:100%;height:100%;font-family:Arial,\'Noto Sans Arabic\',sans-serif;color:#111827;background:#ffffff;box-sizing:border-box;padding:50px;"')}</div></foreignObject></svg>`;
-
-    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
+    const html = `<div xmlns="http://www.w3.org/1999/xhtml" dir="${direction}" style="font-family:Arial,'Noto Sans Arabic',sans-serif;color:#111827;background:#fff;box-sizing:border-box;padding:50px;width:100%;height:100%;"><div style="font-size:24px;font-weight:800;text-align:center">ABDULKAREM SAFETY BOARD</div><h1 style="font-size:34px;margin:16px 0 4px;text-align:center">${escapeHtml(title)}</h1><div style="font-size:18px;color:#475569;text-align:center;margin-bottom:24px">${escapeHtml(subtitle)} • ${new Date().toLocaleDateString()}</div><table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:19px"><thead><tr>${headers.map(h=>`<th style="background:#e2e8f0;border:1px solid #94a3b8;padding:14px;text-align:center">${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${tableRows || `<tr><td colspan="6" style="padding:24px;text-align:center;border:1px solid #cbd5e1">${escapeHtml(isAr ? 'لا توجد سجلات' : 'No records')}</td></tr>`}</tbody></table><div style="margin-top:18px;font-size:16px;color:#475569">${escapeHtml(isAr ? `إجمالي السجلات: ${rows.length}` : `Total records: ${rows.length}`)}</div></div>`;
+    const width = 2400;
+    const rowHeight = rows.length > 0 ? 190 : 120;
+    const height = Math.max(1000, 360 + Math.max(rows.length, 1) * rowHeight);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${html}</foreignObject></svg>`;
+    const url = URL.createObjectURL(new Blob([svg], { type:'image/svg+xml;charset=utf-8' }));
     try {
       const img = new Image();
       img.onload = () => {
@@ -88,38 +50,30 @@ jobs:
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) { URL.revokeObjectURL(url); return; }
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0,0,width,height);
+        ctx.drawImage(img,0,0,width,height);
         URL.revokeObjectURL(url);
-        const png = canvas.toDataURL('image/png', 1.0);
+        const png = canvas.toDataURL('image/png',1);
         const win = window.open('', '_blank', 'noopener,noreferrer');
-        if (!win) {
-          toast({ title: isAr ? 'تعذر فتح نافذة الطباعة' : 'Unable to open print window', variant: 'destructive' });
-          return;
-        }
+        if (!win) { toast({ title:isAr?'تعذر فتح نافذة الطباعة':'Unable to open print window', variant:'destructive' }); return; }
         win.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>@page{size:A4 landscape;margin:8mm}html,body{margin:0;background:#fff}body{display:flex;justify-content:center}img{width:100%;height:auto;display:block}</style></head><body><img src="${png}" alt="${escapeHtml(title)}"/></body></html>`);
         win.document.close();
-        setTimeout(() => { win.focus(); win.print(); }, 300);
+        setTimeout(()=>{win.focus();win.print();},300);
       };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        toast({ title: isAr ? 'تعذر إنشاء صورة الجدول' : 'Unable to create table image', variant: 'destructive' });
-      };
+      img.onerror = () => { URL.revokeObjectURL(url); toast({ title:isAr?'تعذر إنشاء صورة الجدول':'Unable to create table image', variant:'destructive' }); };
       img.src = url;
     } catch {
       URL.revokeObjectURL(url);
-      toast({ title: isAr ? 'تعذر طباعة الجدول كصورة' : 'Unable to print table as image', variant: 'destructive' });
+      toast({ title:isAr?'تعذر طباعة الجدول كصورة':'Unable to print table as image', variant:'destructive' });
     }
   };
 
 '''
           s = s.replace(marker, helper + marker, 1)
-
           button_marker = '''          <Button onClick={handlePrintAllRisks} variant="outline" className="gap-2 bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700" data-testid="button-print-risk-header">'''
           if button_marker not in s:
               raise SystemExit('header print button marker not found')
-
           image_button = '''          <Button onClick={handlePrintRiskTableAsImage} variant="outline" className="gap-2 bg-white border-slate-300 text-slate-800 hover:bg-slate-100" data-testid="button-print-risk-table-image">
             <Printer className="h-4 w-4" />
             {isAr ? "طباعة الجدول كصورة" : "Print Table as Image"}
@@ -127,7 +81,6 @@ jobs:
 
 '''
           s = s.replace(button_marker, image_button + button_marker, 1)
-
           p.write_text(s, encoding='utf-8')
 
       - name: Verify patch
@@ -135,7 +88,7 @@ jobs:
         run: |
           from pathlib import Path
           s = Path('src/pages/admin/risk-assessment.tsx').read_text(encoding='utf-8')
-          required = ['handlePrintRiskTableAsImage', 'button-print-risk-table-image', 'Print Table as Image', 'طباعة الجدول كصورة']
+          required = ['handlePrintRiskTableAsImage','button-print-risk-table-image','Print Table as Image','طباعة الجدول كصورة']
           missing = [x for x in required if x not in s]
           if missing:
               raise SystemExit(f'Missing markers: {missing}')
