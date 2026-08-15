@@ -1,0 +1,73 @@
+name: Final print integrity
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-print-integrity:
+    if: ${{ !contains(github.event.head_commit.message, 'ci: final print integrity patch') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Patch print CSS and branding safely
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          # 1) Hide only the admin top bar during print; never every <header>.
+          p = Path('src/components/layouts/admin-layout.tsx')
+          s = p.read_text()
+          old = '<header className="h-[58px] border-b border-border/50 bg-background/85 sticky top-0 z-40 px-3 md:px-6 flex items-center justify-between backdrop-blur-sm">'
+          new = '<header className="admin-top-header h-[58px] border-b border-border/50 bg-background/85 sticky top-0 z-40 px-3 md:px-6 flex items-center justify-between backdrop-blur-sm">'
+          if old in s:
+              s = s.replace(old, new, 1)
+              p.write_text(s)
+
+          # 2) Scope the global print hide rule to the admin top header.
+          p = Path('src/index.css')
+          s = p.read_text()
+          old = 'aside, [data-testid="admin-sidebar"], nav, header, button, .print\\:hidden, .no-print { display: none !important; }'
+          new = 'aside, [data-testid="admin-sidebar"], nav, .admin-top-header, button, .print\\:hidden, .no-print { display: none !important; }'
+          if old in s:
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+
+          # 3) Guarantee a fallback company logo in generated print HTML and preview.
+          p = Path('src/components/print-share-dialog.tsx')
+          s = p.read_text()
+          s = s.replace(
+              '${branding.companyLogo ? `<img src="${branding.companyLogo}"',
+              '${(branding.companyLogo || "/logo.png") ? `<img src="${branding.companyLogo || "/logo.png"}"',
+          )
+          s = s.replace(
+              '{branding.companyLogo && <img src={branding.companyLogo}',
+              '{(branding.companyLogo || "/logo.png") && <img src={branding.companyLogo || "/logo.png"}',
+          )
+          p.write_text(s)
+
+          # 4) Make the global print header helper always render a logo.
+          p = Path('src/components/global-print-template.tsx')
+          s = p.read_text()
+          s = s.replace(
+              '${branding.companyLogo ? `<img src="${branding.companyLogo}"',
+              '${(branding.companyLogo || "/logo.png") ? `<img src="${branding.companyLogo || "/logo.png"}"',
+          )
+          p.write_text(s)
+          PY
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/index.css src/components/layouts/admin-layout.tsx src/components/print-share-dialog.tsx src/components/global-print-template.tsx
+          git diff --cached --quiet || git commit -m "ci: final print integrity patch"
+          git push
