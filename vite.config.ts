@@ -15,4 +15,22 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom", "wouter"],
+          "ui-vendor": [
+            "framer-motion",
+            "lucide-react",
+            "sonner",
+            "next-themes",
+          ],
+          "data-vendor": ["@tanstack/react-query", "zod", "date-fns", "recharts"],
+          "documents-vendor": ["jspdf", "jspdf-autotable", "jszip"],
+          "ocr-vendor": ["tesseract.js"],
+        },
+      },
+    },
+  },
 });
