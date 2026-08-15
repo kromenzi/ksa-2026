@@ -1,0 +1,16 @@
+@media (min-width: 1024px) {
+  .sticky.top-4 > .overflow-hidden.rounded-lg.border.bg-gray-50 {
+    direction: ltr !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    position: relative !important;
+  }
+
+  .sticky.top-4 > .overflow-hidden.rounded-lg.border.bg-gray-50 > div[style*="210mm"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform-origin: top left !important;
+    margin: 0 !important;
+  }
+}
