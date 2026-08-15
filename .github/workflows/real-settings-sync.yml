@@ -1,0 +1,71 @@
+name: Sync Real Settings UI
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  sync-settings:
+    if: ${{ !contains(github.event.head_commit.message, '[settings-sync]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch settings page
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/pages/admin/settings.tsx')
+          s = p.read_text(encoding='utf-8')
+          marker = '/* REAL_SETTINGS_BACKEND_V1 */'
+          if marker in s:
+              raise SystemExit(0)
+
+          s = s.replace('import { useState } from "react";', 'import { useEffect, useState } from "react";')
+          s = s.replace('interface PermissionRow {\n  role: Role;\n  module: Module;\n  actions: Action[];\n}\n\n', '')
+
+          s = s.replace(
+              'const { settings, updateSettings, currentUser } = useData();',
+              'const { settings, updateSettings, currentUser, departments, addDepartment, deleteDepartment, plants, addPlant, permissionRows, updatePermission } = useData();\n  // REAL_SETTINGS_BACKEND_V1'
+          )
+
+          old = '''  const [factories, setFactories] = useState<FactoryItem[]>([\n    { id: "f1", code: "FACT-A", name: "Main Assembly Plant A", address: "Dammam Industrial City 2", manager: "Eng. Fahad Al-Otaibi" },\n    { id: "f2", code: "FACT-B", name: "Chemical Processing Plant B", address: "Jubail Industrial Zone 1", manager: "Eng. Salem Al-Gamdi" },\n    { id: "f3", code: "FACT-C", name: "Riyadh Logistics Center C", address: "Riyadh Third Industrial", manager: "Eng. Tariq Al-Shehri" },\n  ]);\n  const [newFactory, setNewFactory] = useState({ code: "", name: "", address: "", manager: "" });\n\n  // Departments List\n  const [departments, setDepartments] = useState<DepartmentItem[]>([\n    { id: "d1", code: "HSE", name: "Health, Safety & Environment", manager: "Mansour Al-Harbi" },\n    { id: "d2", code: "OPS", name: "Plant Operations", manager: "Khaled Al-Zahrani" },\n    { id: "d3", code: "MNT", name: "Maintenance & Reliability", manager: "Yasser Al-Qahtani" },\n    { id: "d4", code: "QA", name: "Quality Assurance & ISO", manager: "Majed Al-Anzi" },\n  ]);\n  const [newDept, setNewDept] = useState({ code: "", name: "", manager: "" });'''
+          new = '''  const [newFactory, setNewFactory] = useState({ code: "", name: "", address: "", manager: "" });\n  const factories: FactoryItem[] = plants.map((p: any) => ({\n    id: p.id,\n    code: String(p.data?.code || p.refNo || "PLANT"),\n    name: String(p.title || "Plant"),\n    address: String(p.data?.address || p.department || ""),\n    manager: String(p.data?.manager || ""),\n  }));\n  const [newDept, setNewDept] = useState({ code: "", name: "", manager: "" });'''
+          if old not in s:
+              raise SystemExit('factory/departments block not found')
+          s = s.replace(old, new)
+
+          old = '''  // Permissions Matrix\n  const [permissions, setPermissions] = useState<PermissionRow[]>([\n    { role: 'manager', module: 'users', actions: ['read', 'update'] },\n    { role: 'manager', module: 'content', actions: ['create', 'read', 'update', 'delete'] },\n    { role: 'manager', module: 'ncr', actions: ['create', 'read', 'update', 'delete'] },\n    { role: 'manager', module: 'reports', actions: ['create', 'read', 'update', 'delete'] },\n    { role: 'manager', module: 'documents', actions: ['create', 'read', 'update', 'delete'] },\n    { role: 'editor', module: 'users', actions: ['read'] },\n    { role: 'editor', module: 'ncr', actions: ['create', 'read', 'update'] },\n    { role: 'editor', module: 'reports', actions: ['create', 'read', 'update'] },\n    { role: 'viewer', module: 'ncr', actions: ['read'] },\n    { role: 'viewer', module: 'reports', actions: ['read'] },\n  ]);'''
+          new = '''  // Permissions Matrix is loaded from Supabase through DataContext.'''
+          if old not in s:
+              raise SystemExit('permissions state block not found')
+          s = s.replace(old, new)
+
+          old = '''  const handleAddFactory = () => {\n    if (!newFactory.code || !newFactory.name) {\n      toast.error(isAr ? "يرجى تعبئة رمز واسم المصنع" : "Please enter Factory Code and Name");\n      return;\n    }\n    setFactories(prev => [...prev, { ...newFactory, id: `f-${Date.now()}` }]);\n    setNewFactory({ code: "", name: "", address: "", manager: "" });\n    toast.success(isAr ? "تم إضاف المصنع" : "Factory added");\n  };\n\n  const handleAddDept = () => {\n    if (!newDept.code || !newDept.name) {\n      toast.error(isAr ? "يرجى تعبئة رمز واسم القسم" : "Please enter Department Code and Name");\n      return;\n    }\n    setDepartments(prev => [...prev, { ...newDept, id: `d-${Date.now()}` }]);\n    setNewDept({ code: "", name: "", manager: "" });\n    toast.success(isAr ? "تم إضافة القسم" : "Department added");\n  };'''
+          new = '''  const handleAddFactory = async () => {\n    if (!newFactory.code || !newFactory.name) {\n      toast.error(isAr ? "يرجى تعبئة رمز واسم المصنع" : "Please enter Factory Code and Name");\n      return;\n    }\n    try {\n      await addPlant({\n        title: newFactory.name,\n        department: newFactory.manager || null,\n        data: { code: newFactory.code, address: newFactory.address, manager: newFactory.manager },\n      });\n      setNewFactory({ code: "", name: "", address: "", manager: "" });\n      toast.success(isAr ? "تم حفظ المصنع في قاعدة البيانات" : "Plant saved to database");\n    } catch (e: any) {\n      toast.error(e?.message || (isAr ? "تعذر حفظ المصنع" : "Unable to save plant"));\n    }\n  };\n\n  const handleAddDept = async () => {\n    if (!newDept.code || !newDept.name) {\n      toast.error(isAr ? "يرجى تعبئة رمز واسم القسم" : "Please enter Department Code and Name");\n      return;\n    }\n    try {\n      await addDepartment({ code: newDept.code.trim(), name: newDept.name.trim() });\n      setNewDept({ code: "", name: "", manager: "" });\n      toast.success(isAr ? "تم حفظ القسم في قاعدة البيانات" : "Department saved to database");\n    } catch (e: any) {\n      toast.error(e?.message || (isAr ? "تعذر حفظ القسم" : "Unable to save department"));\n    }\n  };'''
+          if old not in s:
+              raise SystemExit('add handlers block not found')
+          s = s.replace(old, new)
+
+          old = '''  const togglePermission = (role: Role, module: Module, action: Action) => {\n    setPermissions(prev => {\n      const existing = prev.find(p => p.role === role && p.module === module);\n      if (existing) {\n        const hasAction = existing.actions.includes(action);\n        return prev.map(p => \n          p.role === role && p.module === module \n            ? { ...p, actions: hasAction ? p.actions.filter(a => a !== action) : [...p.actions, action] }\n            : p\n        );\n      }\n      return [...prev, { role, module, actions: [action] }];\n    });\n  };\n\n  const hasPermissionRow = (role: Role, module: Module, action: Action) => {\n    return permissions.find(p => p.role === role && p.module === module)?.actions.includes(action) || false;\n  };'''
+          new = '''  const togglePermission = async (role: Role, module: Module, action: Action) => {\n    const row = permissionRows.find(p => p.role === role && p.module === module);\n    const granted = !(row?.actions || []).includes(action);\n    try {\n      await updatePermission(role, module, action, granted);\n      toast.success(isAr ? "تم تحديث الصلاحية" : "Permission updated");\n    } catch (e: any) {\n      toast.error(e?.message || (isAr ? "تعذر تحديث الصلاحية" : "Unable to update permission"));\n    }\n  };\n\n  const hasPermissionRow = (role: Role, module: Module, action: Action) => {\n    return permissionRows.find(p => p.role === role && p.module === module)?.actions?.includes(action) === true;\n  };'''
+          if old not in s:
+              raise SystemExit('permission handler block not found')
+          s = s.replace(old, new)
+
+          s = s.replace('onClick={() => setDepartments(prev => prev.filter(x => x.id !== d.id))}', 'onClick={() => void deleteDepartment(d.id)}')
+
+          p.write_text(s, encoding='utf-8')
+      - name: Commit patched settings
+        shell: bash
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/pages/admin/settings.tsx
+          git commit -m 'fix: make settings plants departments permissions database-backed [settings-sync]'
+          git push
