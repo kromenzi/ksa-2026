@@ -130,10 +130,10 @@ export default function SafetyPyramidPage() {
     toast.success(isAr ? "تم تصدير البيانات" : "Data exported");
   };
 
-  const print = () => {
-    const popup = window.open("", "incident-pyramid-print", "width=1200,height=900");
+  const openPrintWindow = (mode: "report" | "image") => {
+    const popup = window.open("", mode === "report" ? "incident-pyramid-report-print" : "incident-pyramid-image-print", "width=1400,height=1000");
     if (!popup) {
-      toast.error(isAr ? "يرجى السماح بالنوافذ المنبثقة للطباعة" : "Please allow pop-ups to print the report");
+      toast.error(isAr ? "يرجى السماح بالنوافذ المنبثقة للطباعة" : "Please allow pop-ups to print");
       return;
     }
     const esc = (value: unknown) => String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[ch] || ch));
@@ -142,46 +142,35 @@ export default function SafetyPyramidPage() {
       const width = 24 + i * 12;
       return `<div class="row"><div class="bar" style="width:${width}%;background:${level.color};color:${level.text}"><span>${esc(isAr ? level.ar : level.en)}</span><b>${data[level.id]}</b></div></div>`;
     }).join("") + `<div class="total">${esc(totalValue)} ${esc(isAr ? "إجمالي السجلات" : "total records")}</div>`;
+
+    if (mode === "report") {
+      popup.document.open();
+      popup.document.write(`<!doctype html><html lang="${isAr ? "ar" : "en"}" dir="${isAr ? "rtl" : "ltr"}><head><meta charset="utf-8"><title>Incident Pyramid Report</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#111827;font-family:Arial,Segoe UI,sans-serif}body{padding:12mm}.toolbar{display:flex;justify-content:flex-end;margin-bottom:8mm}.print-btn{border:0;border-radius:8px;background:#1d4ed8;color:#fff;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #dc2626;padding-bottom:8mm;margin-bottom:8mm}.header h1{margin:0;font-size:25px}.header p{margin:4px 0 0;color:#64748b;font-size:11px}.meta{text-align:right;font-size:10px;color:#475569}.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm;margin-bottom:7mm}.kpi{border:1px solid #cbd5e1;border-radius:8px;padding:4mm;text-align:center}.kpi b{display:block;font-size:22px}.kpi span{display:block;margin-top:1mm;color:#64748b;font-size:10px}.columns{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.card{border:1px solid #cbd5e1;border-radius:8px;padding:5mm}.card h2{text-align:center;margin:0;font-size:15px;color:#1e3a8a}.card p{text-align:center;margin:2mm 0 4mm;color:#64748b;font-size:10px}.row{height:11mm;display:flex;align-items:center;justify-content:center}.bar{height:9mm;border-radius:4px;display:flex;align-items:center;justify-content:space-between;padding:0 3mm;font-size:10px;font-weight:700;print-color-adjust:exact;-webkit-print-color-adjust:exact}.bar b{font-size:12px}.total{text-align:center;border-top:1px solid #cbd5e1;margin-top:3mm;padding-top:3mm;color:#475569;font-size:10px;font-weight:700}.footer{margin-top:7mm;padding-top:3mm;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;color:#64748b;font-size:8px}@media print{.toolbar{display:none}.card{break-inside:avoid}.bar{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><div class="toolbar"><button class="print-btn" onclick="window.print()">${esc(isAr ? "طباعة التقرير" : "Print Report")}</button></div><div class="header"><div><h1>${esc(isAr ? `هرم الحوادث - ${selectedYear}` : `Incident Pyramid - ${selectedYear}`)}</h1><p>${esc(isAr ? `مقارنة ${monthName} مع التراكمي ${selectedYear}` : `Monthly ${monthName} vs YTD ${selectedYear}`)}</p></div><div class="meta">HSE-PYRAMID-01<br>${esc(new Date().toLocaleDateString(isAr ? "ar-SA" : "en-US"))}</div></div><div class="kpis"><div class="kpi"><b>${monthTotal}</b><span>${esc(isAr ? `إجمالي ${monthName}` : `Total ${monthName}`)}</span></div><div class="kpi"><b>${counts.monthly.nearMiss}</b><span>${esc(isAr ? "الوقائع الوشيكة" : "Near Misses")}</span></div><div class="kpi"><b>${counts.monthly.unsafeActs}</b><span>${esc(isAr ? "السلوكيات والظروف غير الآمنة" : "At-Risk / Unsafe")}</span></div></div><div class="columns"><section class="card"><h2>${esc(isAr ? `الشهر • ${monthName}` : `Monthly • ${monthName}`)}</h2><p>${esc(isAr ? "المستويات والأعداد الشهرية" : "Monthly levels and counts")}</p>${renderColumn(counts.monthly,monthTotal)}</section><section class="card"><h2>${esc(isAr ? `التراكمي YTD • ${selectedYear}` : `YTD • ${selectedYear}`)}</h2><p>${esc(isAr ? "المستويات والأعداد التراكمية" : "Year-to-date levels and counts")}</p>${renderColumn(counts.ytd,ytdTotal)}</section></div><div class="footer"><span>ABDULKAREM SAFETY BOARD</span><span>Incident Pyramid Report</span></div></body></html>`);
+      popup.document.close();
+      setTimeout(() => { popup.focus(); popup.print(); }, 350);
+      logActivity("Print Incident Pyramid Report", `Printed ${monthName} ${selectedYear} Monthly vs YTD report`, "reports");
+      return;
+    }
+
+    const pyramid = (data: Record<LevelId, number>) => `<div class="pyramid">${LEVELS.map((level,i)=>enabled[level.id]?`<div class="bar" style="width:${24+i*12}%;background:${level.color};color:${level.text}"><span>${esc(isAr?level.ar:level.en)}</span><b>${data[level.id]}</b></div>`:"").join("")}</div>`;
     popup.document.open();
-    popup.document.write(`<!doctype html><html lang="${isAr ? "ar" : "en"}" dir="${isAr ? "rtl" : "ltr"}><head><meta charset="utf-8"><title>Incident Pyramid - ${esc(selectedYear)}</title><style>
-      @page{size:A4 landscape;margin:10mm}
-      *{box-sizing:border-box}
-      html,body{margin:0;padding:0;background:#fff;color:#111827;font-family:Arial,Segoe UI,sans-serif}
-      body{padding:12mm}
-      .toolbar{display:flex;justify-content:flex-end;margin-bottom:8mm}
-      .print-btn{border:0;border-radius:8px;background:#1d4ed8;color:#fff;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer}
-      .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #dc2626;padding-bottom:8mm;margin-bottom:8mm}
-      .header h1{margin:0;font-size:25px}.header p{margin:4px 0 0;color:#64748b;font-size:11px}.meta{text-align:right;font-size:10px;color:#475569}
-      .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm;margin-bottom:7mm}.kpi{border:1px solid #cbd5e1;border-radius:8px;padding:4mm;text-align:center}.kpi b{display:block;font-size:22px}.kpi span{display:block;margin-top:1mm;color:#64748b;font-size:10px}
-      .columns{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.card{border:1px solid #cbd5e1;border-radius:8px;padding:5mm}.card h2{text-align:center;margin:0;font-size:15px;color:#1e3a8a}.card p{text-align:center;margin:2mm 0 4mm;color:#64748b;font-size:10px}
-      .row{height:11mm;display:flex;align-items:center;justify-content:center}.bar{height:9mm;border-radius:4px;display:flex;align-items:center;justify-content:space-between;padding:0 3mm;font-size:10px;font-weight:700;print-color-adjust:exact;-webkit-print-color-adjust:exact}.bar b{font-size:12px}.total{text-align:center;border-top:1px solid #cbd5e1;margin-top:3mm;padding-top:3mm;color:#475569;font-size:10px;font-weight:700}.footer{margin-top:7mm;padding-top:3mm;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;color:#64748b;font-size:8px}
-      @media print{.toolbar{display:none}.card{break-inside:avoid}.bar{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
-    </style></head><body>
-      <div class="toolbar"><button class="print-btn" onclick="window.print()">${esc(isAr ? "طباعة التقرير" : "Print Report")}</button></div>
-      <div class="header"><div><h1>${esc(isAr ? `هرم الحوادث - ${selectedYear}` : `Incident Pyramid - ${selectedYear}`)}</h1><p>${esc(isAr ? `مقارنة ${monthName} مع التراكمي ${selectedYear}` : `Monthly ${monthName} vs YTD ${selectedYear}`)}</p></div><div class="meta">HSE-PYRAMID-01<br>${esc(new Date().toLocaleDateString(isAr ? "ar-SA" : "en-US"))}</div></div>
-      <div class="kpis"><div class="kpi"><b>${monthTotal}</b><span>${esc(isAr ? `إجمالي ${monthName}` : `Total ${monthName}`)}</span></div><div class="kpi"><b>${counts.monthly.nearMiss}</b><span>${esc(isAr ? "الوقائع الوشيكة" : "Near Misses")}</span></div><div class="kpi"><b>${counts.monthly.unsafeActs}</b><span>${esc(isAr ? "السلوكيات والظروف غير الآمنة" : "At-Risk / Unsafe")}</span></div></div>
-      <div class="columns"><section class="card"><h2>Monthly • ${esc(monthName)}</h2><p>${esc(isAr ? "المستويات والأعداد الشهرية" : "Monthly levels and counts")}</p>${renderColumn(counts.monthly, monthTotal)}</section><section class="card"><h2>YTD • ${esc(selectedYear)}</h2><p>${esc(isAr ? "المستويات والأعداد التراكمية" : "Year-to-date levels and counts")}</p>${renderColumn(counts.ytd, ytdTotal)}</section></div>
-      <div class="footer"><span>ABDULKAREM SAFETY BOARD</span><span>Incident Pyramid Report</span></div>
-    </body></html>`);
+    popup.document.write(`<!doctype html><html lang="${isAr?"ar":"en"}" dir="${isAr?"rtl":"ltr"}><head><meta charset="utf-8"><title>Incident Pyramid Image</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#111827;font-family:Arial,Segoe UI,sans-serif}body{padding:10mm}.toolbar{display:flex;justify-content:flex-end;margin-bottom:7mm}.print-btn{border:0;border-radius:8px;background:#059669;color:#fff;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer}.header{text-align:center;border-bottom:3px solid #dc2626;padding-bottom:5mm;margin-bottom:7mm}.header h1{margin:0;font-size:24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.card{border:1px solid #cbd5e1;border-radius:10px;padding:6mm}.card h2{text-align:center;margin:0 0 5mm;font-size:16px;color:#1e3a8a}.pyramid{display:flex;flex-direction:column;align-items:center;gap:2mm}.bar{height:14mm;border-radius:4px;display:flex;align-items:center;justify-content:space-between;padding:0 4mm;font-weight:800;font-size:12px;print-color-adjust:exact;-webkit-print-color-adjust:exact}.bar b{font-size:15px}.footer{margin-top:7mm;display:flex;justify-content:space-between;color:#64748b;font-size:9px}@media print{.toolbar{display:none}.bar{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><div class="toolbar"><button class="print-btn" onclick="window.print()">${esc(isAr?"طباعة صورة الهرم":"Print Pyramid Image")}</button></div><div class="header"><h1>${esc(isAr?`هرم الحوادث - ${selectedYear}`:`Incident Pyramid - ${selectedYear}`)}</h1></div><div class="grid"><section class="card"><h2>${esc(isAr?`الشهر • ${monthName}`:`Monthly • ${monthName}`)}</h2>${pyramid(counts.monthly)}</section><section class="card"><h2>${esc(isAr?`التراكمي YTD • ${selectedYear}`:`YTD • ${selectedYear}`)}</h2>${pyramid(counts.ytd)}</section></div><div class="footer"><span>ABDULKAREM SAFETY BOARD</span><span>Incident Pyramid Image</span></div></body></html>`);
     popup.document.close();
-    popup.focus();
-    setTimeout(() => popup.print(), 500);
-    logActivity("Print Incident Pyramid", `Printed ${monthName} ${selectedYear} Monthly vs YTD`, "reports");
+    setTimeout(() => { popup.focus(); popup.print(); }, 350);
+    logActivity("Print Incident Pyramid Image", `Printed pyramid image ${monthName} ${selectedYear}`, "reports");
   };
 
   return (
     <div className="space-y-6 pyramid-page" dir={isAr ? "rtl" : "ltr"}>
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-card p-6 rounded-3xl border shadow-sm no-print">
-        <div>
-          <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-xl bg-red-500/10 flex items-center justify-center"><ShieldAlert className="h-5 w-5 text-red-600" /></div><h1 className="text-xl font-extrabold">{isAr ? `هرم الحوادث - ${selectedYear}` : `Incident Pyramid - ${selectedYear}`}</h1></div>
-          <p className="text-sm text-muted-foreground mt-1">{isAr ? "مقارنة الشهر المحدد مع التراكمي منذ بداية السنة (YTD)" : "Comparative safety pyramid for selected month vs. Year-To-Date (YTD) cumulative record"}</p>
-        </div>
+        <div><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-xl bg-red-500/10 flex items-center justify-center"><ShieldAlert className="h-5 w-5 text-red-600" /></div><h1 className="text-xl font-extrabold">{isAr ? `هرم الحوادث - ${selectedYear}` : `Incident Pyramid - ${selectedYear}`}</h1></div><p className="text-sm text-muted-foreground mt-1">{isAr ? "مقارنة الشهر المحدد مع التراكمي منذ بداية السنة (YTD)" : "Comparative safety pyramid for selected month vs. Year-To-Date (YTD) cumulative record"}</p></div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 border rounded-xl px-2 h-9"><Calendar className="h-4 w-4 text-blue-700" /><select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))} className="bg-transparent text-sm outline-none">{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{new Intl.DateTimeFormat(isAr ? 'ar-SA' : 'en-US', { month: 'long' }).format(new Date(2026, i, 1))}</option>)}</select></div>
           <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} className="h-9 border rounded-xl px-2 bg-background text-sm"><option value={2026}>2026</option><option value={2025}>2025</option></select>
           <Button variant="outline" onClick={() => setSettingsOpen(true)} className="rounded-xl gap-2"><Settings className="h-4 w-4" />{isAr ? "الإعدادات" : "Settings"}</Button>
           <Button variant="outline" onClick={exportCSV} className="rounded-xl gap-2"><Download className="h-4 w-4" />CSV</Button>
-          <Button variant="outline" onClick={print} className="rounded-xl gap-2 print-trigger"><Printer className="h-4 w-4" />{isAr ? "طباعة" : "Print"}</Button>
+          <Button variant="outline" onClick={() => openPrintWindow("report")} className="rounded-xl gap-2 print-trigger"><Printer className="h-4 w-4" />{isAr ? "طباعة التقرير" : "Print Report"}</Button>
+          <Button variant="destructive" onClick={() => openPrintWindow("image")} className="rounded-xl gap-2 print-trigger"><Printer className="h-4 w-4" />{isAr ? "طباعة صورة الهرم" : "Print Pyramid Image"}</Button>
         </div>
       </div>
 
@@ -192,47 +181,12 @@ export default function SafetyPyramidPage() {
         <div className="rounded-2xl border bg-card p-4"><div className="text-2xl font-black">{counts.monthly.unsafeActs}</div><div className="text-xs text-muted-foreground">{isAr ? "غير آمن" : "At-Risk / Unsafe"}</div></div>
       </div>
 
-      <div className="print-header hidden">
-        <h1>{isAr ? `هرم الحوادث - ${selectedYear}` : `Incident Pyramid - ${selectedYear}`}</h1>
-        <p>{isAr ? `مقارنة ${monthName} مع التراكمي ${selectedYear}` : `Monthly ${monthName} vs YTD ${selectedYear}`}</p>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 print-grid">{renderPyramid(counts.monthly, `Monthly • ${monthName}`)}{renderPyramid(counts.ytd, `YTD • ${selectedYear}`)}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 no-print"><div className="rounded-2xl border bg-emerald-500/10 p-4"><h3 className="font-bold text-emerald-800 dark:text-emerald-300">{isAr ? "المؤشرات الاستباقية" : "Leading Indicators"}</h3><p className="text-sm mt-2">Near Miss: <b>{counts.monthly.nearMiss}</b> ({counts.ytd.nearMiss} YTD) • Unsafe: <b>{counts.monthly.unsafeActs}</b> ({counts.ytd.unsafeActs} YTD)</p></div><div className="rounded-2xl border bg-amber-500/10 p-4"><h3 className="font-bold text-amber-800 dark:text-amber-300">{isAr ? "المؤشرات التفاعلية" : "Lagging Indicators"}</h3><p className="text-sm mt-2">LTI/MTC/FAC: <b>{counts.monthly.lostTime + counts.monthly.medicalTreatment + counts.monthly.firstAid}</b> ({counts.ytd.lostTime + counts.ytd.medicalTreatment + counts.ytd.firstAid} YTD)</p></div></div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 print-grid">
-        {renderPyramid(counts.monthly, `Monthly • ${monthName}`)}
-        {renderPyramid(counts.ytd, `YTD • ${selectedYear}`)}
-      </div>
+      <style>{`@media print{ @page{size:A4 landscape;margin:10mm} html,body,#root{background:#fff!important;color:#111827!important}.no-print{display:none!important}.pyramid-page{display:block!important;background:#fff!important;color:#111827!important}.print-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8mm!important}.pyramid-card{display:block!important;visibility:visible!important;opacity:1!important;break-inside:avoid!important;page-break-inside:avoid!important;border:1px solid #cbd5e1!important;background:#fff!important;color:#111827!important}.pyramid-card *{visibility:visible!important;opacity:1!important}.pyramid-row{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;visibility:visible!important;opacity:1!important} }`}</style>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 no-print">
-        <div className="rounded-2xl border bg-emerald-500/10 p-4"><h3 className="font-bold text-emerald-800 dark:text-emerald-300">{isAr ? "المؤشرات الاستباقية" : "Leading Indicators"}</h3><p className="text-sm mt-2">Near Miss: <b>{counts.monthly.nearMiss}</b> ({counts.ytd.nearMiss} YTD) • Unsafe: <b>{counts.monthly.unsafeActs}</b> ({counts.ytd.unsafeActs} YTD)</p></div>
-        <div className="rounded-2xl border bg-amber-500/10 p-4"><h3 className="font-bold text-amber-800 dark:text-amber-300">{isAr ? "المؤشرات التفاعلية" : "Lagging Indicators"}</h3><p className="text-sm mt-2">LTI/MTC/FAC: <b>{counts.monthly.lostTime + counts.monthly.medicalTreatment + counts.monthly.firstAid}</b> ({counts.ytd.lostTime + counts.ytd.medicalTreatment + counts.ytd.firstAid} YTD)</p></div>
-      </div>
-
-      <style>{`
-        .print-header { display:none; }
-        @media print {
-          @page { size: A4 landscape; margin: 10mm; }
-          html, body, #root { background:#fff !important; color:#111827 !important; }
-          .no-print { display:none !important; }
-          .pyramid-page { display:block !important; background:#fff !important; color:#111827 !important; }
-          .print-header { display:block !important; text-align:center; margin:0 0 8mm; color:#111827 !important; }
-          .print-header h1 { font-size:20px; margin:0 0 2mm; }
-          .print-header p { font-size:10px; margin:0; color:#475569 !important; }
-          .print-grid { display:grid !important; grid-template-columns:1fr 1fr !important; gap:8mm !important; }
-          .pyramid-card { display:block !important; visibility:visible !important; opacity:1 !important; break-inside:avoid !important; page-break-inside:avoid !important; border:1px solid #cbd5e1 !important; border-radius:8px !important; background:#fff !important; padding:5mm !important; color:#111827 !important; }
-          .pyramid-card > div, .pyramid-card h2, .pyramid-card p { visibility:visible !important; opacity:1 !important; }
-          .pyramid-row { print-color-adjust:exact !important; -webkit-print-color-adjust:exact !important; visibility:visible !important; opacity:1 !important; }
-          .pyramid-row span { color:inherit !important; visibility:visible !important; }
-          .text-muted-foreground { color:#64748b !important; }
-        }
-      `}</style>
-
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader><DialogTitle>{isAr ? "إعدادات الهرم" : "Pyramid Settings"}</DialogTitle><DialogDescription>{isAr ? "اختر المستويات الظاهرة في التقرير والطباعة." : "Choose which levels are visible in the report and print."}</DialogDescription></DialogHeader>
-          <div className="space-y-2">{LEVELS.map(level => <label key={level.id} className="flex items-center justify-between border rounded-xl px-3 py-2"><span className="text-sm">{isAr ? level.ar : level.en}</span><input type="checkbox" checked={enabled[level.id]} onChange={e => setEnabled(v => ({ ...v, [level.id]: e.target.checked }))} /></label>)}</div>
-          <DialogFooter><Button onClick={() => setSettingsOpen(false)}>{isAr ? "إغلاق" : "Close"}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent className="rounded-2xl"><DialogHeader><DialogTitle>{isAr ? "إعدادات الهرم" : "Pyramid Settings"}</DialogTitle><DialogDescription>{isAr ? "اختر المستويات الظاهرة في التقرير والطباعة." : "Choose which levels are visible in the report and print."}</DialogDescription></DialogHeader><div className="space-y-2">{LEVELS.map(level => <label key={level.id} className="flex items-center justify-between border rounded-xl px-3 py-2"><span className="text-sm">{isAr ? level.ar : level.en}</span><input type="checkbox" checked={enabled[level.id]} onChange={e => setEnabled(v => ({ ...v, [level.id]: e.target.checked }))} /></label>)}</div><DialogFooter><Button onClick={() => setSettingsOpen(false)}>{isAr ? "إغلاق" : "Close"}</Button></DialogFooter></DialogContent></Dialog>
     </div>
   );
 }
