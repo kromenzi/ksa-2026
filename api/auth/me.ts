@@ -17,7 +17,7 @@ export default async function handler(req: any, res: any) {
       email: user.email,
       role: profile.role,
       isActive: profile.is_active,
-      joinedAt: profile.joined_at || user.created_at,
+      joinedAt: profile.created_at || user.created_at,
     });
   } catch (error: any) {
     console.error("Authentication check failed", error);
