@@ -36,11 +36,11 @@ jobs:
           if logo_count != 1:
               raise SystemExit(f'logo handler replacement failed: {logo_count}')
 
-          table_pattern = r'<TableBody>\{roles\.map\(r => \(modules\.map\(m => \(<TableRow.*?</TableRow>\)\)\)\)\}</TableBody>'
-          table_replacement = '''<TableBody>\n  {roles.flatMap(r => modules.map(m => (\n    <TableRow key={`${r}-${m}`} className="h-9">\n      <TableCell className="font-bold text-xs uppercase text-primary">{r}</TableCell>\n      <TableCell className="font-medium text-xs capitalize">{m}</TableCell>\n      {actions.map(act => (\n        <TableCell key={act} className="text-center">\n          <Checkbox checked={hasPermissionRow(r, m, act)} onCheckedChange={() => togglePermission(r, m, act)} />\n        </TableCell>\n      ))}\n    </TableRow>\n  )))}\n</TableBody>'''
-          s, table_count = re.subn(table_pattern, table_replacement, s, count=1, flags=re.DOTALL)
-          if table_count != 1:
-              raise SystemExit(f'permissions table replacement failed: {table_count}')
+          permission_pattern = r'<TabsContent value="permissions".*?</TabsContent>'
+          permission_replacement = '''<TabsContent value="permissions" className="mt-4 space-y-6">\n  <Card className="rounded-2xl border-border/60 shadow-sm">\n    <CardHeader>\n      <div className="flex items-center gap-2">\n        <Users className="h-5 w-5 text-pink-500" />\n        <CardTitle className="text-base">{isAr ? 'مصفوفة صلاحيات الأدوار' : 'Role Access Control Matrix'}</CardTitle>\n      </div>\n    </CardHeader>\n    <CardContent className="space-y-4 text-xs">\n      <div className="border border-border/50 rounded-xl overflow-hidden">\n        <Table>\n          <TableHeader className="bg-muted/40">\n            <TableRow>\n              <TableHead className="text-xs">{isAr ? 'الدور' : 'Role'}</TableHead>\n              <TableHead className="text-xs">{isAr ? 'القسم' : 'Module'}</TableHead>\n              {actions.map(act => (\n                <TableHead key={act} className="text-xs text-center capitalize">{act}</TableHead>\n              ))}\n            </TableRow>\n          </TableHeader>\n          <TableBody>\n            {roles.flatMap(r => modules.map(m => (\n              <TableRow key={`${r}-${m}`} className="h-9">\n                <TableCell className="font-bold text-xs uppercase text-primary">{r}</TableCell>\n                <TableCell className="font-medium text-xs capitalize">{m}</TableCell>\n                {actions.map(act => (\n                  <TableCell key={act} className="text-center">\n                    <Checkbox checked={hasPermissionRow(r, m, act)} onCheckedChange={() => togglePermission(r, m, act)} />\n                  </TableCell>\n                ))}\n              </TableRow>\n            )))}\n          </TableBody>\n        </Table>\n      </div>\n    </CardContent>\n  </Card>\n</TabsContent>'''
+          s, permission_count = re.subn(permission_pattern, permission_replacement, s, count=1, flags=re.DOTALL)
+          if permission_count != 1:
+              raise SystemExit(f'permissions section replacement failed: {permission_count}')
 
           p.write_text(s, encoding='utf-8')
       - name: Commit repair
