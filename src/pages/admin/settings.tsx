@@ -41,9 +41,28 @@ export default function AdminSettings() {
   const { settings, updateSettings, currentUser, departments, addDepartment, deleteDepartment, plants, addPlant, permissionRows, updatePermission } = useData();
   // REAL_SETTINGS_BACKEND_V1
   const isAr = settings.language === "ar";
+  // ENTERPRISE_PERSIST_V1
+  const savedEnterpriseConfig = (settings.branding?.enterpriseConfig || {}) as any;
+  const [enterpriseReady, setEnterpriseReady] = useState(false);
   
   const [localSettings, setLocalSettings] = useState(settings);
   const [activeTab, setActiveTab] = useState("company");
+
+  useEffect(() => {
+    if (enterpriseReady) return;
+    const cfg = savedEnterpriseConfig;
+    if (cfg.numbering) setNumbering(prev => ({ ...prev, ...cfg.numbering }));
+    if (cfg.qrConfig) setQrConfig(prev => ({ ...prev, ...cfg.qrConfig }));
+    if (cfg.pdfConfig) setPdfConfig(prev => ({ ...prev, ...cfg.pdfConfig }));
+    if (Array.isArray(cfg.jobTitles)) setJobTitles(cfg.jobTitles);
+    if (Array.isArray(cfg.incidentCats)) setIncidentCats(cfg.incidentCats);
+    if (Array.isArray(cfg.trainingCats)) setTrainingCats(cfg.trainingCats);
+    if (Array.isArray(cfg.permitTypes)) setPermitTypes(cfg.permitTypes);
+    if (Array.isArray(cfg.lotoCats)) setLotoCats(cfg.lotoCats);
+    if (cfg.companyData) setCompanyData(prev => ({ ...prev, ...cfg.companyData }));
+    if (cfg.brandingText) setBrandingText(prev => ({ ...prev, ...cfg.brandingText }));
+    setEnterpriseReady(true);
+  }, [enterpriseReady, savedEnterpriseConfig]);
 
   // Company Information
   const [companyData, setCompanyData] = useState({
@@ -162,25 +181,41 @@ export default function AdminSettings() {
 
   // Permissions Matrix is loaded from Supabase through DataContext.
 
-  const handleSaveAll = () => {
-    updateSettings({
-      ...localSettings,
-      branding: {
-        companyName: companyData.name,
-        companyLogo: companyData.logoUrl,
-        companyAddress: companyData.address,
-        companyPhone: companyData.phone,
-        companyEmail: companyData.email,
-        companyWebsite: companyData.website,
-        documentFooter: pdfConfig.confidentialFooter,
-        confidentialLabel: pdfConfig.watermarkText,
-        departmentName: "Health, Safety & Environment",
-        safetyDepartmentName: "Corporate Safety & Risk Control",
-        logoPosition: pdfConfig.headerLogoPosition,
-        ...brandingText
-      }
-    });
-    toast.success(isAr ? "تم حفظ كافة إعدادات المؤسسة بنجاح" : "All Enterprise Settings saved successfully");
+  const handleSaveAll = async () => {
+    try {
+      await updateSettings({
+        ...localSettings,
+        branding: {
+          companyName: companyData.name,
+          companyLogo: companyData.logoUrl,
+          companyAddress: companyData.address,
+          companyPhone: companyData.phone,
+          companyEmail: companyData.email,
+          companyWebsite: companyData.website,
+          documentFooter: pdfConfig.confidentialFooter,
+          confidentialLabel: pdfConfig.watermarkText,
+          departmentName: "Health, Safety & Environment",
+          safetyDepartmentName: "Corporate Safety & Risk Control",
+          logoPosition: pdfConfig.headerLogoPosition,
+          ...brandingText,
+          enterpriseConfig: {
+            numbering,
+            qrConfig,
+            pdfConfig,
+            jobTitles,
+            incidentCats,
+            trainingCats,
+            permitTypes,
+            lotoCats,
+            companyData,
+            brandingText,
+          },
+        },
+      });
+      toast.success(isAr ? "تم حفظ جميع إعدادات المؤسسة في قاعدة البيانات" : "All enterprise settings saved to the database");
+    } catch (e: any) {
+      toast.error(e?.message || (isAr ? "تعذر حفظ إعدادات المؤسسة" : "Unable to save enterprise settings"));
+    }
   };
 
   const handleAddFactory = async () => {
