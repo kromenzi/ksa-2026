@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useData } from "@/lib/data-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Layers, Plus, Search, Edit3, Trash2 } from "lucide-react";
@@ -16,6 +16,37 @@ export default function AdminSections() {
   const [editing, setEditing] = useState<{ id: string; name: string; code: string } | null>(null);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined" || departments.length > 0) return;
+    const migrationKey = "safety_board_sections_db_migrated_v1";
+    if (localStorage.getItem(migrationKey)) return;
+    const raw = localStorage.getItem("safety_board_sections_v1");
+    if (!raw) return;
+    let legacy: any[] = [];
+    try { legacy = JSON.parse(raw); } catch { return; }
+    if (!Array.isArray(legacy) || legacy.length === 0) return;
+    localStorage.setItem(migrationKey, "pending");
+    void (async () => {
+      let allSucceeded = true;
+      for (const item of legacy) {
+        const departmentName = String(item?.name || item?.nameAr || "").trim();
+        if (!departmentName) continue;
+        const departmentCode = String(item?.code || "").trim() || `DEPT-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+        try {
+          await addDepartment({ name: departmentName, code: departmentCode });
+        } catch {
+          allSucceeded = false;
+        }
+      }
+      if (allSucceeded) {
+        localStorage.setItem(migrationKey, "done");
+        window.location.reload();
+      } else {
+        localStorage.removeItem(migrationKey);
+      }
+    })();
+  }, [departments.length, addDepartment]);
 
   const reset = () => { setName(""); setCode(""); setEditing(null); };
   const save = async (e: React.FormEvent) => {
