@@ -13,7 +13,7 @@ function getAccessToken(req: any) {
   return match ? decodeURIComponent(match[1]) : "";
 }
 
-async function createProfile(userId: string, name: string) {
+async function createProfile(userId: string, email: string, name: string) {
   if (!SUPABASE_SERVICE_ROLE_KEY) return;
   const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
     method: "POST",
@@ -23,7 +23,7 @@ async function createProfile(userId: string, name: string) {
       "Content-Type": "application/json",
       Prefer: "resolution=merge-duplicates",
     },
-    body: JSON.stringify({ id: userId, auth_user_id: userId, email: "", name, role: "viewer", is_active: true }),
+    body: JSON.stringify({ id: userId, auth_user_id: userId, email, name, role: "viewer", is_active: true }),
   });
   if (!response.ok) {
     console.error("Failed to create profile", response.status);
@@ -55,7 +55,7 @@ async function handleSignup(req: any, res: any) {
     return json(res, response.status >= 400 && response.status < 500 ? response.status : 500, { error: message });
   }
 
-  await createProfile(String(data.user.id), name || data.user.email?.split("@")[0] || "New User");
+  await createProfile(String(data.user.id), email, name || data.user.email?.split("@")[0] || "New User");
   if (data.access_token) setAccessCookie(res, data.access_token);
   return json(res, 200, {
     id: data.user.id,
