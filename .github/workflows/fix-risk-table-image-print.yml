@@ -4,196 +4,37 @@ on:
   push:
     paths:
       - '.github/workflows/fix-risk-table-image-print.yml'
+      - 'scripts/fix-risk-table-print.py'
       - 'src/pages/admin/risk-assessment.tsx'
-      - 'src/sidebar-layout-fix.css'
 
 jobs:
   fix:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch risk table image printing
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-          p = Path('src/pages/admin/risk-assessment.tsx')
-          s = p.read_text(encoding='utf-8')
-          start = s.index('  const handlePrintRiskTableAsImage = async () => {')
-          end = s.index('  const handlePrintAllRisks = () => {', start)
-          replacement = r'''  const handlePrintRiskTableAsImage = () => {
-    const rows = filteredRisks.length > 0 ? filteredRisks : risks;
-    const title = isAr ? "سجل تقييم المخاطر" : "Risk Assessment Register";
-    const subtitle = isAr ? "Risk Assessment Matrix 5x5" : "Risk Assessment & Hazard Control Register";
-    const popup = window.open("", "_blank", "width=1200,height=900");
-
-    if (!popup) {
-      toast({
-        title: isAr ? "تم حظر نافذة الطباعة" : "Print window blocked",
-        description: isAr ? "اسمح بالنوافذ المنبثقة للموقع ثم أعد المحاولة." : "Allow pop-ups for this site and try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    popup.document.write(`<!doctype html><html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;background:#fff;margin:0;padding:24px;text-align:center;color:#111827}p{color:#64748b}</style></head><body><h2>${title}</h2><p>${isAr ? "جاري تجهيز صورة الجدول..." : "Preparing table image..."}</p></body></html>`);
-    popup.document.close();
-
-    const xml = (value: unknown) => String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&apos;");
-
-    const wrap = (text: string, maxChars: number) => {
-      const normalized = text.replace(/\s+/g, " ").trim();
-      if (!normalized) return ["—"];
-      const words = normalized.split(" ");
-      const lines: string[] = [];
-      let line = "";
-      for (const word of words) {
-        const candidate = line ? `${line} ${word}` : word;
-        if (candidate.length > maxChars && line) {
-          lines.push(line);
-          line = word;
-        } else {
-          line = candidate;
-        }
-      }
-      if (line) lines.push(line);
-      return lines.slice(0, 5);
-    };
-
-    const width = 2600;
-    const margin = 70;
-    const tableX = margin;
-    const headerH = 100;
-    const rowH = 220;
-    const colWidths = [250, 560, 450, 430, 430, 340];
-    const tableW = colWidths.reduce((a, b) => a + b, 0);
-    const height = Math.max(1200, 520 + Math.max(rows.length, 1) * rowH);
-    const headers = isAr
-      ? ["الرقم المرجعي", "النشاط والخطر", "الموقع والقسم", "المخاطرة الأولية", "المخاطرة المتبقية", "الحالة"]
-      : ["Ref No", "Activity & Hazard", "Location & Dept", "Initial Risk", "Residual Risk", "Status"];
-
-    const textBlock = (x: number, y: number, text: string, size: number, weight = 400, anchor: "start" | "middle" = "start") =>
-      `<text x="${x}" y="${y}" font-family="Arial, Tahoma, sans-serif" font-size="${size}px" font-weight="${weight}" fill="#111827" text-anchor="${anchor}">${xml(text)}</text>`;
-
-    const multiText = (x: number, y: number, lines: string[], size: number, weight = 400) =>
-      lines.map((line, i) => textBlock(x, y + i * (size + 10), line, size, weight)).join("");
-
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-      <rect width="100%" height="100%" fill="#ffffff"/>
-      ${textBlock(width/2, 68, "ABDULKAREM SAFETY BOARD", 30, 800, "middle")}
-      ${textBlock(width/2, 115, title, 38, 800, "middle")}
-      ${textBlock(width/2, 150, `${subtitle} • ${new Date().toLocaleDateString()}`, 20, 400, "middle")}
-      <rect x="${tableX}" y="190" width="${tableW}" height="${headerH}" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>`;
-
-    let x = tableX;
-    headers.forEach((header, i) => {
-      if (i > 0) svg += `<line x1="${x}" y1="190" x2="${x}" y2="${190 + headerH + Math.max(rows.length,1)*rowH}" stroke="#94a3b8" stroke-width="2"/>`;
-      svg += textBlock(x + colWidths[i] / 2, 250, header, 20, 800, "middle");
-      x += colWidths[i];
-    });
-    svg += `<line x1="${tableX + tableW}" y1="190" x2="${tableX + tableW}" y2="${190 + headerH + Math.max(rows.length,1)*rowH}" stroke="#94a3b8" stroke-width="2"/>`;
-
-    const riskLabel = (score: number) => score >= 15
-      ? (isAr ? "حرج / مرتفع" : "High / Critical")
-      : score >= 8
-        ? (isAr ? "متوسط" : "Medium")
-        : (isAr ? "منخفض" : "Low");
-    const statusLabel = (status: RiskItem["status"]) => !isAr
-      ? status
-      : status === "Approved" ? "معتمد" : status === "Active" ? "نشط" : "قيد المراجعة";
-
-    rows.forEach((item, rowIndex) => {
-      const y = 190 + headerH + rowIndex * rowH;
-      svg += `<rect x="${tableX}" y="${y}" width="${tableW}" height="${rowH}" fill="${rowIndex % 2 ? "#f8fafc" : "#ffffff"}" stroke="#cbd5e1" stroke-width="2"/>`;
-      let cx = tableX;
-      const cells = [
-        wrap(item.refNo, 15),
-        [...wrap(item.activity, 26), ...wrap(item.hazard, 30).slice(0, 2)],
-        [...wrap(item.location, 22), ...wrap(item.department, 22).slice(0, 2)],
-        [`${item.initialRiskScore} - ${riskLabel(item.initialRiskScore)}`, `L${item.initialLikelihood} × S${item.initialSeverity}`],
-        [`${item.residualRiskScore} - ${riskLabel(item.residualRiskScore)}`, `L${item.residualLikelihood} × S${item.residualSeverity}`],
-        [statusLabel(item.status), item.reviewDate],
-      ];
-      cells.forEach((lines, i) => {
-        const max = i === 1 || i === 2 ? 22 : 30;
-        const visible = lines.slice(0, i === 1 || i === 2 ? 4 : 3);
-        const fontSize = i === 1 || i === 2 ? 18 : 20;
-        const startY = y + 48;
-        svg += multiText(cx + 18, startY, visible, fontSize, i === 0 ? 800 : 500);
-        if (i > 0) svg += `<line x1="${cx}" y1="${y}" x2="${cx}" y2="${y + rowH}" stroke="#cbd5e1" stroke-width="2"/>`;
-        cx += colWidths[i];
-      });
-    });
-
-    svg += `${textBlock(width/2, height - 40, isAr ? `إجمالي السجلات: ${rows.length}` : `Total records: ${rows.length}`, 18, 600, "middle")}</svg>`;
-
-    const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(svgBlob);
-    const img = new Image();
-
-    img.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) throw new Error("Canvas unavailable");
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-        URL.revokeObjectURL(url);
-        const png = canvas.toDataURL("image/png");
-        popup.document.open();
-        popup.document.write(`<!doctype html><html><head><title>${xml(title)}</title><style>@page{size:A4 landscape;margin:8mm}html,body{margin:0;background:#fff}body{margin:0;padding:0;background:#fff;text-align:center}img{display:block;width:100%;height:auto;margin:0 auto}</style></head><body><img src="${png}" alt="${xml(title)}"></body></html>`);
-        popup.document.close();
-        setTimeout(() => { popup.focus(); popup.print(); }, 400);
-      } catch {
-        URL.revokeObjectURL(url);
-        popup.close();
-        toast({ title: isAr ? "تعذر تجهيز صورة الجدول" : "Unable to prepare table image", variant: "destructive" });
-      }
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      popup.close();
-      toast({ title: isAr ? "تعذر إنشاء صورة الجدول" : "Unable to create table image", variant: "destructive" });
-    };
-
-    img.src = url;
-  };
-
-'''
-          new_s = s[:start] + replacement + s[end:]
-          p.write_text(new_s, encoding='utf-8')
-          PY
-      - name: Verify patched handler
+      - name: Apply patch
+        run: python scripts/fix-risk-table-print.py
+      - name: Verify
         run: |
           python - <<'PY'
           from pathlib import Path
           s = Path('src/pages/admin/risk-assessment.tsx').read_text(encoding='utf-8')
-          assert 'foreignObject' not in s, 'foreignObject implementation still present'
+          assert 'foreignObject' not in s
           assert 'window.open("", "_blank", "width=1200,height=900")' in s
           assert 'canvas.toDataURL("image/png")' in s
-          assert 'const handlePrintRiskTableAsImage' in s
-          print('Risk table image printing patched successfully')
+          print('Risk image print handler verified')
           PY
       - name: Build
         run: |
           npm ci
           npm run build
-      - name: Commit patch and remove workflow
+      - name: Commit repair and cleanup
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/pages/admin/risk-assessment.tsx
-          git commit -m 'fix: make risk table image printing reliable'
+          git commit -m 'fix: repair risk table image printing'
           git push
-          git rm .github/workflows/fix-risk-table-image-print.yml
-          git commit -m 'chore: remove temporary risk print workflow'
+          git rm .github/workflows/fix-risk-table-image-print.yml scripts/fix-risk-table-print.py
+          git commit -m 'chore: remove temporary risk print repair'
           git push
