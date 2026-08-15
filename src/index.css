@@ -148,10 +148,9 @@
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
   @page { size: A4 portrait; margin: 8mm; }
   body { background: #fff !important; color: #111827 !important; font-size: 12pt !important; }
-  aside, [data-testid="admin-sidebar"], nav, header, button, .print\:hidden, .no-print { display: none !important; }
+  aside, [data-testid="admin-sidebar"], nav, .admin-top-header, button, .print\:hidden, .no-print { display: none !important; }
   main { margin: 0 !important; padding: 0 !important; max-width: 100% !important; width: 100% !important; }
 
-  /* Print the actual IncidentPyramid DOM. Do NOT hide #root or its wrapper. */
   .incident-pyramid-container {
     display: block !important;
     visibility: visible !important;
@@ -174,7 +173,6 @@
   .incident-pyramid-grid > div { visibility: visible !important; opacity: 1 !important; }
   .incident-pyramid-grid .h-8, .incident-pyramid-grid .sm\:h-9 { visibility: visible !important; opacity: 1 !important; }
 
-  /* Keep the colored CSS bars visible when printing */
   .incident-pyramid-container [class*="bg-red-600"],
   .incident-pyramid-container [class*="bg-rose-500"],
   .incident-pyramid-container [class*="bg-orange-500"],
@@ -195,7 +193,6 @@
     page-break-inside: avoid !important;
   }
 
-  /* Only suppress open dialog backdrop; never suppress the entire #root. */
   body:has([role="dialog"][data-state="open"]) [data-radix-focus-guard],
   body:has([role="dialog"][data-state="open"]) [data-aria-hidden="true"],
   body:has([role="dialog"][data-state="open"]) [data-radix-portal] > div > div:first-child { display: none !important; }
