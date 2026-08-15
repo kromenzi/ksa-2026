@@ -15,7 +15,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply native pyramid print handler
+      - name: Apply visual pyramid print handler
         shell: bash
         run: |
           python3 - <<'PY'
@@ -25,20 +25,44 @@ jobs:
           snippet = Path("scripts/pyramid-print-handler.txt").read_text(encoding="utf-8")
           text = page.read_text(encoding="utf-8")
 
-          if "SAFETY_PYRAMID_NATIVE_PRINT_V3" in text:
-              print("Native pyramid print V3 already installed")
-              raise SystemExit(0)
+          if "VISUAL_PYRAMID_DIRECT_PRINT_V4" not in text:
+              start_marker = "  const handlePrint = () => {"
+              end_marker = "  const exportCSV = () => {"
+              start = text.find(start_marker)
+              end = text.find(end_marker, start)
+              if start < 0 or end < 0 or end <= start:
+                  raise SystemExit("Could not locate safety pyramid handlePrint block")
+              text = text[:start] + snippet + "\n" + text[end:]
+              page.write_text(text, encoding="utf-8")
+              print("Installed visual pyramid direct print V4")
+          else:
+              print("Visual pyramid direct print V4 already installed")
+          PY
 
-          start_marker = "  const handlePrint = () => {"
-          end_marker = "  const exportCSV = () => {"
-          start = text.find(start_marker)
-          end = text.find(end_marker, start)
-          if start < 0 or end < 0 or end <= start:
-              raise SystemExit("Could not locate safety pyramid handlePrint block")
+      - name: Apply login language fix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
 
-          text = text[:start] + snippet + "\n" + text[end:]
-          page.write_text(text, encoding="utf-8")
-          print("Installed native visual Safety Pyramid print handler")
+          page = Path("src/pages/admin/login.tsx")
+          text = page.read_text(encoding="utf-8")
+          text = text.replace(
+              'const { login, logout, isAuthenticated, settings, updateSettings } = useData();',
+              'const { login, logout, isAuthenticated, settings, toggleLanguage, updateSettings } = useData();'
+          )
+          text, count = re.subn(
+              r'\n  const toggleLanguage = \(\) => void updateSettings\(\{ language: settings\.language === "en" \? "ar" : "en" \}\);',
+              '',
+              text,
+              count=1,
+          )
+          if count:
+              page.write_text(text, encoding="utf-8")
+              print("Rewired login language toggle to local DataProvider toggle")
+          else:
+              print("Login language toggle already rewired or pattern absent")
           PY
 
       - name: Commit source patch
@@ -46,10 +70,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/pages/admin/safety-pyramid.tsx
+          git add src/pages/admin/safety-pyramid.tsx src/pages/admin/login.tsx
           if git diff --cached --quiet; then
             echo "No source changes"
             exit 0
           fi
-          git commit -m "fix: print actual safety pyramid shape"
+          git commit -m "fix: make login language and pyramid print work"
           git push
