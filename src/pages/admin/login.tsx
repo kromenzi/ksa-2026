@@ -42,7 +42,7 @@ async function readError(res: Response) {
 }
 
 async function checkPassword(password: string) {
-  const res = await apiRequest("POST", "/api/auth/password-check", { password });
+  const res = await apiRequest("POST", "/api/auth/login?action=password-check", { password });
   const data = await res.json();
   if (!data?.allowed) {
     throw new Error(data?.message || "Password is not allowed");
@@ -92,7 +92,7 @@ export default function AdminLogin() {
     setIsSignupLoading(true);
     try {
       await checkPassword(values.password);
-      const res = await fetch("/api/auth/signup", {
+      const res = await fetch("/api/auth/login?action=signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -111,7 +111,7 @@ export default function AdminLogin() {
   async function onReset(values: z.infer<typeof resetSchema>) {
     setIsResetLoading(true);
     try {
-      const res = await fetch("/api/auth/reset-password", {
+      const res = await fetch("/api/auth/login?action=reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -131,7 +131,7 @@ export default function AdminLogin() {
     setIsChangeLoading(true);
     try {
       await checkPassword(values.password);
-      const res = await fetch("/api/auth/update-password", {
+      const res = await fetch("/api/auth/login?action=change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
