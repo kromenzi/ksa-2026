@@ -3,7 +3,14 @@
   overflow-x: hidden;
   scrollbar-gutter: stable;
   padding-inline: 0.15rem;
+  display: flex;
+  flex-direction: column;
 }
+
+/* Keep Overview as the first navigation group, ahead of ESP Safety Vision. */
+.sidebar-glass .sidebar-scroll > div:first-child { order: 2; }
+.sidebar-glass .sidebar-scroll > div:nth-child(2) { order: 1; }
+.sidebar-glass .sidebar-scroll > div:nth-child(n+3) { order: 3; }
 
 .sidebar-glass .sidebar-scroll > div {
   margin-block-end: 0.5rem;
