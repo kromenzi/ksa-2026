@@ -1,0 +1,87 @@
+name: Force Direct Incident Pyramid Print
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-print:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch pyramid print handler
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path("src/pages/admin/safety-pyramid.tsx")
+          s = p.read_text(encoding="utf-8")
+          old = '''  const print = () => {\n    logActivity("Print Incident Pyramid", `Printed ${monthName} ${selectedYear} Monthly vs YTD`, "reports");\n    window.print();\n  };'''
+          new = r'''  const print = () => {
+    const popup = window.open("", "incident-pyramid-print", "width=1200,height=900,noopener,noreferrer");
+    if (!popup) {
+      toast.error(isAr ? "يرجى السماح بالنوافذ المنبثقة للطباعة" : "Please allow pop-ups to print the report");
+      return;
+    }
+
+    const esc = (value: unknown) => String(value).replace(/[&<>\"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '\"': "&quot;", "'": "&#39;" }[ch] || ch));
+    const colors = ["#b91c1c", "#ef4444", "#f97316", "#f59e0b", "#facc15", "#34d399", "#059669"];
+
+    const renderColumn = (data: Record<LevelId, number>, title: string, totalValue: number) => LEVELS.map((level, i) => {
+      if (!enabled[level.id]) return "";
+      const width = 24 + i * 12;
+      return `<div class="row"><div class="bar" style="width:${width}%;background:${colors[i]}"><span>${esc(isAr ? level.ar : level.en)}</span><b>${data[level.id]}</b></div></div>`;
+    }).join("") + `<div class="total">${esc(totalValue)} ${esc(isAr ? "إجمالي السجلات" : "total records")}</div>`;
+
+    popup.document.open();
+    popup.document.write(`<!doctype html><html lang="${isAr ? "ar" : "en"}" dir="${isAr ? "rtl" : "ltr"}><head><meta charset="utf-8"><title>Incident Pyramid - ${esc(selectedYear)}</title><style>
+      @page{size:A4 landscape;margin:10mm}
+      *{box-sizing:border-box}
+      html,body{margin:0;padding:0;background:#fff;color:#111827;font-family:Arial,Segoe UI,sans-serif}
+      body{padding:12mm}
+      .toolbar{display:flex;justify-content:flex-end;margin-bottom:8mm}
+      button{border:0;border-radius:8px;background:#1d4ed8;color:#fff;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer}
+      .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #dc2626;padding-bottom:8mm;margin-bottom:8mm}
+      .header h1{margin:0;font-size:25px}.header p{margin:4px 0 0;color:#64748b;font-size:11px}
+      .meta{text-align:right;font-size:10px;color:#475569}
+      .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm;margin-bottom:7mm}
+      .kpi{border:1px solid #cbd5e1;border-radius:8px;padding:4mm;text-align:center}.kpi b{display:block;font-size:22px}.kpi span{display:block;margin-top:1mm;color:#64748b;font-size:10px}
+      .columns{display:grid;grid-template-columns:1fr 1fr;gap:6mm}
+      .card{border:1px solid #cbd5e1;border-radius:8px;padding:5mm}.card h2{text-align:center;margin:0;font-size:15px;color:#1e3a8a}.card p{text-align:center;margin:2mm 0 4mm;color:#64748b;font-size:10px}
+      .row{height:11mm;display:flex;align-items:center;justify-content:center}.bar{height:9mm;border-radius:4px;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 3mm;font-size:10px;font-weight:700;print-color-adjust:exact;-webkit-print-color-adjust:exact}.bar b{font-size:12px}.total{text-align:center;border-top:1px solid #cbd5e1;margin-top:3mm;padding-top:3mm;color:#475569;font-size:10px;font-weight:700}
+      .footer{margin-top:7mm;padding-top:3mm;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;color:#64748b;font-size:8px}
+      @media print{.toolbar{display:none}body{padding:0}.card{break-inside:avoid}}
+    </style></head><body>
+      <div class="toolbar"><button onclick="window.print()">${esc(isAr ? "طباعة التقرير" : "Print Report")}</button></div>
+      <div class="header"><div><h1>${esc(isAr ? `هرم الحوادث - ${selectedYear}` : `Incident Pyramid - ${selectedYear}`)}</h1><p>${esc(isAr ? `مقارنة ${monthName} مع التراكمي ${selectedYear}` : `Monthly ${monthName} vs YTD ${selectedYear}`)}</p></div><div class="meta">HSE-PYRAMID-01<br>${esc(new Date().toLocaleDateString(isAr ? "ar-SA" : "en-US"))}</div></div>
+      <div class="kpis"><div class="kpi"><b>${monthTotal}</b><span>${esc(isAr ? `إجمالي ${monthName}` : `Total ${monthName}`)}</span></div><div class="kpi"><b>${counts.monthly.nearMiss}</b><span>${esc(isAr ? "الوقائع الوشيكة" : "Near Misses")}</span></div><div class="kpi"><b>${counts.monthly.unsafeActs}</b><span>${esc(isAr ? "السلوكيات والظروف غير الآمنة" : "At-Risk / Unsafe")}</span></div></div>
+      <div class="columns"><section class="card"><h2>Monthly • ${esc(monthName)}</h2><p>${esc(isAr ? "المستويات والأعداد الشهرية" : "Monthly levels and counts")}</p>${renderColumn(counts.monthly, `Monthly • ${monthName}`, monthTotal)}</section><section class="card"><h2>YTD • ${esc(selectedYear)}</h2><p>${esc(isAr ? "المستويات والأعداد التراكمية" : "Year-to-date levels and counts")}</p>${renderColumn(counts.ytd, `YTD • ${selectedYear}`, ytdTotal)}</section></div>
+      <div class="footer"><span>ABDULKAREM SAFETY BOARD</span><span>Incident Pyramid Report</span></div>
+      <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),350));</script>
+    </body></html>`);
+    popup.document.close();
+    logActivity("Print Incident Pyramid", `Printed ${monthName} ${selectedYear} Monthly vs YTD`, "reports");
+  };'''
+          if old in s:
+              s = s.replace(old, new, 1)
+              p.write_text(s, encoding="utf-8")
+          else:
+              print("Print handler already patched or source changed; no replacement made.")
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/admin/safety-pyramid.tsx
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "fix: print incident pyramid from isolated html"
+            git push
+          fi
