@@ -62,11 +62,24 @@ export async function getAuthUser(req: any) {
 
 export async function getProfile(req: any) {
   const user = await getAuthUser(req);
-  if (!user?.id || !url || !anonKey) return null;
+  if (!user?.id || !url) return null;
+
+  // Server-side profile lookup uses the service role when available. This avoids
+  // permission/RLS ambiguity for protected API routes while keeping the key server-only.
   const token = getAccessToken(req);
-  const response = await fetch(`${url}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(user.id))}&select=id,name,role,is_active,joined_at`, {
-    headers: { apikey: anonKey, Authorization: token ? `Bearer ${token}` : `Bearer ${anonKey}`, "Content-Type": "application/json" },
-  });
+  const lookupKey = serviceKey || anonKey;
+  if (!lookupKey) return null;
+
+  const response = await fetch(
+    `${url}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(user.id))}&select=id,name,role,is_active,joined_at&limit=1`,
+    {
+      headers: {
+        apikey: lookupKey,
+        Authorization: `Bearer ${serviceKey || token || anonKey}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
   if (!response.ok) return null;
   const rows = await response.json();
   return rows[0] || null;
