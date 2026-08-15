@@ -417,7 +417,19 @@ export function IncidentPyramid({
   const rightSubtitle = `USSG YTD-${selectedYear}`;
 
   const handlePrintPyramid = () => {
-    window.print();
+    const levels = PYRAMID_LEVEL_DEFS.map((lvl) => ({ id: lvl.id, nameEn: lvl.nameEn, nameAr: lvl.nameAr, order: lvl.order }));
+    const counts = PYRAMID_LEVEL_DEFS.map((lvl) => ({ id: lvl.id, monthly: monthlyCounts[lvl.id] || 0, ytd: ytdCounts[lvl.id] || 0 }));
+    const params = new URLSearchParams({
+      lang: isAr ? "ar" : "en",
+      month: monthNameText,
+      year: String(selectedYear),
+      levels: JSON.stringify(levels),
+      counts: JSON.stringify(counts),
+      incidents: String(totalMonthlyIncidents),
+      nearMisses: String(monthlyCounts.nearMiss || 0),
+      observations: String(monthlyCounts.unsafeActs || 0),
+    });
+    window.open(`/admin/safety-pyramid-print?${params.toString()}`, "_blank", "noopener,noreferrer");
   };
 
   // Helper to retrieve records for modal detail view

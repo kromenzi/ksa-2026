@@ -140,6 +140,22 @@ export default function SafetyPyramidPage() {
   };
 
   const print = () => { logActivity("Print Incident Pyramid", `Printed ${monthName} ${selectedYear} Monthly vs YTD`, "reports"); window.print(); };
+  const printVisualPyramid = () => {
+    const levels = LEVELS.map((l, i) => ({ id: l.id, nameEn: l.en, nameAr: l.ar, order: i + 1 }));
+    const countsParam = LEVELS.map((l) => ({ id: l.id, monthly: counts.monthly[l.id], ytd: counts.ytd[l.id] }));
+    const params = new URLSearchParams({
+      lang: isAr ? "ar" : "en",
+      month: monthName,
+      year: String(selectedYear),
+      levels: JSON.stringify(levels),
+      counts: JSON.stringify(countsParam),
+      incidents: String(counts.monthly.fatality + counts.monthly.lostTime + counts.monthly.restrictedWork + counts.monthly.medicalTreatment + counts.monthly.firstAid),
+      nearMisses: String(counts.monthly.nearMiss),
+      observations: String(counts.monthly.unsafeActs),
+    });
+    logActivity("Print Incident Pyramid Visual", `Opened ${monthName} ${selectedYear} Monthly vs YTD visual pyramid`, "reports");
+    window.open(`/admin/safety-pyramid-print?${params.toString()}`, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className="space-y-6" dir={isAr ? "rtl" : "ltr"}>
@@ -153,7 +169,7 @@ export default function SafetyPyramidPage() {
           <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} className="h-9 border rounded-xl px-2 bg-background text-sm"><option value={2026}>2026</option><option value={2025}>2025</option></select>
           <Button variant="outline" onClick={() => setSettingsOpen(true)} className="rounded-xl gap-2"><Settings className="h-4 w-4" />{isAr ? "الإعدادات" : "Settings"}</Button>
           <Button variant="outline" onClick={exportCSV} className="rounded-xl gap-2"><Download className="h-4 w-4" />CSV</Button>
-          <Button onClick={print} className="rounded-xl gap-2 bg-red-600 hover:bg-red-700 text-white"><Printer className="h-4 w-4" />{isAr ? "طباعة" : "Print / PDF"}</Button>
+          <Button variant="outline" onClick={print} className="rounded-xl gap-2"><Printer className="h-4 w-4" />{isAr ? "طباعة تقرير" : "Print Report"}</Button><Button onClick={printVisualPyramid} className="rounded-xl gap-2 bg-red-600 hover:bg-red-700 text-white"><Printer className="h-4 w-4" />{isAr ? "طباعة الهرم" : "Print Pyramid"}</Button>
         </div>
       </div>
 
