@@ -39,12 +39,10 @@ jobs:
 '''
           text = text[:start] + block + text[end:]
 
-          # Remove an older conditional print sheet and insert a permanent one before main header.
           old_start = text.find('    <div style={{display: isNativePrinting ? "block" : "none"}}')
           if old_start < 0:
-              old_start = text.find('    <div className="print-pyramid-sheet"')
+              old_start = text.find('    <div className="pyramid-print-sheet"')
           if old_start >= 0:
-              # find the closing div immediately followed by Header comment
               header = text.find('      {/* Header */}', old_start)
               if header > 0:
                   text = text[:old_start] + text[header:]
@@ -99,62 +97,10 @@ jobs:
           page.write_text(text, encoding='utf-8')
           PY
 
-      - name: Add print CSS
+      - name: Add print CSS marker
         shell: bash
         run: |
-          cat >> src/index.css <<'CSS'
-
-/* Deterministic Safety Pyramid print sheet */
-.pyramid-print-sheet { display: none; }
-
-@media print {
-  @page { size: A4 portrait; margin: 8mm; }
-  html, body { background: #fff !important; }
-  body { color: #111827 !important; }
-  body > * { background: #fff !important; }
-  .pyramid-print-sheet {
-    display: block !important;
-    position: static !important;
-    width: 100% !important;
-    min-height: 0 !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    overflow: visible !important;
-    background: #fff !important;
-    color: #111827 !important;
-    page-break-inside: avoid !important;
-  }
-  .pyramid-print-page {
-    width: 100% !important;
-    max-width: 794px !important;
-    margin: 0 auto !important;
-    background: #fff !important;
-    color: #111827 !important;
-  }
-  .pyramid-print-header {
-    display: flex !important;
-    justify-content: space-between !important;
-    gap: 20px !important;
-    align-items: flex-start !important;
-    border-bottom: 4px solid #dc2626 !important;
-    padding-bottom: 10px !important;
-    margin-bottom: 12px !important;
-  }
-  .pyramid-print-header h1 { margin: 0 !important; font-size: 24px !important; font-weight: 800 !important; color: #111827 !important; }
-  .pyramid-print-header p { margin: 4px 0 0 !important; font-size: 12px !important; color: #64748b !important; }
-  .pyramid-print-meta { font-size: 10px !important; color: #475569 !important; text-align: right !important; white-space: nowrap !important; }
-  .pyramid-print-kpis { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 8px !important; margin-bottom: 12px !important; }
-  .pyramid-print-kpis > div { border: 1px solid #cbd5e1 !important; border-radius: 7px !important; padding: 8px !important; text-align: center !important; background: #f8fafc !important; }
-  .pyramid-print-kpis strong { display: block !important; font-size: 20px !important; color: #111827 !important; }
-  .pyramid-print-kpis span { display: block !important; margin-top: 2px !important; font-size: 9px !important; color: #64748b !important; }
-  .pyramid-print-graphic { display: block !important; width: 100% !important; text-align: center !important; }
-  .pyramid-print-graphic svg { display: block !important; width: 100% !important; max-width: 760px !important; height: auto !important; margin: 0 auto !important; visibility: visible !important; opacity: 1 !important; }
-  .pyramid-print-graphic svg * { visibility: visible !important; opacity: 1 !important; }
-  .pyramid-print-footer { display: flex !important; justify-content: space-between !important; gap: 12px !important; margin-top: 8px !important; padding-top: 6px !important; border-top: 1px solid #cbd5e1 !important; color: #64748b !important; font-size: 8px !important; }
-  body > div#root > div:not(.pyramid-print-sheet) { display: none !important; }
-  .pyramid-print-sheet * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-}
-CSS
+          printf '\n/* pyramid print v6 */\n' >> src/index.css
 
       - name: Commit print patch
         run: |
