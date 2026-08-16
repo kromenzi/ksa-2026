@@ -233,3 +233,87 @@ table tbody tr td:last-child button:focus-visible {
   outline: 2px solid #fbbf24;
   outline-offset: 2px;
 }
+
+/* Equipment Authorization group button: never clip the Arabic label. */
+.sidebar-glass .sidebar-scroll button.group {
+  min-height: 2.9rem !important;
+  height: auto !important;
+  width: calc(100% - 0.5rem) !important;
+  margin-inline: 0.25rem !important;
+  padding-block: 0.62rem !important;
+  padding-inline: 0.7rem !important;
+  align-items: center !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+.sidebar-glass .sidebar-scroll button.group > span {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  display: block !important;
+  max-width: none !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+  line-height: 1.55 !important;
+  text-align: start !important;
+}
+
+[dir="rtl"] .sidebar-glass .sidebar-scroll button.group > span {
+  font-family: Tahoma, "Segoe UI", Arial, sans-serif !important;
+  font-size: 0.82rem !important;
+  line-height: 1.7 !important;
+}
+
+.sidebar-glass .sidebar-scroll button.group > div:has(> svg) {
+  flex: 0 0 2rem !important;
+  min-width: 2rem !important;
+  min-height: 2rem !important;
+}
+
+.sidebar-glass .sidebar-scroll button.group > svg:last-child {
+  flex: 0 0 auto !important;
+  margin-inline-start: 0.2rem !important;
+}
+
+/* Dashboard incident-pyramid side numbers: high contrast in dark and light themes. */
+.incident-pyramid-container [class*="absolute right-0"] > span {
+  color: hsl(var(--foreground)) !important;
+  background: hsl(var(--background) / 0.82);
+  border: 1px solid hsl(var(--border) / 0.7);
+  border-radius: 0.4rem;
+  min-width: 2rem;
+  min-height: 1.65rem;
+  padding-inline: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900 !important;
+  text-shadow: none !important;
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.08);
+}
+
+.dark .incident-pyramid-container [class*="absolute right-0"] > span {
+  color: #f8fafc !important;
+  background: rgba(15, 23, 42, 0.92) !important;
+  border-color: rgba(148, 163, 184, 0.55) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+[dir="rtl"] .incident-pyramid-container [class*="absolute right-0"] {
+  right: auto;
+  left: 0;
+}
+
+@media (max-width: 767px) {
+  .sidebar-glass .sidebar-scroll button.group {
+    min-height: 3.2rem !important;
+    padding-block: 0.7rem !important;
+  }
+  [dir="rtl"] .sidebar-glass .sidebar-scroll button.group > span {
+    font-size: 0.84rem !important;
+    line-height: 1.75 !important;
+  }
+}
