@@ -59,7 +59,7 @@
 .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] > span {
   min-width: 0;
   flex: 1 1 auto;
-  color: hsl(var(--foreground));
+  color: inherit;
   text-align: inherit;
   white-space: normal;
   overflow: visible;
@@ -84,14 +84,38 @@
   box-shadow: inset -3px 0 0 hsl(var(--primary)), 0 6px 18px hsl(var(--primary) / 0.08);
 }
 
-/* Theme-aware icon visibility */
+/* High-contrast theme-aware sidebar icons.
+   Do not force muted-foreground here: navigation items already carry their
+   semantic Tailwind text-* color and Lucide icons should inherit it. */
 .sidebar-glass .sidebar-scroll svg {
-  color: hsl(var(--muted-foreground));
+  color: inherit !important;
+  opacity: 1 !important;
+  stroke-width: 2.15;
+  flex-shrink: 0;
 }
 
 .sidebar-glass .sidebar-scroll a:hover svg,
 .sidebar-glass .sidebar-scroll [class*="group/header"]:hover svg {
-  color: hsl(var(--foreground));
+  opacity: 1 !important;
+}
+
+/* Make icon containers visible on both themes without changing the item's semantic color. */
+.sidebar-glass .sidebar-scroll > div > a > div > div:has(> svg),
+.sidebar-glass .sidebar-scroll > div > div[class*="group/header"] > div:has(> svg) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  border-radius: 0.65rem;
+  background: hsl(var(--background) / 0.55);
+  border: 1px solid hsl(var(--border) / 0.55);
+}
+
+.sidebar-glass .sidebar-scroll > div > a > div:hover > div:has(> svg),
+.sidebar-glass .sidebar-scroll > div > div[class*="group/header"]:hover > div:has(> svg) {
+  background: hsl(var(--background) / 0.85);
+  border-color: hsl(var(--primary) / 0.35);
 }
 
 /* Nested/submenu entries */
@@ -106,6 +130,12 @@
   border: 1px solid hsl(var(--border) / 0.55);
   background: hsl(var(--background) / 0.22);
   color: hsl(var(--foreground));
+}
+
+.sidebar-glass .sidebar-scroll > div > div[class*="group/content"] svg {
+  color: inherit !important;
+  opacity: 1 !important;
+  stroke-width: 2.15;
 }
 
 /* If the existing group component uses data-state for collapse, keep animations smooth. */
