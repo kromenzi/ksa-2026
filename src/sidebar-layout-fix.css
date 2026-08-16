@@ -16,6 +16,7 @@
 /* Shared group-card styling */
 .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] {
   min-height: 2.9rem;
+  height: auto !important;
   margin-inline: 0.2rem;
   margin-block-end: 0.35rem;
   padding: 0.72rem 0.9rem;
@@ -26,6 +27,7 @@
   line-height: 1.5;
   align-items: center;
   cursor: pointer;
+  overflow: visible !important;
   transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
@@ -37,6 +39,7 @@
 /* All leaf navigation buttons use theme tokens instead of hard-coded white text. */
 .sidebar-glass .sidebar-scroll > div > a > div {
   min-height: 2.9rem;
+  height: auto !important;
   margin-inline: 0.2rem;
   margin-block-end: 0.35rem;
   padding: 0.72rem 0.9rem;
@@ -46,6 +49,7 @@
   color: hsl(var(--foreground));
   line-height: 1.5;
   align-items: center;
+  overflow: visible !important;
   transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
@@ -58,13 +62,14 @@
 .sidebar-glass .sidebar-scroll > div > a > div > span,
 .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] > span {
   min-width: 0;
+  max-width: none !important;
   flex: 1 1 auto;
   color: inherit;
   text-align: inherit;
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  word-break: keep-all;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: normal;
   overflow-wrap: anywhere;
   line-height: 1.65;
   letter-spacing: 0;
@@ -73,6 +78,7 @@
 .sidebar-glass .sidebar-scroll > div > a > div > div,
 .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] > div {
   flex: 0 0 auto;
+  flex-shrink: 0;
 }
 
 /* Active/current item */
@@ -84,9 +90,7 @@
   box-shadow: inset -3px 0 0 hsl(var(--primary)), 0 6px 18px hsl(var(--primary) / 0.08);
 }
 
-/* High-contrast theme-aware sidebar icons.
-   Do not force muted-foreground here: navigation items already carry their
-   semantic Tailwind text-* color and Lucide icons should inherit it. */
+/* High-contrast theme-aware sidebar icons. */
 .sidebar-glass .sidebar-scroll svg {
   color: inherit !important;
   opacity: 1 !important;
@@ -107,6 +111,7 @@
   justify-content: center;
   min-width: 2rem;
   min-height: 2rem;
+  flex-shrink: 0;
   border-radius: 0.65rem;
   background: hsl(var(--background) / 0.55);
   border: 1px solid hsl(var(--border) / 0.55);
@@ -122,6 +127,7 @@
 .sidebar-glass .sidebar-scroll > div > div[class*="group/content"] a > div,
 .sidebar-glass .sidebar-scroll > div > div[class*="group/content"] > a > div {
   min-height: 2.75rem;
+  height: auto !important;
   margin-inline: 0.5rem;
   margin-block-end: 0.3rem;
   padding-inline: 0.8rem;
@@ -130,6 +136,7 @@
   border: 1px solid hsl(var(--border) / 0.55);
   background: hsl(var(--background) / 0.22);
   color: hsl(var(--foreground));
+  overflow: visible !important;
 }
 
 .sidebar-glass .sidebar-scroll > div > div[class*="group/content"] svg {
@@ -138,9 +145,9 @@
   stroke-width: 2.15;
 }
 
-/* If the existing group component uses data-state for collapse, keep animations smooth. */
-.sidebar-glass .sidebar-scroll > div > div[data-state="closed"],
-.sidebar-glass .sidebar-scroll > div > div[data-state="open"] {
+/* Keep the collapsible content itself clipped, but never clip the header text. */
+.sidebar-glass .sidebar-scroll > div > div[data-state="closed"] [class*="group/content"],
+.sidebar-glass .sidebar-scroll > div > div[data-state="open"] [class*="group/content"] {
   overflow: hidden;
 }
 
@@ -164,6 +171,7 @@
 @media (max-width: 767px) {
   .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] {
     min-height: 3.05rem;
+    height: auto !important;
     margin-inline: 0.25rem;
     margin-block-end: 0.35rem;
     padding-inline: 0.9rem;
@@ -173,6 +181,7 @@
 
   .sidebar-glass .sidebar-scroll > div > a > div {
     min-height: 3.05rem;
+    height: auto !important;
     margin-inline: 0.25rem;
     margin-block-end: 0.38rem;
     padding-inline: 0.9rem;
