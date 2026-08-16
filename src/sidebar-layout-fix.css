@@ -11,20 +11,17 @@
 .sidebar-glass .sidebar-scroll > div:first-child { order: 2; }
 .sidebar-glass .sidebar-scroll > div:nth-child(2) { order: 1; }
 .sidebar-glass .sidebar-scroll > div:nth-child(n+3) { order: 3; }
+.sidebar-glass .sidebar-scroll > div { margin-block-end: 0.5rem; }
 
-.sidebar-glass .sidebar-scroll > div {
-  margin-block-end: 0.5rem;
-}
-
-/* Every group header uses the same visual language as the Equipment Authorization button. */
+/* Shared group-card styling */
 .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] {
   min-height: 2.9rem;
   margin-inline: 0.2rem;
   margin-block-end: 0.35rem;
   padding: 0.72rem 0.9rem;
   border-radius: 0.85rem;
-  border: 1px solid rgba(16, 185, 129, 0.28);
-  background: rgba(6, 78, 59, 0.20);
+  border: 1px solid hsl(var(--border) / 0.7);
+  background: hsl(var(--muted) / 0.45);
   color: hsl(var(--foreground));
   line-height: 1.5;
   align-items: center;
@@ -33,43 +30,36 @@
 }
 
 .sidebar-glass .sidebar-scroll > div > div[class*="group/header"]:hover {
-  background: rgba(6, 95, 70, 0.28);
-  border-color: rgba(16, 185, 129, 0.42);
+  background: hsl(var(--muted) / 0.75);
+  border-color: hsl(var(--primary) / 0.45);
 }
 
-/* All leaf navigation buttons match the same rounded-card shape. */
+/* All leaf navigation buttons use theme tokens instead of hard-coded white text. */
 .sidebar-glass .sidebar-scroll > div > a > div {
   min-height: 2.9rem;
   margin-inline: 0.2rem;
   margin-block-end: 0.35rem;
   padding: 0.72rem 0.9rem;
   border-radius: 0.85rem;
-  border: 1px solid rgba(16, 185, 129, 0.22);
-  background: rgba(6, 78, 59, 0.16);
+  border: 1px solid hsl(var(--border) / 0.65);
+  background: hsl(var(--background) / 0.28);
+  color: hsl(var(--foreground));
   line-height: 1.5;
   align-items: center;
   transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
 .sidebar-glass .sidebar-scroll > div > a > div:hover {
-  background: rgba(6, 95, 70, 0.24);
-  border-color: rgba(16, 185, 129, 0.38);
+  background: hsl(var(--muted) / 0.6);
+  border-color: hsl(var(--primary) / 0.38);
   transform: translateX(-1px);
-}
-
-/* Active/current item: same card shape, stronger teal edge. */
-.sidebar-glass .sidebar-scroll > div > a[aria-current="page"] > div,
-.sidebar-glass .sidebar-scroll > div > a[data-active="true"] > div {
-  background: rgba(6, 78, 59, 0.34);
-  border-color: rgba(16, 185, 129, 0.62);
-  box-shadow: inset -3px 0 0 #10b981, 0 6px 18px rgba(16, 185, 129, 0.08);
 }
 
 .sidebar-glass .sidebar-scroll > div > a > div > span,
 .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] > span {
   min-width: 0;
   flex: 1 1 auto;
-  color: inherit;
+  color: hsl(var(--foreground));
   text-align: inherit;
   white-space: normal;
   overflow: visible;
@@ -85,7 +75,26 @@
   flex: 0 0 auto;
 }
 
-/* Nested/submenu entries keep the same card language with a subtle size step. */
+/* Active/current item */
+.sidebar-glass .sidebar-scroll > div > a[aria-current="page"] > div,
+.sidebar-glass .sidebar-scroll > div > a[data-active="true"] > div {
+  background: hsl(var(--primary) / 0.14);
+  border-color: hsl(var(--primary) / 0.5);
+  color: hsl(var(--foreground));
+  box-shadow: inset -3px 0 0 hsl(var(--primary)), 0 6px 18px hsl(var(--primary) / 0.08);
+}
+
+/* Theme-aware icon visibility */
+.sidebar-glass .sidebar-scroll svg {
+  color: hsl(var(--muted-foreground));
+}
+
+.sidebar-glass .sidebar-scroll a:hover svg,
+.sidebar-glass .sidebar-scroll [class*="group/header"]:hover svg {
+  color: hsl(var(--foreground));
+}
+
+/* Nested/submenu entries */
 .sidebar-glass .sidebar-scroll > div > div[class*="group/content"] a > div,
 .sidebar-glass .sidebar-scroll > div > div[class*="group/content"] > a > div {
   min-height: 2.75rem;
@@ -94,8 +103,9 @@
   padding-inline: 0.8rem;
   padding-block: 0.62rem;
   border-radius: 0.8rem;
-  border: 1px solid rgba(16, 185, 129, 0.18);
-  background: rgba(6, 78, 59, 0.12);
+  border: 1px solid hsl(var(--border) / 0.55);
+  background: hsl(var(--background) / 0.22);
+  color: hsl(var(--foreground));
 }
 
 /* If the existing group component uses data-state for collapse, keep animations smooth. */
@@ -104,13 +114,8 @@
   overflow: hidden;
 }
 
-.sidebar-glass .sidebar-scroll > div > div[data-state="closed"] [class*="group/content"] {
-  display: none;
-}
-
-.sidebar-glass .sidebar-scroll > div > div[data-state="open"] [class*="group/content"] {
-  display: block;
-}
+.sidebar-glass .sidebar-scroll > div > div[data-state="closed"] [class*="group/content"] { display: none; }
+.sidebar-glass .sidebar-scroll > div > div[data-state="open"] [class*="group/content"] { display: block; }
 
 /* RTL Arabic readability. */
 [dir="rtl"] .sidebar-glass .sidebar-scroll > div > a > div,
@@ -153,7 +158,6 @@
 }
 
 /* Print-safe sidebar state styles. */
-/* Trigger CI validation for risk table print repair. */
 
 /* Action icon contrast: visible in both dark and light themes. */
 :root {
