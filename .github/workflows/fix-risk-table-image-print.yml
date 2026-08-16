@@ -1,5 +1,7 @@
 name: Fix Risk Table Image Print
 
+# Trigger repair for the Risk Assessment Matrix 5x5 image-print button.
+
 on:
   push:
     paths:
