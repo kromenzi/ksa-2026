@@ -1,0 +1,34 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: abdulkarem-safety-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  safety-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: abdulkarem-safety-ai
+    restart: unless-stopped
+    environment:
+      LOCAL_AI_PORT: 8787
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+      MAX_AGENT_STEPS: ${MAX_AGENT_STEPS:-10}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    ports:
+      - "8787:8787"
+
+volumes:
+  ollama_data:
