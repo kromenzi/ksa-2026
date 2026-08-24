@@ -28,6 +28,7 @@ import AdminMailConfig from "@/pages/admin/mail-config";
 import AdminNotificationRules from "@/pages/admin/notification-rules";
 import AdminGamification from "@/pages/admin/gamification";
 import AdminEmployees from "@/pages/admin/employees";
+import AdminViolations from "@/pages/admin/violations";
 import AdminTrainings from "@/pages/admin/trainings";
 import AdminTrainingMatrix from "@/pages/admin/training-matrix";
 import AdminCompetency from "@/pages/admin/competency";
@@ -70,11 +71,7 @@ import { useEffect } from "react";
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useData();
   const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    if (!isAuthenticated) setLocation("/admin/login");
-  }, [isAuthenticated, setLocation]);
-
+  useEffect(() => { if (!isAuthenticated) setLocation("/admin/login"); }, [isAuthenticated, setLocation]);
   if (!isAuthenticated) return null;
   return <AdminLayout><Component /></AdminLayout>;
 }
@@ -116,6 +113,7 @@ function Router() {
       <Route path="/admin/notification-rules"><ProtectedRoute component={AdminNotificationRules} /></Route>
       <Route path="/admin/gamification"><ProtectedRoute component={AdminGamification} /></Route>
       <Route path="/admin/employees"><ProtectedRoute component={AdminEmployees} /></Route>
+      <Route path="/admin/violations"><ProtectedRoute component={AdminViolations} /></Route>
       <Route path="/admin/trainings"><ProtectedRoute component={AdminTrainings} /></Route>
       <Route path="/admin/training-matrix"><ProtectedRoute component={AdminTrainingMatrix} /></Route>
       <Route path="/admin/competency"><ProtectedRoute component={AdminCompetency} /></Route>
