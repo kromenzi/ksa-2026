@@ -42,6 +42,8 @@ import AdminEmergency from "@/pages/admin/emergency";
 import AdminEnterpriseReports from "@/pages/admin/enterprise-reports";
 import AdminCompliance from "@/pages/admin/compliance";
 import AdminLicenses from "@/pages/admin/licenses";
+import FacilityRegulatoryLicenses from "@/pages/admin/facility-regulatory-licenses";
+import EnvironmentalMeasurements from "@/pages/admin/environmental-measurements";
 import AdminEquipmentAuth from "@/pages/admin/equipment-auth";
 import AdminSafetyPyramid from "@/pages/admin/safety-pyramid";
 import AdminSafetyPyramidPrint from "@/pages/admin/safety-pyramid-print";
@@ -63,6 +65,7 @@ import AdminSafetySigns from "@/pages/admin/safety-signs";
 
 import { DataProvider, useData } from "@/lib/data-context";
 import { AdminLayout } from "@/components/layouts/admin-layout";
+import EnvironmentalMeasurementsAlert from "@/components/environmental-measurements-alert";
 import PublicReport from "@/pages/public-report";
 import { useEffect } from "react";
 
@@ -75,7 +78,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }, [isAuthenticated, setLocation]);
 
   if (!isAuthenticated) return null;
-  return <AdminLayout><Component /></AdminLayout>;
+  return <AdminLayout><EnvironmentalMeasurementsAlert /><Component /></AdminLayout>;
 }
 
 function AdminRedirect() {
@@ -132,6 +135,8 @@ function Router() {
       <Route path="/admin/enterprise-reports"><ProtectedRoute component={AdminEnterpriseReports} /></Route>
       <Route path="/admin/compliance"><ProtectedRoute component={AdminCompliance} /></Route>
       <Route path="/admin/licenses"><ProtectedRoute component={AdminLicenses} /></Route>
+      <Route path="/admin/facility-regulatory-licenses"><ProtectedRoute component={FacilityRegulatoryLicenses} /></Route>
+      <Route path="/admin/environmental-measurements"><ProtectedRoute component={EnvironmentalMeasurements} /></Route>
       <Route path="/admin/equipment-auth"><ProtectedRoute component={AdminEquipmentAuth} /></Route>
       <Route path="/admin/safety-pyramid"><ProtectedRoute component={AdminSafetyPyramid} /></Route>
       <Route path="/admin/safety-pyramid-print" component={AdminSafetyPyramidPrint} />
