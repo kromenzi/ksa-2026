@@ -66,6 +66,7 @@ import AdminSafetySigns from "@/pages/admin/safety-signs";
 import { DataProvider, useData } from "@/lib/data-context";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import PublicReport from "@/pages/public-report";
+import ViolationsQuickLink from "@/components/violations-quick-link";
 import { useEffect } from "react";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -159,6 +160,7 @@ function App() {
       <DataProvider>
         <Toaster />
         <Router />
+        <ViolationsQuickLink />
       </DataProvider>
     </QueryClientProvider>
   );
