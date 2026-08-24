@@ -1,0 +1,30 @@
+export const SAFETY_AGENT_GRAPH = [
+  { key: 'safety-orchestrator', role: 'Safety Orchestrator', description: 'Coordinates the end-to-end safety workflow.' },
+  { key: 'context-engine', role: 'Context Engine', description: 'Builds context from internal Safety Board records.' },
+  { key: 'safety-agent', role: 'Safety Agent', description: 'Primary safety reasoning and task routing agent.' },
+  { key: 'vision-agent', role: 'Vision Agent', description: 'Processes locally supplied site images/video events.' },
+  { key: 'risk-agent', role: 'Risk Assessment Agent', description: 'Evaluates hazards and risk using internal rules.' },
+  { key: 'incident-agent', role: 'Incident Investigation Agent', description: 'Performs structured incident investigation.' },
+  { key: 'ncr-agent', role: 'NCR Agent', description: 'Creates and follows non-conformance workflows.' },
+  { key: 'training-agent', role: 'Training Agent', description: 'Creates training actions from safety findings.' },
+  { key: 'report-agent', role: 'Report Agent', description: 'Builds reports and management summaries.' },
+  { key: 'approval-loop', role: 'Approval / Review Loop', description: 'Validates outputs before final publishing.' },
+  { key: 'dashboard-agent', role: 'Dashboard Agent', description: 'Publishes approved outputs to the Safety Board.' },
+] as const;
+
+export const SAFETY_AGENT_EDGES = [
+  ['safety-orchestrator', 'context-engine'],
+  ['context-engine', 'safety-agent'],
+  ['safety-agent', 'vision-agent'],
+  ['safety-agent', 'risk-agent'],
+  ['safety-agent', 'incident-agent'],
+  ['safety-agent', 'ncr-agent'],
+  ['safety-agent', 'training-agent'],
+  ['vision-agent', 'risk-agent'],
+  ['incident-agent', 'ncr-agent'],
+  ['risk-agent', 'report-agent'],
+  ['ncr-agent', 'report-agent'],
+  ['training-agent', 'report-agent'],
+  ['report-agent', 'approval-loop'],
+  ['approval-loop', 'dashboard-agent'],
+] as const;
