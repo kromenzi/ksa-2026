@@ -4,20 +4,40 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { History, Calendar, User, Activity, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function AdminActivityLogs() {
-  const { settings, activityLogs, logActivity } = useData();
+  const { settings, activityLogs, logActivity, currentUser, isAuthenticated, isLoading } = useData();
   const isAr = settings.language === "ar";
 
   useEffect(() => {
-    logActivity(
-      isAr ? "فتح سجل النشاط" : "Viewed Activity Log",
-      isAr ? "تم فتح صفحة سجل النشاط لتتبع نشاطات المستخدمين" : "Activity log page opened",
-      "activity"
-    );
-    // Log once per mounted page.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // Do not attempt to write before /api/auth/me has resolved.
+    // Previously this ran once on mount, often before currentUser existed,
+    // causing the POST to fail with 401 and leaving the log empty forever.
+    if (isLoading || !isAuthenticated || !currentUser) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        await logActivity(
+          isAr ? "فتح سجل النشاط" : "Viewed Activity Log",
+          isAr ? "تم فتح صفحة سجل النشاط لتتبع نشاطات المستخدمين" : "Activity log page opened",
+          "activity"
+        );
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(
+            isAr ? "تعذر تسجيل النشاط. تحقق من الجلسة والصلاحيات." : "Unable to record activity. Check session and permissions."
+          );
+          console.error("Activity log write failed", error);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, isAuthenticated, currentUser, isAr, logActivity]);
 
   const sortedLogs = useMemo(
     () => [...activityLogs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
