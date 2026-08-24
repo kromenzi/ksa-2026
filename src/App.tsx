@@ -28,6 +28,7 @@ import AdminMailConfig from "@/pages/admin/mail-config";
 import AdminNotificationRules from "@/pages/admin/notification-rules";
 import AdminGamification from "@/pages/admin/gamification";
 import AdminEmployees from "@/pages/admin/employees";
+import AdminViolations from "@/pages/admin/violations";
 import AdminTrainings from "@/pages/admin/trainings";
 import AdminTrainingMatrix from "@/pages/admin/training-matrix";
 import AdminCompetency from "@/pages/admin/competency";
@@ -45,6 +46,7 @@ import AdminLicenses from "@/pages/admin/licenses";
 import AdminEquipmentAuth from "@/pages/admin/equipment-auth";
 import AdminSafetyPyramid from "@/pages/admin/safety-pyramid";
 import AdminSafetyPyramidPrint from "@/pages/admin/safety-pyramid-print";
+import AdminAIEngine from "@/pages/admin/ai-engine";
 import EscalationDashboard from "@/pages/admin/escalations/dashboard";
 import EscalationHistory from "@/pages/admin/escalations/history";
 import EscalationMatrix from "@/pages/admin/escalations/matrix";
@@ -64,16 +66,13 @@ import AdminSafetySigns from "@/pages/admin/safety-signs";
 import { DataProvider, useData } from "@/lib/data-context";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import PublicReport from "@/pages/public-report";
+import ViolationsQuickLink from "@/components/violations-quick-link";
 import { useEffect } from "react";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useData();
   const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    if (!isAuthenticated) setLocation("/admin/login");
-  }, [isAuthenticated, setLocation]);
-
+  useEffect(() => { if (!isAuthenticated) setLocation("/admin/login"); }, [isAuthenticated, setLocation]);
   if (!isAuthenticated) return null;
   return <AdminLayout><Component /></AdminLayout>;
 }
@@ -115,6 +114,7 @@ function Router() {
       <Route path="/admin/notification-rules"><ProtectedRoute component={AdminNotificationRules} /></Route>
       <Route path="/admin/gamification"><ProtectedRoute component={AdminGamification} /></Route>
       <Route path="/admin/employees"><ProtectedRoute component={AdminEmployees} /></Route>
+      <Route path="/admin/violations"><ProtectedRoute component={AdminViolations} /></Route>
       <Route path="/admin/trainings"><ProtectedRoute component={AdminTrainings} /></Route>
       <Route path="/admin/training-matrix"><ProtectedRoute component={AdminTrainingMatrix} /></Route>
       <Route path="/admin/competency"><ProtectedRoute component={AdminCompetency} /></Route>
@@ -135,6 +135,7 @@ function Router() {
       <Route path="/admin/equipment-auth"><ProtectedRoute component={AdminEquipmentAuth} /></Route>
       <Route path="/admin/safety-pyramid"><ProtectedRoute component={AdminSafetyPyramid} /></Route>
       <Route path="/admin/safety-pyramid-print" component={AdminSafetyPyramidPrint} />
+      <Route path="/admin/ai-engine"><ProtectedRoute component={AdminAIEngine} /></Route>
       <Route path="/admin/escalations"><ProtectedRoute component={EscalationDashboard} /></Route>
       <Route path="/admin/escalations/history"><ProtectedRoute component={EscalationHistory} /></Route>
       <Route path="/admin/escalations/matrix"><ProtectedRoute component={EscalationMatrix} /></Route>
@@ -159,6 +160,7 @@ function App() {
       <DataProvider>
         <Toaster />
         <Router />
+        <ViolationsQuickLink />
       </DataProvider>
     </QueryClientProvider>
   );
