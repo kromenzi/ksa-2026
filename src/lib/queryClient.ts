@@ -46,6 +46,7 @@ export async function apiRequest(
     headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
+    cache: url.includes("/api/safety-reports") && method.toUpperCase() === "GET" ? "no-store" : "default",
   });
 
   await throwIfResNotOk(res);
@@ -76,8 +77,10 @@ export const getQueryFn =
   <T>({ on401: unauthorizedBehavior }: { on401: UnauthorizedBehavior }): QueryFunction<T> =>
   async ({ queryKey }) => {
     try {
-      const res = await fetch(queryKey.join("/") as string, {
+      const requestUrl = queryKey.join("/") as string;
+      const res = await fetch(requestUrl, {
         credentials: "include",
+        cache: requestUrl.includes("/api/safety-reports") ? "no-store" : "default",
       });
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
