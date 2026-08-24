@@ -32,6 +32,8 @@
     { "source": "/api/safety-signs/:id/:action", "destination": "/api/ncr?resource=safety-signs&id=:id&action=:action" },
     { "source": "/api/safety-reports", "destination": "/api/safety-reports" },
     { "source": "/api/safety-reports/:id", "destination": "/api/safety-reports?id=:id" },
+    { "source": "/api/employee-violations", "destination": "/api/employee-violations" },
+    { "source": "/api/employee-violations/:id", "destination": "/api/employee-violations?id=:id" },
     { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
   ]
 }
