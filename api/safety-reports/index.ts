@@ -5,6 +5,7 @@ function toClient(row: any) { return { id: row.id, reportNo: row.report_no, obse
 
 export default async function handler(req: any, res: any) {
   try {
+    res.setHeader("Cache-Control", "no-store, max-age=0");
     const user = await getAuthUser(req); const profile = await getProfile(req); if (!user || !profile?.is_active) return json(res, 401, { error: "Not authenticated" });
     const id = String(req.query?.id || "").trim();
     if (req.method === "GET") {
@@ -22,10 +23,6 @@ export default async function handler(req: any, res: any) {
     if (!["PUT","PATCH","DELETE"].includes(req.method)) return json(res, 405, { error: "Method not allowed" });
     if (req.method === "DELETE") {
       if (!["admin","manager"].includes(profile.role)) return json(res, 403, { error: "Delete permission required" });
-      // The request JWT is intentionally not forwarded here. The server has already
-      // verified the authenticated application profile and delete role above.
-      // Using the configured service role prevents an RLS policy from rejecting a
-      // legitimate admin/manager delete because the request JWT is still attached.
       const r = await supabaseFetch(`/rest/v1/safety_reports?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", headers: { Prefer: "return=representation" } });
       const result = await r.json().catch(() => []);
       if (!r.ok) return json(res, r.status, { error: result?.message || "Unable to delete report" });
