@@ -3,8 +3,8 @@ import { useData } from "@/lib/data-context";
 export function GlobalPrintTemplate() {
   const { settings } = useData();
   const branding = settings.branding || {
-    companyName: settings.siteName,
-    companyLogo: '/logo.png',
+    companyName: settings.siteName || 'UTEC SAFETY BOARD',
+    companyLogo: '/utec-logo.svg',
     logoPosition: 'left',
     confidentialLabel: 'Confidential',
     documentFooter: '',
@@ -20,18 +20,15 @@ export function GlobalPrintTemplate() {
     <div className="hidden print:flex flex-col w-full bg-white text-black mb-6 border-b-2 border-black pb-4" dir={isAr ? 'rtl' : 'ltr'}>
       <div className={`flex justify-between items-start gap-4 ${isAr ? 'flex-row-reverse' : ''}`}>
         {branding.logoPosition === 'right' && <div className="flex-1" />}
-        
         <div className={`flex flex-col gap-2 ${branding.logoPosition === 'center' ? 'items-center text-center' : (isAr ? 'items-end text-right' : 'items-start text-left')}`}>
-          <img src={branding.companyLogo || "/logo.png"} alt={branding.companyName || "ABDULKAREM SAFETY BOARD"} className="h-20 w-[120px] brand-logo-full" />
+          <img src={branding.companyLogo || "/utec-logo.svg"} alt={branding.companyName || "UTEC SAFETY BOARD"} className="h-20 w-[120px] brand-logo-full" />
           <div>
-            <h1 className="text-2xl font-bold" style={{ fontFamily: isAr ? "'Cairo', 'Noto Sans Arabic', sans-serif" : "Arial, sans-serif" }}>{branding.companyName || settings.siteName}</h1>
+            <h1 className="text-2xl font-bold" style={{ fontFamily: isAr ? "'Cairo', 'Noto Sans Arabic', sans-serif" : "Arial, sans-serif" }}>{branding.companyName || settings.siteName || 'UTEC SAFETY BOARD'}</h1>
             {branding.departmentName && <p className="mt-1 text-sm text-gray-600">{branding.departmentName}</p>}
             {branding.safetyDepartmentName && <p className="text-sm text-gray-600">{branding.safetyDepartmentName}</p>}
           </div>
         </div>
-
         {branding.logoPosition === 'left' && <div className="flex-1" />}
-
         <div className={`flex flex-col ${isAr ? 'items-start text-left' : 'items-end text-right'}`}>
           <p className="text-sm text-gray-600">{new Date().toLocaleDateString(isAr ? 'ar-SA' : 'en-US')}</p>
         </div>
@@ -42,15 +39,8 @@ export function GlobalPrintTemplate() {
 
 export function GlobalPrintFooter() {
   const { settings } = useData();
-  const branding = settings.branding || {
-    confidentialLabel: 'Confidential',
-    documentFooter: '',
-    companyWebsite: '',
-    companyPhone: '',
-    companyEmail: ''
-  };
+  const branding = settings.branding || { confidentialLabel: 'Confidential', documentFooter: '', companyWebsite: '', companyPhone: '', companyEmail: '' };
   const isAr = settings.language === 'ar';
-
   return (
     <div className="hidden print:flex fixed bottom-0 left-0 right-0 w-full bg-white pt-2 mt-4 border-t border-gray-300 text-[10px] text-gray-600 justify-between items-center px-8" dir={isAr ? 'rtl' : 'ltr'}>
       <div className="flex gap-3 flex-wrap">
@@ -67,14 +57,14 @@ export function GlobalPrintFooter() {
   );
 }
 
-// Helper HTML generators for iframe-based printing in PrintShareDialog and reports
 export function getGlobalPrintHeaderHtml(branding: any, siteName: string, isAr: boolean, isNcr: boolean, showQr: boolean, qrUrl: string, item: any, accent: string): string {
-  siteName = branding.companyName || siteName;
+  siteName = branding.companyName || siteName || 'UTEC SAFETY BOARD';
+  const logo = branding.companyLogo || '/utec-logo.svg';
   return `
     <div style="background: ${isNcr ? '#ffffff' : 'linear-gradient(135deg, ' + accent + ' 0%, #1e293b 100%)'}; color: ${isNcr ? '#111111' : '#fff'}; padding: 16px 18px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-direction: ${isAr ? 'row-reverse' : 'row'}; border-bottom: 2px solid ${isNcr ? '#111111' : 'transparent'}; page-break-inside: avoid;">
       ${branding.logoPosition === 'right' ? '<div style="flex: 1"></div>' : ''}
       <div style="text-align: ${branding.logoPosition === 'center' ? 'center' : (isAr ? 'right' : 'left')}; display: flex; flex-direction: column; align-items: ${branding.logoPosition === 'center' ? 'center' : (isAr ? 'flex-end' : 'flex-start')}; gap: 8px;">
-        ${branding.companyLogo ? `<img src="${branding.companyLogo}" alt="${escapeHtml(branding.companyName)}" style="height: 64px; width: 96px; object-fit: contain; object-position: center;"/>` : ''}
+        <img src="${logo}" alt="${escapeHtml(branding.companyName || 'UTEC SAFETY BOARD')}" style="height: 64px; width: 96px; object-fit: contain; object-position: center;"/>
         <div style="display: flex; flex-direction: column;">
           <h1 style="font-size: 20px; margin: 0; font-weight: 700; color: ${isNcr ? '#111111' : '#fff'};">${escapeHtml(siteName)}</h1>
           ${branding.departmentName ? `<p style="font-size: 11px; margin: 2px 0 0; color: ${isNcr ? '#4b5563' : '#e2e8f0'};">${escapeHtml(branding.departmentName)}</p>` : ''}
@@ -109,6 +99,6 @@ export function getGlobalPrintFooterHtml(branding: any, isAr: boolean): string {
 
 function escapeHtml(text: string | undefined): string {
   if (!text) return '';
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
