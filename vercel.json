@@ -25,6 +25,8 @@
     { "source": "/api/email-settings", "destination": "/api/system-health?resource=email-settings" },
     { "source": "/api/report-settings", "destination": "/api/system-health?resource=report-settings" },
     { "source": "/api/site-settings", "destination": "/api/system-health?resource=site-settings" },
+    { "source": "/api/environmental-measurements", "destination": "/api/system-health?resource=environmental-measurements" },
+    { "source": "/api/environmental-measurements/:id", "destination": "/api/system-health?resource=environmental-measurements&id=:id" },
     { "source": "/api/departments", "destination": "/api/ncr?resource=departments" },
     { "source": "/api/departments/:id", "destination": "/api/ncr?resource=departments&id=:id" },
     { "source": "/api/safety-signs", "destination": "/api/ncr?resource=safety-signs" },
