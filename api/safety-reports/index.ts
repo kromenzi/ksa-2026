@@ -1,4 +1,4 @@
-import { getAuthUser, getProfile, json, supabaseFetchForRequest } from "../_lib/supabase.js";
+import { getAuthUser, getProfile, json, supabaseFetch, supabaseFetchForRequest } from "../_lib/supabase.js";
 
 const roles = ["admin", "manager", "editor"];
 function toClient(row: any) { return { id: row.id, reportNo: row.report_no, observationId: row.observation_id, date: row.date, time: row.time, location: row.location, department: row.department, observerName: row.observer_name, riskLevel: row.risk_level, category: row.category, status: row.status, observationDescription: row.observation_description, correctiveAction: row.corrective_action, image1: row.image1, image2: row.image2, image3: row.image3, image4: row.image4, createdBy: row.created_by, createdAt: row.created_at, updatedAt: row.updated_at, sourceFile: row.source_file, sourceMetadata: row.source_metadata }; }
@@ -22,7 +22,11 @@ export default async function handler(req: any, res: any) {
     if (!["PUT","PATCH","DELETE"].includes(req.method)) return json(res, 405, { error: "Method not allowed" });
     if (req.method === "DELETE") {
       if (!["admin","manager"].includes(profile.role)) return json(res, 403, { error: "Delete permission required" });
-      const r = await supabaseFetchForRequest(req, `/rest/v1/safety_reports?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", headers: { Prefer: "return=representation" } });
+      // The request JWT is intentionally not forwarded here. The server has already
+      // verified the authenticated application profile and delete role above.
+      // Using the configured service role prevents an RLS policy from rejecting a
+      // legitimate admin/manager delete because the request JWT is still attached.
+      const r = await supabaseFetch(`/rest/v1/safety_reports?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", headers: { Prefer: "return=representation" } });
       const result = await r.json().catch(() => []);
       if (!r.ok) return json(res, r.status, { error: result?.message || "Unable to delete report" });
       if (!Array.isArray(result) || result.length === 0) return json(res, 404, { error: "Report not found or could not be deleted" });
