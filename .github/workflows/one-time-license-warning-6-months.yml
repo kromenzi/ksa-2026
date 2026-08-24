@@ -1,0 +1,50 @@
+name: Set license warning period to 6 months
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-license-warning:
+    if: ${{ !contains(github.event.head_commit.message, '[auto-license-warning]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch license warning period
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/pages/admin/licenses.tsx')
+          s = p.read_text(encoding='utf-8')
+          replacements = [
+            ('const [warningDays] = useState<number>(() => {\n    const saved = localStorage.getItem("board_license_warning_days");\n    return saved ? parseInt(saved) : 90;\n  });',
+             'const warningMonths = 6;\n  const warningPeriodAr = "6 أشهر";\n  const warningPeriodEn = "6 Months";'),
+            ('// Calculate status based on expiry and warning days\n  const calculateStatus = (expiryDateStr: string): "VALID" | "EXPIRING SOON" | "EXPIRED" => {\n    const today = new Date();\n    const expiry = new Date(expiryDateStr);\n    const diffTime = expiry.getTime() - today.getTime();\n    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));\n\n    if (diffDays < 0) return "EXPIRED";\n    if (diffDays <= warningDays) return "EXPIRING SOON";\n    return "VALID";\n  };',
+             '// Calculate status using an exact six-calendar-month early-warning window.\n  const calculateStatus = (expiryDateStr: string): "VALID" | "EXPIRING SOON" | "EXPIRED" => {\n    const today = new Date();\n    const expiry = new Date(expiryDateStr);\n    if (expiry.getTime() < today.getTime()) return "EXPIRED";\n    const warningCutoff = new Date(today);\n    warningCutoff.setMonth(warningCutoff.getMonth() + warningMonths);\n    if (expiry.getTime() <= warningCutoff.getTime()) return "EXPIRING SOON";\n    return "VALID";\n  };'),
+            ('فترة التحذير 90 يوم', 'فترة التحذير 6 أشهر'),
+            ('90 Days Warning Period', '6 Months Warning Period'),
+            ('value: isAr ? `${warningDays} يوم قبل الانتهاء` : `${warningDays} Days Prior To Expiry`', 'value: isAr ? `${warningPeriodAr} قبل الانتهاء` : `${warningPeriodEn} Prior To Expiry`'),
+            ('{isAr ? `فترة التحذير: ${warningDays} يوم` : `Warning Period: ${warningDays} Days`}', '{isAr ? `فترة التحذير: ${warningPeriodAr}` : `Warning Period: ${warningPeriodEn}`}'),
+          ]
+          for old, new in replacements:
+              if old in s:
+                  s = s.replace(old, new)
+          p.write_text(s, encoding='utf-8')
+          if 'warningDays' in s or '90 Days Warning Period' in s or 'فترة التحذير 90 يوم' in s:
+              raise SystemExit('Legacy 90-day warning text remains')
+
+      - name: Commit patch and remove one-time workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/admin/licenses.tsx .github/workflows/one-time-license-warning-6-months.yml
+          git commit -m "[auto-license-warning] set license warning period to 6 months" || exit 0
+          git push origin main
