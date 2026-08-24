@@ -78,12 +78,12 @@ export default function PublicReport() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src={companyLogo || "/logo.png"} 
+              src={companyLogo || "/utec-logo.svg"} 
               alt={companyName} 
               className="h-10 w-[60px] brand-logo-full" 
               onError={(e) => {
-                if (e.currentTarget.src !== window.location.origin + '/logo.png') {
-                  e.currentTarget.src = '/logo.png';
+                if (e.currentTarget.src !== window.location.origin + '/utec-logo.svg') {
+                  e.currentTarget.src = '/utec-logo.svg';
                 }
               }}
             />

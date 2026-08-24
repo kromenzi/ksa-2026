@@ -129,7 +129,7 @@ export default function SafetyPyramidPrintPage() {
           </div>
         </section>
 
-        <footer className="footer"><span>ABDULKAREM SAFETY BOARD</span><span>Incident Pyramid Report</span></footer>
+        <footer className="footer"><span>UTEC SAFETY BOARD</span><span>Incident Pyramid Report</span></footer>
       </div>
     </main>
   );

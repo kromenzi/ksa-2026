@@ -26,17 +26,17 @@ export default function Home() {
 
   const isAr = (settings?.language || siteSettings?.language) === "ar";
   const branding = settings?.branding;
-  const logo = branding?.companyLogo || reportSettings?.companyLogo || "/logo.png";
-  const companyName = branding?.companyName || "ABDULKAREM SAFETY BOARD";
-  const heroTitleEn = branding?.heroTitleEn || "ABDULKAREM SAFETY BOARD";
-  const heroTitleAr = branding?.heroTitleAr || "ABDULKAREM SAFETY BOARD – لوحة السلامة";
+  const logo = branding?.companyLogo || reportSettings?.companyLogo || "/utec-logo.svg";
+  const companyName = branding?.companyName || "UTEC SAFETY BOARD";
+  const heroTitleEn = branding?.heroTitleEn || "UTEC SAFETY BOARD";
+  const heroTitleAr = branding?.heroTitleAr || "UTEC SAFETY BOARD – لوحة السلامة";
   const heroSubtitleEn = branding?.heroSubtitleEn || "Industrial Safety Management System";
   const heroSubtitleAr = branding?.heroSubtitleAr || "منصة إدارة السلامة الصناعية";
   const heroDescriptionEn = branding?.heroDescriptionEn || "A centralized platform for managing safety observations, non-conformance reports, compliance tracking, and proactive safety measures across all operations.";
   const heroDescriptionAr = branding?.heroDescriptionAr || "منصة مركزية لإدارة ملاحظات السلامة وتقارير عدم المطابقة ومتابعة الامتثال وإجراءات السلامة الاستباقية عبر جميع العمليات.";
   const footerText = isAr 
-    ? (branding?.systemFooterTextAr || "ABDULKAREM SAFETY BOARD – قسم السلامة والصحة والبيئة")
-    : (branding?.systemFooterTextEn || "ABDULKAREM SAFETY BOARD – Health, Safety & Environment Department");
+    ? (branding?.systemFooterTextAr || "UTEC SAFETY BOARD – قسم السلامة والصحة والبيئة")
+    : (branding?.systemFooterTextEn || "UTEC SAFETY BOARD – Health, Safety & Environment Department");
 
   const Arrow = isAr ? ArrowLeft : ArrowRight;
 
@@ -51,8 +51,8 @@ export default function Home() {
               className="h-14 w-[84px] sm:h-16 sm:w-24 brand-logo-full drop-shadow-sm shrink-0" 
               data-testid="img-company-logo"
               onError={(e) => {
-                if (e.currentTarget.src !== window.location.origin + '/logo.png') {
-                  e.currentTarget.src = '/logo.png';
+                if (e.currentTarget.src !== window.location.origin + '/utec-logo.svg') {
+                  e.currentTarget.src = '/utec-logo.svg';
                 }
               }}
             />
@@ -82,8 +82,8 @@ export default function Home() {
               alt={companyName} 
               className="w-[min(86vw,520px)] max-h-[340px] brand-logo-full mx-auto mb-4 drop-shadow-xl transition-all duration-300 hover:scale-105" 
               onError={(e) => {
-                if (e.currentTarget.src !== window.location.origin + '/logo.png') {
-                  e.currentTarget.src = '/logo.png';
+                if (e.currentTarget.src !== window.location.origin + '/utec-logo.svg') {
+                  e.currentTarget.src = '/utec-logo.svg';
                 }
               }}
             />
@@ -174,7 +174,7 @@ export default function Home() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-foreground">{isAr ? "قسم السلامة" : "Safety Department"}</h3>
-                  <p className="text-xs text-muted-foreground">{isAr ? "ABDULKAREM SAFETY BOARD – السلامة والصحة والبيئة" : "ABDULKAREM SAFETY BOARD – Health, Safety & Environment"}</p>
+                  <p className="text-xs text-muted-foreground">{isAr ? "UTEC SAFETY BOARD – السلامة والصحة والبيئة" : "UTEC SAFETY BOARD – Health, Safety & Environment"}</p>
                 </div>
               </div>
 

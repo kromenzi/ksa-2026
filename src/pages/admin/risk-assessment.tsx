@@ -200,7 +200,7 @@ export default function AdminRiskAssessmentPage() {
       : ['Ref No', 'Activity & Hazard', 'Location & Dept', 'Initial Risk', 'Residual Risk', 'Status'];
 
     const html = `<div xmlns="http://www.w3.org/1999/xhtml" dir="${isAr ? 'rtl' : 'ltr'}" style="font-family:Arial,sans-serif;color:#111827;background:#fff;padding:50px;box-sizing:border-box;width:100%;height:100%">
-      <div style="font-size:28px;font-weight:800;text-align:center">ABDULKAREM SAFETY BOARD</div>
+      <div style="font-size:28px;font-weight:800;text-align:center">UTEC SAFETY BOARD</div>
       <h1 style="font-size:34px;text-align:center;margin:16px 0 6px">${esc(title)}</h1>
       <div style="font-size:18px;color:#475569;text-align:center;margin-bottom:24px">${esc(subtitle)} • ${new Date().toLocaleDateString()}</div>
       <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:18px">

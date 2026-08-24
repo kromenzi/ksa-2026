@@ -266,26 +266,26 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       )}>
         {isCollapsed && !mobile ? (
           <img 
-            src={settings.branding?.companyLogo || "/logo.png"} 
+            src={settings.branding?.companyLogo || "/utec-logo.svg"} 
             alt="Logo" 
             className="h-11 w-11 rounded-xl brand-logo-mark drop-shadow-sm transition-all ring-1 ring-white/15"
             referrerPolicy="no-referrer"
             onError={(e) => {
-              if (e.currentTarget.src !== window.location.origin + '/logo.png') {
-                e.currentTarget.src = '/logo.png';
+              if (e.currentTarget.src !== window.location.origin + '/utec-logo.svg') {
+                e.currentTarget.src = '/utec-logo.svg';
               }
             }}
           />
         ) : (
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <img 
-              src={settings.branding?.companyLogo || "/logo.png"} 
+              src={settings.branding?.companyLogo || "/utec-logo.svg"} 
               alt="Logo" 
               className="h-12 w-[72px] brand-logo-full drop-shadow-sm shrink-0 transition-all"
               referrerPolicy="no-referrer"
               onError={(e) => {
-                if (e.currentTarget.src !== window.location.origin + '/logo.png') {
-                  e.currentTarget.src = '/logo.png';
+                if (e.currentTarget.src !== window.location.origin + '/utec-logo.svg') {
+                  e.currentTarget.src = '/utec-logo.svg';
                 }
               }}
             />

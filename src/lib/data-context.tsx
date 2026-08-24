@@ -49,7 +49,7 @@ interface DataContextType {
   safetySigns:SafetySign[]; addSafetySign:(d:Partial<SafetySign>)=>Promise<SafetySign>; updateSafetySign:(id:string,d:Partial<SafetySign>)=>Promise<void>; deleteSafetySign:(id:string)=>Promise<void>; recordSignPrint:(id:string)=>void; recordSignView:(id:string)=>void;
 }
 const DataContext=createContext<DataContextType|undefined>(undefined);
-const emptySettings:SiteSettings={id:"main",siteName:"ABDULKAREM SAFETY BOARD",description:"",allowRegistration:true,maintenanceMode:false,language:"en",theme:"dark",colorTheme:"emerald",branding:{companyName:"ABDULKAREM SAFETY BOARD",companyLogo:"/logo.png",companyAddress:"",companyPhone:"",companyEmail:"",companyWebsite:"",documentFooter:"",confidentialLabel:"STRICTLY CONFIDENTIAL",departmentName:"Health & Safety Department",safetyDepartmentName:"Corporate Safety & Environment",logoPosition:"left"}};
+const emptySettings:SiteSettings={id:"main",siteName:"UTEC SAFETY BOARD",description:"",allowRegistration:true,maintenanceMode:false,language:"en",theme:"dark",colorTheme:"emerald",branding:{companyName:"UTEC SAFETY BOARD",companyLogo:"/utec-logo.svg",companyAddress:"",companyPhone:"",companyEmail:"",companyWebsite:"",documentFooter:"",confidentialLabel:"STRICTLY CONFIDENTIAL",departmentName:"Health & Safety Department",safetyDepartmentName:"Corporate Safety & Environment",logoPosition:"left"}};
 
 export function DataProvider({children}:{children:ReactNode}){
  const queryClient=useQueryClient();

@@ -228,8 +228,8 @@ export default function AdminEnterpriseReportsPage() {
         {/* Company Header Block */}
         <div className="flex items-center justify-between border-b-4 border-slate-900 pb-4 mb-6">
           <div>
-            <h1 className="text-2xl font-black tracking-wider uppercase text-slate-950">ABDULKAREM SAFETY BOARD HSE ENTERPRISE</h1>
-            <p className="text-xs font-semibold text-slate-600">ABDULKAREM SAFETY BOARD MANAGEMENT SYSTEM · ISO 45001 CERTIFIED</p>
+            <h1 className="text-2xl font-black tracking-wider uppercase text-slate-950">UTEC SAFETY BOARD HSE ENTERPRISE</h1>
+            <p className="text-xs font-semibold text-slate-600">UTEC SAFETY BOARD MANAGEMENT SYSTEM · ISO 45001 CERTIFIED</p>
           </div>
           <div className="text-right rtl:text-left font-mono text-xs">
             <p className="font-bold text-sm text-slate-950">DOC REF: {selectedModule.toUpperCase()}-2024-9901</p>

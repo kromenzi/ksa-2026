@@ -96,7 +96,7 @@ function A4Preview({ formData, isAr }: { formData: any; isAr: boolean }) {
 
       <div style={{ borderTop: "2px solid #0f4c81", paddingTop: "2mm", display: "flex", justifyContent: "space-between", fontSize: "8px", color: "#64748b" }}>
         <span style={{ color: "#0f4c81", fontWeight: 700 }}>HSE-F-03 Rev.01</span>
-        <span>ABDULKAREM SAFETY BOARD — نظام إدارة السلامة</span>
+        <span>UTEC SAFETY BOARD — نظام إدارة السلامة</span>
         <span>{formData.date || ""}</span>
       </div>
     </div>

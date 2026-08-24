@@ -229,7 +229,7 @@ export default function AdminCompetencyPage() {
             <div className="p-6 border-2 border-purple-600 rounded-xl bg-white text-slate-900 space-y-4 shadow-lg my-2">
               <div className="flex items-center justify-between border-b pb-3">
                 <div className="text-left rtl:text-right">
-                  <p className="font-bold text-xs text-purple-900">ABDULKAREM SAFETY BOARD ISO CERTIFICATION</p>
+                  <p className="font-bold text-xs text-purple-900">UTEC SAFETY BOARD ISO CERTIFICATION</p>
                   <p className="text-[10px] text-slate-500">Official License & Qualification</p>
                 </div>
                 <Badge className="bg-purple-600 text-white text-[10px]">{selectedCert.status}</Badge>

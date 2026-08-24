@@ -1140,17 +1140,17 @@ export default function AdminLicensesPage() {
               <div className="flex items-center justify-between border-b pb-3">
                 <div className="flex items-center gap-2">
                   <img 
-                    src={settings.branding?.companyLogo || "/logo.png"} 
+                    src={settings.branding?.companyLogo || "/utec-logo.svg"} 
                     alt="Logo" 
                     className="h-10 w-[60px] brand-logo-full" 
                     onError={(e) => {
-                      if (e.currentTarget.src !== window.location.origin + '/logo.png') {
-                        e.currentTarget.src = '/logo.png';
+                      if (e.currentTarget.src !== window.location.origin + '/utec-logo.svg') {
+                        e.currentTarget.src = '/utec-logo.svg';
                       }
                     }}
                   />
                   <div>
-                    <p className="font-bold text-[11px] text-foreground">{settings.branding?.companyName || "ABDULKAREM SAFETY BOARD"}</p>
+                    <p className="font-bold text-[11px] text-foreground">{settings.branding?.companyName || "UTEC SAFETY BOARD"}</p>
                     <p className="text-[9px] text-muted-foreground">{settings.branding?.departmentName || "Health & Safety Dept"}</p>
                   </div>
                 </div>

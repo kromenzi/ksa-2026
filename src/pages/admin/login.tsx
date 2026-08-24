@@ -177,10 +177,10 @@ export default function AdminLogin() {
         <div className="relative z-10 flex flex-col justify-between p-8 xl:p-12 w-full">
           <div className="flex items-center gap-3 mb-2">
             <div className="h-12 w-12 rounded-xl overflow-hidden bg-white/10 p-0.5 shadow-lg shadow-primary/30 ring-1 ring-white/20 shrink-0">
-              <img src={settings.branding?.companyLogo || "/logo.png"} alt="Logo" className="h-full w-full brand-logo-mark rounded-lg" referrerPolicy="no-referrer" onError={(e) => { if (e.currentTarget.src !== window.location.origin + "/logo.png") e.currentTarget.src = "/logo.png"; }} />
+              <img src={settings.branding?.companyLogo || "/utec-logo.svg"} alt="Logo" className="h-full w-full brand-logo-mark rounded-lg" referrerPolicy="no-referrer" onError={(e) => { if (e.currentTarget.src !== window.location.origin + "/utec-logo.svg") e.currentTarget.src = "/utec-logo.svg"; }} />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg tracking-tight">{settings.siteName || "ABDULKAREM SAFETY BOARD"}</h2>
+              <h2 className="text-white font-bold text-lg tracking-tight">{settings.siteName || "UTEC SAFETY BOARD"}</h2>
               <p className="text-cyan-200/60 text-xs uppercase tracking-widest font-medium">{isAr ? "منصة إدارة السلامة الصناعية" : "Industrial Safety Management"}</p>
             </div>
           </div>
@@ -191,15 +191,15 @@ export default function AdminLogin() {
             </div>
             <div className="grid grid-cols-2 gap-3">{features.map((feature, index) => (<div key={index} className="flex items-center gap-2.5 p-3 rounded-sm bg-white/[0.04] border border-white/[0.08] border-t-primary/50 border-t-2"><feature.icon className={`h-4 w-4 ${feature.color} shrink-0`} /><span className="text-white/70 text-xs font-medium">{isAr ? feature.labelAr : feature.labelEn}</span></div>))}</div>
           </div>
-          <div className="flex items-center gap-2 text-white/25 text-[11px]"><ShieldCheck className="h-3 w-3" /><span>© {new Date().getFullYear()} ABDULKAREM SAFETY BOARD — {isAr ? "الصحة والسلامة والبيئة" : "Health, Safety & Environment"}</span></div>
+          <div className="flex items-center gap-2 text-white/25 text-[11px]"><ShieldCheck className="h-3 w-3" /><span>© {new Date().getFullYear()} UTEC SAFETY BOARD — {isAr ? "الصحة والسلامة والبيئة" : "Health, Safety & Environment"}</span></div>
         </div>
       </div>
 
       <div className="flex-1 flex flex-col bg-background">
         <div className="flex items-center justify-between p-4 sm:p-6">
           <div className="flex items-center gap-2 lg:hidden">
-            <img src={settings.branding?.companyLogo || "/logo.png"} alt="Logo" className="h-10 w-[60px] brand-logo-full" onError={(e) => { if (e.currentTarget.src !== window.location.origin + "/logo.png") e.currentTarget.src = "/logo.png"; }} />
-            <span className="font-bold text-sm">{settings.siteName || "ABDULKAREM SAFETY BOARD"}</span>
+            <img src={settings.branding?.companyLogo || "/utec-logo.svg"} alt="Logo" className="h-10 w-[60px] brand-logo-full" onError={(e) => { if (e.currentTarget.src !== window.location.origin + "/utec-logo.svg") e.currentTarget.src = "/utec-logo.svg"; }} />
+            <span className="font-bold text-sm">{settings.siteName || "UTEC SAFETY BOARD"}</span>
           </div>
           <div className="lg:ms-auto" />
           <div className="flex items-center gap-1.5">
@@ -211,7 +211,7 @@ export default function AdminLogin() {
         <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
           <div className="w-full max-w-md space-y-5">
             <div className="text-center space-y-2">
-              <img src={settings.branding?.companyLogo || "/logo.png"} alt={settings.siteName || "Logo"} className="w-[min(74vw,380px)] max-h-[255px] brand-logo-full mx-auto mb-4 drop-shadow-xl transition-all duration-300 hover:scale-105" onError={(e) => { if (e.currentTarget.src !== window.location.origin + "/logo.png") e.currentTarget.src = "/logo.png"; }} />
+              <img src={settings.branding?.companyLogo || "/utec-logo.svg"} alt={settings.siteName || "Logo"} className="w-[min(74vw,380px)] max-h-[255px] brand-logo-full mx-auto mb-4 drop-shadow-xl transition-all duration-300 hover:scale-105" onError={(e) => { if (e.currentTarget.src !== window.location.origin + "/utec-logo.svg") e.currentTarget.src = "/utec-logo.svg"; }} />
               <h1 className="text-2xl font-bold tracking-tight">{isAr ? "التحكم بالحساب" : "Account Access"}</h1>
               <p className="text-sm text-muted-foreground">{isAr ? "سجّل الدخول أو أنشئ حسابًا أو اطلب استعادة كلمة المرور" : "Sign in, create an account, or request a reset"}</p>
             </div>

@@ -96,7 +96,7 @@ export default function ExportPreviewModal({
 
   const [format, setFormat] = useState<ExportOptions["format"]>("zip");
   const [companyName, setCompanyName] = useState(
-    isAr ? "مجلس السلامة الموحد - HSE System" : "ABDULKAREM SAFETY BOARD HSE ENTERPRISE"
+    isAr ? "مجلس السلامة الموحد - HSE System" : "UTEC SAFETY BOARD HSE ENTERPRISE"
   );
   const [headerColor, setHeaderColor] = useState("#0f766e");
   const [showLogo, setShowLogo] = useState(true);

@@ -198,7 +198,7 @@ export default function AdminVisitorsPage() {
             <div className="p-6 border-2 border-indigo-600 rounded-xl bg-white text-slate-900 space-y-4 shadow-lg my-2">
               <div className="flex items-center justify-between border-b pb-3">
                 <div className="text-left rtl:text-right">
-                  <p className="font-bold text-xs text-indigo-900">ABDULKAREM SAFETY BOARD VISITOR PASS</p>
+                  <p className="font-bold text-xs text-indigo-900">UTEC SAFETY BOARD VISITOR PASS</p>
                   <p className="text-[10px] text-slate-500">Temporary Site Access & Briefing</p>
                 </div>
                 <Badge className="bg-indigo-600 text-white font-mono">{selectedVisitor.badgeNo}</Badge>

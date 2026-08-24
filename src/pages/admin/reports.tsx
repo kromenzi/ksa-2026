@@ -1784,7 +1784,7 @@ function SafetyReportPreviewDialog({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #1e3a5f', paddingBottom: '8px', marginBottom: '12px' }}>
               <div>
-                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e3a5f' }}>{reportSettings.companyName || 'ABDULKAREM SAFETY BOARD'}</div>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e3a5f' }}>{reportSettings.companyName || 'UTEC SAFETY BOARD'}</div>
                 <div style={{ fontSize: '14px', color: '#666', marginTop: '2px' }}>{reportSettings.templateTitle || 'Safety Observation Report'}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -1882,7 +1882,7 @@ function SafetyReportPreviewDialog({
             )}
 
             <div style={{ borderTop: '2px solid #1e3a5f', paddingTop: '6px', textAlign: 'center', fontSize: '9px', color: '#999' }}>
-              <p>{reportSettings.companyName || 'ABDULKAREM SAFETY BOARD'} - {reportSettings.templateTitle || 'Safety Observation Report'}</p>
+              <p>{reportSettings.companyName || 'UTEC SAFETY BOARD'} - {reportSettings.templateTitle || 'Safety Observation Report'}</p>
               <p>{isAr ? 'تم الإنشاء' : 'Created'}: {report.createdAt} | {isAr ? 'رابط التقرير' : 'Report Link'}: {publicUrl}</p>
             </div>
           </div>
