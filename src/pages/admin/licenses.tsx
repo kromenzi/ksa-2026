@@ -157,10 +157,9 @@ export default function AdminLicensesPage() {
     return saved ? JSON.parse(saved) : DEFAULT_LICENSE_TYPES;
   });
 
-  const [warningDays] = useState<number>(() => {
-    const saved = localStorage.getItem("board_license_warning_days");
-    return saved ? parseInt(saved) : 90;
-  });
+  const warningMonths = 6;
+  const warningPeriodAr = "6 أشهر";
+  const warningPeriodEn = "6 Months";
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
@@ -258,13 +257,13 @@ export default function AdminLicensesPage() {
       id: "LIC-REPORT-EXPIRING",
       type: "report" as const,
       refNo: "HSE-LIC-WARNING",
-      title: isAr ? "تقرير التراخيص قاربة الانتهاء (فترة التحذير 90 يوم)" : "Licenses Expiring Soon (90 Days Warning Period)",
+      title: isAr ? "تقرير التراخيص قاربة الانتهاء (فترة التحذير 6 أشهر)" : "Licenses Expiring Soon (6 Months Warning Period)",
       department: "HSE & HR Renewal Ops",
       status: "WARNING",
       date: new Date().toISOString().split("T")[0],
       sections: [
         { label: isAr ? "عدد التراخيص قيد التنبيه" : "Licenses Under Warning", value: `${expiringList.length}` },
-        { label: isAr ? "مهلة التجديد" : "Warning Window", value: isAr ? `${warningDays} يوم قبل الانتهاء` : `${warningDays} Days Prior To Expiry` },
+        { label: isAr ? "مهلة التجديد" : "Warning Window", value: isAr ? `${warningPeriodAr} قبل الانتهاء` : `${warningPeriodEn} Prior To Expiry` },
         { label: isAr ? "قائمة التراخيص المطلوبة للتجديد" : "Pending Renewals", value: expiringList.length > 0 ? expiringList.map(l => `[${l.licenseNumber}] ${l.employeeName} (${l.department}) - ${l.licenseTypeName} - ${isAr ? "ينتهي في:" : "Expires On:"} ${l.expiryDate}`).join("\n") : (isAr ? "لا توجد تراخيص قاربت على الانتهاء" : "No licenses expiring soon") }
       ]
     };
@@ -299,15 +298,14 @@ export default function AdminLicensesPage() {
     localStorage.setItem("board_license_types_v1", JSON.stringify(licenseTypes));
   }, [licenseTypes]);
 
-  // Calculate status based on expiry and warning days
+  // Calculate status using an exact six-calendar-month early-warning window.
   const calculateStatus = (expiryDateStr: string): "VALID" | "EXPIRING SOON" | "EXPIRED" => {
     const today = new Date();
     const expiry = new Date(expiryDateStr);
-    const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return "EXPIRED";
-    if (diffDays <= warningDays) return "EXPIRING SOON";
+    if (expiry.getTime() < today.getTime()) return "EXPIRED";
+    const warningCutoff = new Date(today);
+    warningCutoff.setMonth(warningCutoff.getMonth() + warningMonths);
+    if (expiry.getTime() <= warningCutoff.getTime()) return "EXPIRING SOON";
     return "VALID";
   };
 
@@ -545,7 +543,7 @@ export default function AdminLicensesPage() {
                 </h3>
               </div>
               <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/30">
-                {isAr ? `فترة التحذير: ${warningDays} يوم` : `Warning Period: ${warningDays} Days`}
+                {isAr ? `فترة التحذير: ${warningPeriodAr}` : `Warning Period: ${warningPeriodEn}`}
               </Badge>
             </div>
 
