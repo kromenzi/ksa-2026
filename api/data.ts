@@ -23,6 +23,17 @@ const mapClient=(row:any)=>row&&typeof row==="object"?Object.fromEntries(Object.
 function sanitizeBody(table:string,body:any,mode:"insert"|"update"){const allowed=COLUMNS[table]||new Set<string>();const out:Record<string,any>={};for(const [key,value] of Object.entries(body||{})){const column=camelToSnake(key);if(!allowed.has(column))continue;if(table==="users"&&column==="password")continue;if(mode==="update"&&column==="id")continue;out[column]=value;}return out;}
 function canWrite(profile:any,module:string,action:string){if(!profile?.is_active)return false;if(profile.role==="admin")return true;if(profile.role==="manager"&&["documents","content","settings","reports"].includes(module))return action!=="delete"||module==="reports";if(profile.role==="editor"&&["content","reports","documents"].includes(module))return action!=="delete";return false;}
 
+const DEFAULT_REPORT_SETTINGS={
+  id:"main",
+  plantPrefix:"PLT",
+  dateFormat:"YYYY-MM-DD",
+  resetRule:"yearly",
+  companyName:"UTEC SAFETY BOARD",
+  companyLogo:"/utec-logo.svg",
+  templateTitle:"Safety Report",
+  publicBaseUrl:null,
+};
+
 export default async function handler(req:any,res:any){try{
   const user=await getAuthUser(req); const profile=await getProfile(req); if(!user||!profile||!profile.is_active)return json(res,401,{error:"Not authenticated"});
   const resource=String(req.query?.resource||"").trim(); const config=RESOURCE_MAP[resource]; if(!config)return json(res,404,{error:"Unknown API resource"}); if(config.adminOnly&&profile.role!=="admin")return json(res,403,{error:"Insufficient permission"});
@@ -32,7 +43,13 @@ export default async function handler(req:any,res:any){try{
     if(table==="users")url=`${base}?select=id,name,email,role,is_active,avatar,joined_at,auth_user_id${rawId?`&id=eq.${encodeURIComponent(rawId)}`:""}`;
     if(table==="section_config")url+="&order=section_type.asc";
     if(table==="plants")url+="&order=updated_at.desc";
-    const r=await supabaseFetchForRequest(req,url);const rows=await r.json();if(!r.ok)return json(res,r.status,{error:rows?.message||"Unable to load resource"});if(config.single)return json(res,200,rows[0]?mapClient(rows[0]):null);return json(res,200,rows.map(mapClient));
+    const r=await supabaseFetchForRequest(req,url);const rows=await r.json();if(!r.ok)return json(res,r.status,{error:rows?.message||"Unable to load resource"});
+    if(config.single){
+      const mapped=rows[0]?mapClient(rows[0]):null;
+      if(resource==="report-settings" && !mapped)return json(res,200,DEFAULT_REPORT_SETTINGS);
+      return json(res,200,mapped);
+    }
+    return json(res,200,rows.map(mapClient));
   }
   const action=req.method==="POST"?"create":req.method==="PATCH"||req.method==="PUT"?"update":req.method==="DELETE"?"delete":"";if(!action)return json(res,405,{error:"Method not allowed"});if(!canWrite(profile,config.module,action))return json(res,403,{error:"Insufficient permission"});
 
