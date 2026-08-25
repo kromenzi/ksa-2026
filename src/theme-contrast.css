@@ -1,100 +1,91 @@
-/* Balanced light/dark theme contrast for UTEC Safety Board.
-   Keeps the existing palette while improving readability and visual hierarchy. */
+/* Balanced light/dark theme contrast for UTEC Safety Board. */
+:root {
+  --foreground: 215 28% 15%;
+  --card-foreground: 215 28% 17%;
+  --popover-foreground: 215 28% 17%;
+  --secondary-foreground: 215 24% 22%;
+  --muted-foreground: 215 14% 38%;
+  --accent-foreground: 155 62% 20%;
+  --border: 214 22% 86%;
+  --input: 214 22% 88%;
+}
 
-@layer base {
-  :root {
-    --foreground: 215 28% 15%;
-    --card-foreground: 215 28% 17%;
-    --popover-foreground: 215 28% 17%;
-    --secondary-foreground: 215 24% 22%;
-    --muted-foreground: 215 14% 38%;
-    --accent-foreground: 155 62% 20%;
-    --border: 214 22% 86%;
-    --input: 214 22% 88%;
-  }
+.dark {
+  --foreground: 210 22% 95%;
+  --card-foreground: 210 22% 94%;
+  --popover-foreground: 210 22% 94%;
+  --secondary-foreground: 210 18% 89%;
+  --muted-foreground: 214 15% 72%;
+  --accent-foreground: 155 76% 82%;
+  --border: 214 18% 24%;
+  --input: 214 18% 22%;
+  --primary: 155 72% 48%;
+  --ring: 155 72% 48%;
+  --sidebar-foreground: 210 22% 93%;
+  --sidebar-accent-foreground: 200 18% 92%;
+}
 
-  .dark {
-    --foreground: 210 22% 95%;
-    --card-foreground: 210 22% 94%;
-    --popover-foreground: 210 22% 94%;
-    --secondary-foreground: 210 18% 89%;
-    --muted-foreground: 214 15% 72%;
-    --accent-foreground: 155 76% 82%;
-    --border: 214 18% 24%;
-    --input: 214 18% 22%;
-    --primary: 155 72% 48%;
-    --ring: 155 72% 48%;
-    --sidebar-foreground: 210 22% 93%;
-    --sidebar-accent-foreground: 200 18% 92%;
-  }
+.text-muted-foreground {
+  color: hsl(var(--muted-foreground)) !important;
+}
 
-  /* Improve low-emphasis text without making it visually heavy. */
-  .text-muted-foreground {
-    color: hsl(var(--muted-foreground)) !important;
-  }
+.dark .text-muted-foreground\/60,
+.dark .text-muted-foreground\/70 {
+  color: hsl(var(--muted-foreground) / 0.88) !important;
+}
 
-  .dark .text-muted-foreground\/60,
-  .dark .text-muted-foreground\/70 {
-    color: hsl(var(--muted-foreground) / 0.88) !important;
-  }
+th {
+  color: hsl(215 26% 27%);
+}
 
-  /* Tables and dense admin screens need a clearer hierarchy. */
-  th {
-    color: hsl(215 26% 27%);
-  }
+.dark th {
+  color: hsl(210 22% 88%);
+}
 
-  .dark th {
-    color: hsl(210 22% 88%);
-  }
+.dark td {
+  color: hsl(210 20% 89%);
+}
 
-  .dark td {
-    color: hsl(210 20% 89%);
-  }
+.dark .placeholder\:text-muted-foreground::placeholder,
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: hsl(214 14% 68%) !important;
+  opacity: 1;
+}
 
-  .dark .placeholder\:text-muted-foreground::placeholder,
-  .dark input::placeholder,
-  .dark textarea::placeholder {
-    color: hsl(214 14% 68%) !important;
-    opacity: 1;
-  }
+.dark .border-border\/50,
+.dark .border-border\/60 {
+  border-color: hsl(var(--border) / 0.82) !important;
+}
 
-  /* Make cards, panels and borders distinguishable without harsh contrast. */
-  .dark .border-border\/50,
-  .dark .border-border\/60 {
-    border-color: hsl(var(--border) / 0.82) !important;
-  }
+.dark .bg-muted\/20 {
+  background-color: hsl(var(--muted) / 0.72) !important;
+}
 
-  .dark .bg-muted\/20 {
-    background-color: hsl(var(--muted) / 0.72) !important;
-  }
+.dark .bg-muted\/30 {
+  background-color: hsl(var(--muted) / 0.82) !important;
+}
 
-  .dark .bg-muted\/30 {
-    background-color: hsl(var(--muted) / 0.82) !important;
-  }
+.dark .bg-card {
+  background-color: hsl(var(--card)) !important;
+}
 
-  .dark .bg-card {
-    background-color: hsl(var(--card)) !important;
-  }
+.dark .text-primary {
+  color: hsl(var(--primary)) !important;
+}
 
-  /* Keep the emerald safety accent consistent across both themes. */
-  .dark .text-primary {
-    color: hsl(var(--primary)) !important;
-  }
+.dark .ring-primary,
+.dark .focus-visible\:ring-ring:focus-visible {
+  --tw-ring-color: hsl(var(--ring)) !important;
+}
 
-  .dark .ring-primary,
-  .dark .focus-visible\:ring-ring:focus-visible {
-    --tw-ring-color: hsl(var(--ring)) !important;
-  }
+.dark [data-testid="admin-sidebar"],
+.dark .sidebar-glass {
+  color: hsl(var(--sidebar-foreground));
+}
 
-  /* Sidebar readability. */
-  .dark [data-testid="admin-sidebar"],
-  .dark .sidebar-glass {
-    color: hsl(var(--sidebar-foreground));
-  }
-
-  .dark [data-testid="admin-sidebar"] .text-muted-foreground {
-    color: hsl(210 18% 76%) !important;
-  }
+.dark [data-testid="admin-sidebar"] .text-muted-foreground {
+  color: hsl(210 18% 76%) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
