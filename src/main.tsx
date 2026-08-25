@@ -7,6 +7,7 @@ import "./dark-text-contrast.css";
 import "./theme-contrast.css";
 import "./ncr-preview-fix.css";
 import "./sidebar-layout-fix.css";
+import "./sidebar-theme.css";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 const printStyle = document.createElement("style");
