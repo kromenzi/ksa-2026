@@ -35,6 +35,7 @@ const DEFAULT_REPORT_SETTINGS={
 };
 
 export default async function handler(req:any,res:any){try{
+  res.setHeader("Cache-Control", "no-store, max-age=0");
   const user=await getAuthUser(req); const profile=await getProfile(req); if(!user||!profile||!profile.is_active)return json(res,401,{error:"Not authenticated"});
   const resource=String(req.query?.resource||"").trim(); const config=RESOURCE_MAP[resource]; if(!config)return json(res,404,{error:"Unknown API resource"}); if(config.adminOnly&&profile.role!=="admin")return json(res,403,{error:"Insufficient permission"});
   const rawId=String(req.query?.id||"").trim(); const table=config.table; const base=`/rest/v1/${table}`; const body=req.body||{};
@@ -46,7 +47,7 @@ export default async function handler(req:any,res:any){try{
     const r=await supabaseFetchForRequest(req,url);const rows=await r.json();if(!r.ok)return json(res,r.status,{error:rows?.message||"Unable to load resource"});
     if(config.single){
       const mapped=rows[0]?mapClient(rows[0]):null;
-      if(resource==="report-settings" && !mapped)return json(res,200,DEFAULT_REPORT_SETTINGS);
+      if(resource==="report-settings")return json(res,200,mapped||DEFAULT_REPORT_SETTINGS);
       return json(res,200,mapped);
     }
     return json(res,200,rows.map(mapClient));
