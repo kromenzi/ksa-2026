@@ -1,0 +1,70 @@
+/* Theme-aware sidebar colors: light theme uses a light navigation surface; dark theme keeps the existing dark palette. */
+
+/* Light theme */
+:root:not(.dark) .sidebar-glass,
+html:not(.dark) .sidebar-glass {
+  background: linear-gradient(180deg, hsl(210 28% 98%) 0%, hsl(210 24% 95%) 100%) !important;
+  border-color: hsl(214 22% 84%) !important;
+  box-shadow: -6px 0 24px hsl(214 40% 30% / 0.08) !important;
+  color: hsl(215 28% 18%) !important;
+}
+
+:root:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/header"],
+html:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] {
+  background: hsl(0 0% 100% / 0.92) !important;
+  border-color: hsl(214 22% 82%) !important;
+  color: hsl(215 28% 18%) !important;
+}
+
+:root:not(.dark) .sidebar-glass .sidebar-scroll > div > a > div,
+html:not(.dark) .sidebar-glass .sidebar-scroll > div > a > div {
+  background: hsl(0 0% 100% / 0.82) !important;
+  border-color: hsl(214 22% 84%) !important;
+  color: hsl(215 28% 20%) !important;
+}
+
+:root:not(.dark) .sidebar-glass .sidebar-scroll > div > a > div:hover,
+html:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/header"]:hover,
+html:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/header"]:hover {
+  background: hsl(155 55% 95%) !important;
+  border-color: hsl(155 52% 66%) !important;
+}
+
+:root:not(.dark) .sidebar-glass .sidebar-scroll > div > a[aria-current="page"] > div,
+html:not(.dark) .sidebar-glass .sidebar-scroll > div > a[data-active="true"] > div {
+  background: hsl(155 55% 92%) !important;
+  border-color: hsl(155 55% 62%) !important;
+  color: hsl(155 60% 20%) !important;
+  box-shadow: inset -3px 0 0 hsl(var(--primary)), 0 6px 18px hsl(155 55% 30% / 0.10) !important;
+}
+
+:root:not(.dark) .sidebar-glass .sidebar-scroll > div > a > div > div:has(> svg),
+:root:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] > div:has(> svg),
+html:not(.dark) .sidebar-glass .sidebar-scroll > div > a > div > div:has(> svg),
+html:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] > div:has(> svg) {
+  background: hsl(210 24% 96%) !important;
+  border-color: hsl(214 22% 82%) !important;
+  color: hsl(215 25% 26%) !important;
+}
+
+:root:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/content"] a > div,
+:root:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/content"] > a > div,
+html:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/content"] a > div,
+html:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/content"] > a > div {
+  background: hsl(0 0% 100% / 0.74) !important;
+  border-color: hsl(214 22% 86%) !important;
+  color: hsl(215 28% 22%) !important;
+}
+
+/* Light-theme sidebar footer/account area */
+:root:not(.dark) .sidebar-glass > div:last-child,
+html:not(.dark) .sidebar-glass > div:last-child {
+  background: hsl(210 26% 96% / 0.96) !important;
+  border-color: hsl(214 22% 84%) !important;
+}
+
+/* Dark theme: explicitly preserve the dark navigation surface and readable contrast. */
+.dark .sidebar-glass {
+  background: linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, hsl(212 40% 10%) 100%) !important;
+  color: hsl(var(--sidebar-foreground)) !important;
+}
