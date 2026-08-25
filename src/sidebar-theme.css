@@ -24,7 +24,8 @@ html:not(.dark) .sidebar-glass .sidebar-scroll > div > a > div {
 }
 
 :root:not(.dark) .sidebar-glass .sidebar-scroll > div > a > div:hover,
-html:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/header"]:hover,
+:root:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/header"]:hover,
+html:not(.dark) .sidebar-glass .sidebar-scroll > div > a > div:hover,
 html:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/header"]:hover {
   background: hsl(155 55% 95%) !important;
   border-color: hsl(155 52% 66%) !important;
@@ -67,4 +68,107 @@ html:not(.dark) .sidebar-glass > div:last-child {
 .dark .sidebar-glass {
   background: linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, hsl(212 40% 10%) 100%) !important;
   color: hsl(var(--sidebar-foreground)) !important;
+}
+
+/* Stronger sidebar typography for navigation labels. */
+.sidebar-glass .sidebar-scroll > div > a > div > span,
+.sidebar-glass .sidebar-scroll > div > div[class*="group/header"] > span,
+.sidebar-glass .sidebar-scroll button.group > span {
+  color: hsl(var(--foreground)) !important;
+  font-weight: 600 !important;
+}
+
+:root:not(.dark) .sidebar-glass .sidebar-scroll > div > a > div > span,
+:root:not(.dark) .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] > span,
+:root:not(.dark) .sidebar-glass .sidebar-scroll button.group > span {
+  color: #1f2937 !important;
+}
+
+.dark .sidebar-glass .sidebar-scroll > div > a > div > span,
+.dark .sidebar-glass .sidebar-scroll > div > div[class*="group/header"] > span,
+.dark .sidebar-glass .sidebar-scroll button.group > span {
+  color: #f8fafc !important;
+}
+
+/* Colorful semantic navigation icons. */
+.sidebar-glass .sidebar-scroll > div:nth-child(1) svg { color: #10b981 !important; }
+.sidebar-glass .sidebar-scroll > div:nth-child(2) svg { color: #8b5cf6 !important; }
+.sidebar-glass .sidebar-scroll > div:nth-child(3) svg { color: #06b6d4 !important; }
+.sidebar-glass .sidebar-scroll > div:nth-child(4) svg { color: #f59e0b !important; }
+.sidebar-glass .sidebar-scroll > div:nth-child(5) svg { color: #3b82f6 !important; }
+.sidebar-glass .sidebar-scroll > div:nth-child(6) svg { color: #ef4444 !important; }
+.sidebar-glass .sidebar-scroll > div:nth-child(7) svg { color: #14b8a6 !important; }
+.sidebar-glass .sidebar-scroll > div:nth-child(8) svg { color: #f97316 !important; }
+.sidebar-glass .sidebar-scroll > div:nth-child(9) svg { color: #ec4899 !important; }
+.sidebar-glass .sidebar-scroll > div:nth-child(10) svg { color: #6366f1 !important; }
+
+/* Gentle pulse while hovering a navigation item. */
+@keyframes sidebarIconPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 6px currentColor); }
+}
+
+.sidebar-glass .sidebar-scroll > div > a:hover svg,
+.sidebar-glass .sidebar-scroll > div > div[class*="group/header"]:hover svg,
+.sidebar-glass .sidebar-scroll button.group:hover > div:has(> svg) svg {
+  animation: sidebarIconPulse 900ms ease-in-out infinite;
+}
+
+.sidebar-glass .sidebar-scroll > div > a:hover > div,
+.sidebar-glass .sidebar-scroll > div > div[class*="group/header"]:hover,
+.sidebar-glass .sidebar-scroll button.group:hover {
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.12), 0 8px 18px hsl(var(--primary) / 0.10) !important;
+}
+
+/* Branding text at the top of the sidebar. */
+:root:not(.dark) .sidebar-glass > div:first-child span,
+html:not(.dark) .sidebar-glass > div:first-child span {
+  color: #1f2937 !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+.dark .sidebar-glass > div:first-child span {
+  color: #f8fafc !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+/* Account/footer readability and clear logout action. */
+.sidebar-glass > div:last-child,
+.sidebar-glass > div:last-child * {
+  opacity: 1 !important;
+}
+
+:root:not(.dark) .sidebar-glass > div:last-child,
+html:not(.dark) .sidebar-glass > div:last-child {
+  color: #1f2937 !important;
+}
+
+.dark .sidebar-glass > div:last-child {
+  color: #f8fafc !important;
+}
+
+.sidebar-glass > div:last-child a,
+.sidebar-glass > div:last-child button {
+  font-weight: 700 !important;
+}
+
+.sidebar-glass > div:last-child a:last-child,
+.sidebar-glass > div:last-child button:last-child {
+  color: #ef4444 !important;
+}
+
+.sidebar-glass > div:last-child a:last-child:hover,
+.sidebar-glass > div:last-child button:last-child:hover {
+  color: #dc2626 !important;
+  text-shadow: 0 0 10px rgb(239 68 68 / 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-glass .sidebar-scroll > div > a:hover svg,
+  .sidebar-glass .sidebar-scroll > div > div[class*="group/header"]:hover svg,
+  .sidebar-glass .sidebar-scroll button.group:hover > div:has(> svg) svg {
+    animation: none !important;
+  }
 }
