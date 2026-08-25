@@ -1,0 +1,102 @@
+/* Precise contrast fixes for the sidebar header and account footer. */
+
+/* Brand header */
+.sidebar-glass > div:first-child h1 {
+  color: #0f172a !important;
+  opacity: 1 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+  text-shadow: none !important;
+}
+
+.sidebar-glass > div:first-child p {
+  color: #475569 !important;
+  opacity: 1 !important;
+  font-weight: 600 !important;
+}
+
+.dark .sidebar-glass > div:first-child h1 {
+  color: #f8fafc !important;
+}
+
+.dark .sidebar-glass > div:first-child p {
+  color: #cbd5e1 !important;
+}
+
+/* Keep the collapse button visible without affecting branding text. */
+:root:not(.dark) .sidebar-glass > div:first-child > button {
+  color: #475569 !important;
+}
+
+.dark .sidebar-glass > div:first-child > button {
+  color: #cbd5e1 !important;
+}
+
+/* Account block */
+.sidebar-glass > div:last-child > div > div span {
+  opacity: 1 !important;
+}
+
+:root:not(.dark) .sidebar-glass > div:last-child > div > div span.text-sidebar-foreground {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+:root:not(.dark) .sidebar-glass > div:last-child > div > div span.text-\[9px\] {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+.dark .sidebar-glass > div:last-child > div > div span.text-sidebar-foreground {
+  color: #f8fafc !important;
+  font-weight: 800 !important;
+}
+
+.dark .sidebar-glass > div:last-child > div > div span.text-\[9px\] {
+  color: #cbd5e1 !important;
+  font-weight: 600 !important;
+}
+
+/* Make the role badge icon readable in both themes. */
+.sidebar-glass > div:last-child BadgeCheck,
+.sidebar-glass > div:last-child svg {
+  opacity: 1 !important;
+}
+
+/* Logout: strong, readable, and still clearly destructive. */
+.sidebar-glass > div:last-child button {
+  color: #dc2626 !important;
+  font-weight: 750 !important;
+}
+
+.sidebar-glass > div:last-child button svg {
+  color: #dc2626 !important;
+  opacity: 1 !important;
+}
+
+.sidebar-glass > div:last-child button:hover {
+  color: #b91c1c !important;
+  background: rgb(220 38 38 / 0.08) !important;
+}
+
+.dark .sidebar-glass > div:last-child button {
+  color: #f87171 !important;
+}
+
+.dark .sidebar-glass > div:last-child button svg {
+  color: #f87171 !important;
+}
+
+.dark .sidebar-glass > div:last-child button:hover {
+  color: #fca5a5 !important;
+  background: rgb(248 113 113 / 0.10) !important;
+}
+
+/* Collapsed footer logout icon */
+.sidebar-glass > div:last-child button[class*="text-red"] {
+  color: #dc2626 !important;
+}
+
+.dark .sidebar-glass > div:last-child button[class*="text-red"] {
+  color: #f87171 !important;
+}
