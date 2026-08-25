@@ -9,7 +9,15 @@ interface State {
   error: Error | null;
 }
 
+const isTransientDomError = (error: Error | null) => {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("removechild") || message.includes("notfounderror") || message.includes("failed to execute 'removechild'");
+};
+
 export class ErrorBoundary extends React.Component<Props, State> {
+  private recoveryTimer: ReturnType<typeof setTimeout> | null = null;
+  private recoveryAttempted = false;
+
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -21,6 +29,20 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Error caught by ErrorBoundary:", error, errorInfo);
+
+    if (isTransientDomError(error) && !this.recoveryAttempted) {
+      this.recoveryAttempted = true;
+      this.recoveryTimer = setTimeout(() => {
+        // A DOM tree can be momentarily out of sync with React during auth redirects,
+        // browser restore, or extension-driven mutations. Re-mount the app once before
+        // showing a fatal error screen to the user.
+        this.setState({ hasError: false, error: null });
+      }, 0);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.recoveryTimer) clearTimeout(this.recoveryTimer);
   }
 
   render() {
