@@ -1,0 +1,50 @@
+/* Dark mode readability improvements — scoped so light mode is unchanged. */
+.dark {
+  --foreground: 210 24% 96%;
+  --card-foreground: 210 24% 96%;
+  --popover-foreground: 210 24% 96%;
+  --secondary-foreground: 210 20% 92%;
+  --muted-foreground: 210 16% 76%;
+  --accent-foreground: 155 70% 82%;
+  --sidebar-foreground: 210 24% 95%;
+  --sidebar-accent-foreground: 200 20% 94%;
+}
+
+.dark .text-muted-foreground {
+  color: hsl(210 16% 76%) !important;
+}
+
+.dark .text-foreground {
+  color: hsl(210 24% 96%) !important;
+}
+
+.dark .text-secondary-foreground {
+  color: hsl(210 20% 92%) !important;
+}
+
+.dark table th {
+  color: hsl(210 18% 82%) !important;
+}
+
+.dark table td {
+  color: hsl(210 20% 86%) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: hsl(210 14% 66%) !important;
+  opacity: 1 !important;
+}
+
+.dark .sidebar-glass,
+.dark .sidebar-glass * {
+  --tw-text-opacity: 1;
+}
+
+.dark .sidebar-glass .text-muted-foreground {
+  color: hsl(210 14% 74%) !important;
+}
+
+.dark .sidebar-glass .text-foreground {
+  color: hsl(210 24% 95%) !important;
+}
