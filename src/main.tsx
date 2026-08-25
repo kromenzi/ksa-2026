@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./dark-text-contrast.css";
+import "./theme-contrast.css";
 import "./ncr-preview-fix.css";
 import "./sidebar-layout-fix.css";
 import { ErrorBoundary } from "@/components/error-boundary";
