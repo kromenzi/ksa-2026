@@ -22,6 +22,21 @@ function serviceHeaders() {
   };
 }
 
+async function registrationAllowed() {
+  if (!SUPABASE_SERVICE_ROLE_KEY) return false;
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=allow_registration&limit=1`, {
+      headers: serviceHeaders(),
+      cache: "no-store",
+    });
+    if (!response.ok) return false;
+    const rows = await response.json().catch(() => []);
+    return rows[0]?.allow_registration === true;
+  } catch {
+    return false;
+  }
+}
+
 async function createProfile(userId: string, email: string, name: string) {
   if (!SUPABASE_SERVICE_ROLE_KEY) return;
   const response = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
@@ -41,6 +56,7 @@ async function loadApplicationProfile(userId: string, accessToken: string) {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
+      cache: "no-store",
     },
   );
 
@@ -57,30 +73,47 @@ async function loadApplicationProfile(userId: string, accessToken: string) {
 async function handleSignup(req: any, res: any) {
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   const password = typeof req.body?.password === "string" ? req.body.password : "";
-  const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+  const name = typeof req.body?.name === "string" ? req.body.name.trim().slice(0, 160) : "";
   if (!email || !password) return json(res, 400, { error: "Email and password are required" });
   if (!SUPABASE_SERVICE_ROLE_KEY) return json(res, 503, { error: "Signup is unavailable until the server credential is configured" });
+  if (!(await registrationAllowed())) return json(res, 403, { error: "Registration is disabled" });
+
   const security = await checkPasswordSecurity(password);
   if (!security.allowed) return json(res, 400, { error: security.message, code: security.reason });
+
   const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
     method: "POST",
     headers: { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, data: { name: name || email.split("@")[0] }, options: { emailRedirectTo: `${PUBLIC_URL}/admin/login` } }),
+    body: JSON.stringify({
+      email,
+      password,
+      data: { name: name || email.split("@")[0] },
+      options: { emailRedirectTo: `${PUBLIC_URL}/admin/login` },
+    }),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data.user?.id) {
     const message = data?.msg || data?.message || "Signup failed";
     return json(res, response.status >= 400 && response.status < 500 ? response.status : 500, { error: message });
   }
+
   await createProfile(String(data.user.id), email, name || data.user.email?.split("@")[0] || "New User");
   if (data.access_token) setAccessCookie(res, data.access_token);
-  return json(res, 200, { id: data.user.id, email: data.user.email, message: data.session ? "Account created and signed in" : "Account created. Check your email to confirm the account." });
+  return json(res, 200, {
+    id: data.user.id,
+    email: data.user.email,
+    message: data.session ? "Account created and signed in" : "Account created. Check your email to confirm the account.",
+  });
 }
 
 async function handleReset(req: any, res: any) {
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   if (!email) return json(res, 400, { error: "Email is required" });
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/recover`, { method: "POST", headers: { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ email, redirectTo: `${PUBLIC_URL}/admin/login` }) });
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/recover`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email, redirectTo: `${PUBLIC_URL}/admin/login` }),
+  });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const message = data?.msg || data?.message || "Password reset request failed";
@@ -96,7 +129,11 @@ async function handlePasswordUpdate(req: any, res: any) {
   if (!security.allowed) return json(res, 400, { error: security.message, code: security.reason });
   const token = getAccessToken(req);
   if (!token) return json(res, 401, { error: "Not authenticated" });
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, { method: "PUT", headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ password }) });
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    method: "PUT",
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const message = data?.msg || data?.message || "Password update failed";
@@ -108,15 +145,22 @@ async function handlePasswordUpdate(req: any, res: any) {
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
   const action = String(req.query?.action || "");
+
   if (action === "password-check") {
     try {
       const password = typeof req.body?.password === "string" ? req.body.password : "";
       return json(res, 200, await checkPasswordSecurity(password));
     } catch (error) {
       console.error("Password security check failed", error);
-      return json(res, 503, { allowed: false, compromised: null, reason: "security_check_unavailable", message: "Password security check is temporarily unavailable. Please try again." });
+      return json(res, 503, {
+        allowed: false,
+        compromised: null,
+        reason: "security_check_unavailable",
+        message: "Password security check is temporarily unavailable. Please try again.",
+      });
     }
   }
+
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return json(res, 503, { error: "Authentication backend is not configured" });
 
   try {
