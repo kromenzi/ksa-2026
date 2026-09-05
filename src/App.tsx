@@ -62,6 +62,7 @@ import VisionAnalytics from "@/pages/admin/vision/analytics";
 import VisionSettings from "@/pages/admin/vision/settings";
 import AdminFireProtection from "@/pages/admin/fire-protection";
 import AdminSafetySigns from "@/pages/admin/safety-signs";
+import AdminEmployeeViolations from "@/pages/admin/employee-violations";
 
 import { DataProvider, useData } from "@/lib/data-context";
 import { AdminLayout } from "@/components/layouts/admin-layout";
@@ -118,6 +119,7 @@ function Router() {
       <Route path="/admin/notification-rules"><ProtectedRoute component={AdminNotificationRules} /></Route>
       <Route path="/admin/gamification"><ProtectedRoute component={AdminGamification} /></Route>
       <Route path="/admin/employees"><ProtectedRoute component={AdminEmployees} /></Route>
+      <Route path="/admin/employee-violations"><ProtectedRoute component={AdminEmployeeViolations} /></Route>
       <Route path="/admin/trainings"><ProtectedRoute component={AdminTrainings} /></Route>
       <Route path="/admin/training-matrix"><ProtectedRoute component={AdminTrainingMatrix} /></Route>
       <Route path="/admin/competency"><ProtectedRoute component={AdminCompetency} /></Route>

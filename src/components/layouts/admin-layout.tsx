@@ -146,6 +146,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       titleAr: "عمليات السلامة والحوادث",
       items: [
         { label: isAr ? 'الموظفين وسجلات السلامة' : 'Employees & Safety', icon: Users, href: "/admin/employees", visible: true, color: "text-blue-600", bgColor: "bg-blue-600/10" },
+        { label: isAr ? 'مخالفات السلامة للموظفين' : 'Employee Safety Violations', icon: ShieldAlert, href: "/admin/employee-violations", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
         { label: isAr ? 'تقارير السلامة (SOR)' : 'Safety Reports (SOR)', icon: ShieldAlert, href: "/admin/reports", visible: hasPermission('reports', 'read'), color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
         { label: isAr ? 'الحوادث والوشيكة (RCA)' : 'Incidents & Near Miss', icon: AlertTriangle, href: "/admin/incidents", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },
         { label: isAr ? 'تقييم المخاطر (5x5)' : 'Risk Assessment', icon: Shield, href: "/admin/risk-assessment", visible: true, color: "text-orange-500", bgColor: "bg-orange-500/10" },
