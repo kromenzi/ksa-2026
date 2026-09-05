@@ -1,106 +1,19 @@
-import { useState, useEffect } from "react";
-import type { 
-  FireEquipmentItem, 
-  FireInspectionRecord, 
-  FirePumpTestRecord, 
-  FireAlarmZone, 
-  FireMaintenanceWorkOrder, 
-  FireAlertItem, 
-  FireProtectionSettings 
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import type {
+  FireEquipmentItem,
+  FireInspectionRecord,
+  FirePumpTestRecord,
+  FireAlarmZone,
+  FireMaintenanceWorkOrder,
+  FireAlertItem,
+  FireProtectionSettings,
 } from "@/types/fire-protection";
 
-const STORAGE_KEY_EQUIPMENT = "safety_board_fire_equipment_v1";
-const STORAGE_KEY_INSPECTIONS = "safety_board_fire_inspections_v1";
-const STORAGE_KEY_PUMP_TESTS = "safety_board_fire_pump_tests_v1";
-const STORAGE_KEY_ZONES = "safety_board_fire_zones_v1";
-const STORAGE_KEY_MAINTENANCE = "safety_board_fire_maintenance_v1";
-const STORAGE_KEY_ALERTS = "safety_board_fire_alerts_v1";
 const STORAGE_KEY_SETTINGS = "safety_board_fire_settings_v1";
 
-const INITIAL_EQUIPMENT: FireEquipmentItem[] = [
-  {
-    id: "eq-1",
-    equipmentId: "EXT-101",
-    serialNumber: "SN-982341",
-    qrCode: "QR-FIRE-EXT-101",
-    category: "extinguisher",
-    type: "powder",
-    manufacturer: "Naffco",
-    model: "ABC-6KG",
-    capacity: "6 KG",
-    location: "Zone 1 - Main Production Hall",
-    department: "Production",
-    building: "Building A",
-    installationDate: "2024-01-15",
-    expiryDate: "2027-01-15",
-    lastInspectionDate: "2026-01-10",
-    nextInspectionDate: "2026-03-10",
-    status: "good",
-    createdBy: "System"
-  },
-  {
-    id: "eq-2",
-    equipmentId: "EXT-102",
-    serialNumber: "SN-982342",
-    qrCode: "QR-FIRE-EXT-102",
-    category: "extinguisher",
-    type: "co2",
-    manufacturer: "Minimax",
-    model: "CO2-5KG",
-    capacity: "5 KG",
-    location: "Zone 2 - Electrical Control Room",
-    department: "Maintenance",
-    building: "Building A",
-    installationDate: "2024-02-10",
-    expiryDate: "2027-02-10",
-    lastInspectionDate: "2025-12-05",
-    nextInspectionDate: "2026-02-28",
-    status: "inspection_due",
-    createdBy: "System"
-  },
-  {
-    id: "eq-3",
-    equipmentId: "PUMP-01",
-    serialNumber: "SMP-7712",
-    qrCode: "QR-FIRE-PUMP-01",
-    category: "pump",
-    type: "diesel_pump",
-    manufacturer: "Peerless Pump",
-    model: "12X10-22F",
-    capacity: "750 GPM @ 120 PSI",
-    location: "Fire Pump House",
-    department: "Facility Safety",
-    building: "Utility Plant",
-    installationDate: "2023-06-01",
-    status: "good",
-    createdBy: "System"
-  },
-  {
-    id: "eq-4",
-    equipmentId: "ALM-PANEL-01",
-    serialNumber: "SIM-4008",
-    qrCode: "QR-FIRE-ALM-01",
-    category: "alarm_panel",
-    type: "alarm_panel",
-    manufacturer: "SimplexGrinnell",
-    model: "4008 Fire Control",
-    capacity: "200 Points",
-    location: "Main Security Control Room",
-    department: "Security",
-    building: "Administration",
-    installationDate: "2023-05-10",
-    status: "good",
-    createdBy: "System"
-  }
-];
-
-const INITIAL_ZONES: FireAlarmZone[] = [
-  { id: "z-1", zoneCode: "ZN-01", zoneName: "Production Hall North", building: "Building A", area: "Manufacturing", devicesCount: 34, status: "normal" },
-  { id: "z-2", zoneCode: "ZN-02", zoneName: "Warehouse Sector B", building: "Building B", area: "Storage", devicesCount: 52, status: "normal" },
-  { id: "z-3", zoneCode: "ZN-03", zoneName: "Administrative Offices", building: "Administration", area: "Offices", devicesCount: 28, status: "normal" }
-];
-
-const INITIAL_SETTINGS: FireProtectionSettings = {
+const DEFAULT_SETTINGS: FireProtectionSettings = {
   defaultInspectionIntervalDays: 30,
   defaultMaintenanceIntervalDays: 180,
   autoGenerateAlerts: true,
@@ -109,124 +22,202 @@ const INITIAL_SETTINGS: FireProtectionSettings = {
     { id: "chk-2", label: "Pin and tamper seal intact", labelAr: "مسمار الأمان والختم سليمان" },
     { id: "chk-3", label: "No physical damage, corrosion, or leakage", labelAr: "خلو الجسم من التلف أو الصدأ أو التسريب" },
     { id: "chk-4", label: "Hose and nozzle clear of blockage", labelAr: "الخرطوم والفوهة خاليان من الانسداد" },
-    { id: "chk-5", label: "Access to extinguisher unobstructed", labelAr: "مكان الطفاية واضح وسهل الوصول إليه" }
-  ]
+    { id: "chk-5", label: "Access to extinguisher unobstructed", labelAr: "مكان الطفاية واضح وسهل الوصول إليه" },
+  ],
 };
 
+async function fetchRows(path: string): Promise<any[]> {
+  const response = await apiRequest("GET", path);
+  const rows = await response.json();
+  return Array.isArray(rows) ? rows : [];
+}
+
+const mapEquipment = (row: any): FireEquipmentItem => ({
+  id: String(row.id || ""),
+  equipmentId: String(row.equipmentId || ""),
+  serialNumber: String(row.serialNumber || ""),
+  qrCode: String(row.qrCode || ""),
+  category: (row.category || "extinguisher") as FireEquipmentItem["category"],
+  type: (row.type || "powder") as FireEquipmentItem["type"],
+  manufacturer: String(row.manufacturer || ""),
+  model: String(row.model || ""),
+  capacity: row.capacity ? String(row.capacity) : undefined,
+  location: String(row.location || ""),
+  department: String(row.department || ""),
+  building: String(row.building || ""),
+  installationDate: row.installationDate ? String(row.installationDate) : undefined,
+  expiryDate: row.expiryDate ? String(row.expiryDate) : undefined,
+  lastInspectionDate: row.lastInspectionDate ? String(row.lastInspectionDate) : undefined,
+  nextInspectionDate: row.nextInspectionDate ? String(row.nextInspectionDate) : undefined,
+  status: (row.status || "good") as FireEquipmentItem["status"],
+  notes: row.notes ? String(row.notes) : undefined,
+  createdBy: String(row.createdBy || ""),
+});
+
+const mapInspection = (row: any): FireInspectionRecord => ({
+  id: String(row.id || ""),
+  equipmentId: String(row.equipmentId || ""),
+  equipmentRef: String(row.equipmentRef || ""),
+  equipmentName: String(row.equipmentName || ""),
+  inspectorName: String(row.inspectorName || ""),
+  inspectorId: String(row.inspectorId || ""),
+  date: String(row.date || ""),
+  time: String(row.time || ""),
+  overallResult: (row.overallResult || "pass") as FireInspectionRecord["overallResult"],
+  checklist: Array.isArray(row.checklist) ? row.checklist : [],
+  notes: row.notes ? String(row.notes) : undefined,
+});
+
+const mapPumpTest = (row: any): FirePumpTestRecord => ({
+  id: String(row.id || ""),
+  pumpId: String(row.pumpId || ""),
+  pumpName: String(row.pumpName || ""),
+  date: String(row.date || ""),
+  suctionPressure: String(row.suctionPressure || ""),
+  dischargePressure: String(row.dischargePressure || ""),
+  flowRate: String(row.flowRate || ""),
+  rpm: Number(row.rpm || 0),
+  oilPressure: String(row.oilPressure || ""),
+  temperature: String(row.temperature || ""),
+  status: (row.status || "pass") as FirePumpTestRecord["status"],
+  notes: row.notes ? String(row.notes) : undefined,
+});
+
+const mapZone = (row: any): FireAlarmZone => ({
+  id: String(row.id || ""),
+  zoneCode: String(row.zoneCode || ""),
+  zoneName: String(row.zoneName || ""),
+  building: String(row.building || ""),
+  area: String(row.area || ""),
+  devicesCount: Number(row.devicesCount || 0),
+  status: (row.status || "normal") as FireAlarmZone["status"],
+});
+
+const mapMaintenance = (row: any): FireMaintenanceWorkOrder => ({
+  id: String(row.id || ""),
+  woNumber: String(row.woNumber || ""),
+  equipmentId: String(row.equipmentId || ""),
+  equipmentName: String(row.equipmentName || ""),
+  type: (row.type || "preventive") as FireMaintenanceWorkOrder["type"],
+  priority: (row.priority || "medium") as FireMaintenanceWorkOrder["priority"],
+  status: (row.status || "open") as FireMaintenanceWorkOrder["status"],
+  assignedTo: String(row.assignedTo || ""),
+  problemDescription: String(row.problemDescription || ""),
+  scheduledDate: String(row.scheduledDate || ""),
+  completedDate: row.completedDate ? String(row.completedDate) : undefined,
+});
+
+const mapAlert = (row: any): FireAlertItem => ({
+  id: String(row.id || ""),
+  type: (row.type || "inspection_due") as FireAlertItem["type"],
+  title: String(row.title || ""),
+  titleAr: String(row.titleAr || ""),
+  message: String(row.message || ""),
+  messageAr: String(row.messageAr || ""),
+  equipmentRef: row.equipmentRef ? String(row.equipmentRef) : undefined,
+  date: String(row.date || ""),
+  isRead: Boolean(row.isRead),
+});
+
 export function useFireProtectionStore() {
-  const [equipment, setEquipment] = useState<FireEquipmentItem[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_EQUIPMENT);
-    return saved ? JSON.parse(saved) : INITIAL_EQUIPMENT;
-  });
-
-  const [inspections, setInspections] = useState<FireInspectionRecord[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_INSPECTIONS);
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [pumpTests] = useState<FirePumpTestRecord[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_PUMP_TESTS);
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [zones] = useState<FireAlarmZone[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_ZONES);
-    return saved ? JSON.parse(saved) : INITIAL_ZONES;
-  });
-
-  const [maintenance] = useState<FireMaintenanceWorkOrder[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_MAINTENANCE);
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [alerts, setAlerts] = useState<FireAlertItem[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_ALERTS);
-    return saved ? JSON.parse(saved) : [
-      {
-        id: "alt-1",
-        type: "inspection_due",
-        title: "Monthly Inspection Due",
-        titleAr: "موعد فحص شهري مستحق",
-        message: "Equipment EXT-102 requires routine monthly safety check.",
-        messageAr: "المعدة EXT-102 تتطلب فحص السلامة الشهري الروتيني.",
-        equipmentRef: "EXT-102",
-        date: new Date().toISOString().split("T")[0],
-        isRead: false
-      }
-    ];
-  });
-
+  const queryClient = useQueryClient();
   const [settings, setSettings] = useState<FireProtectionSettings>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_SETTINGS);
-    return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_SETTINGS);
+      return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    } catch {
+      return DEFAULT_SETTINGS;
+    }
   });
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_EQUIPMENT, JSON.stringify(equipment));
-  }, [equipment]);
+  const { data: equipment = [] } = useQuery<FireEquipmentItem[]>({
+    queryKey: ["/api/fire-equipment"],
+    queryFn: async () => (await fetchRows("/api/fire-equipment")).map(mapEquipment),
+    staleTime: 0,
+  });
+  const { data: inspections = [] } = useQuery<FireInspectionRecord[]>({
+    queryKey: ["/api/fire-inspections"],
+    queryFn: async () => (await fetchRows("/api/fire-inspections")).map(mapInspection),
+    staleTime: 0,
+  });
+  const { data: pumpTests = [] } = useQuery<FirePumpTestRecord[]>({
+    queryKey: ["/api/fire-pump-tests"],
+    queryFn: async () => (await fetchRows("/api/fire-pump-tests")).map(mapPumpTest),
+    staleTime: 0,
+  });
+  const { data: zones = [] } = useQuery<FireAlarmZone[]>({
+    queryKey: ["/api/fire-alarm-zones"],
+    queryFn: async () => (await fetchRows("/api/fire-alarm-zones")).map(mapZone),
+    staleTime: 0,
+  });
+  const { data: maintenance = [] } = useQuery<FireMaintenanceWorkOrder[]>({
+    queryKey: ["/api/fire-maintenance-orders"],
+    queryFn: async () => (await fetchRows("/api/fire-maintenance-orders")).map(mapMaintenance),
+    staleTime: 0,
+  });
+  const { data: alerts = [] } = useQuery<FireAlertItem[]>({
+    queryKey: ["/api/fire-alerts"],
+    queryFn: async () => (await fetchRows("/api/fire-alerts")).map(mapAlert),
+    staleTime: 0,
+  });
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_INSPECTIONS, JSON.stringify(inspections));
-  }, [inspections]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_PUMP_TESTS, JSON.stringify(pumpTests));
-  }, [pumpTests]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_ZONES, JSON.stringify(zones));
-  }, [zones]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_MAINTENANCE, JSON.stringify(maintenance));
-  }, [maintenance]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(alerts));
-  }, [alerts]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
-  }, [settings]);
-
-  const addEquipment = (item: Omit<FireEquipmentItem, "id">) => {
-    const newItem: FireEquipmentItem = {
-      ...item,
-      id: `eq-${Date.now()}`
-    };
-    setEquipment(prev => [newItem, ...prev]);
+  const refresh = async (path: string) => {
+    await queryClient.invalidateQueries({ queryKey: [path] });
+    await queryClient.refetchQueries({ queryKey: [path], type: "active" });
   };
 
-  const deleteEquipment = (id: string) => {
-    setEquipment(prev => prev.filter(e => e.id !== id));
+  const addEquipment = async (item: Omit<FireEquipmentItem, "id">) => {
+    await apiRequest("POST", "/api/fire-equipment", item);
+    await refresh("/api/fire-equipment");
   };
 
-  const addInspection = (record: Omit<FireInspectionRecord, "id">) => {
-    const newRecord: FireInspectionRecord = {
-      ...record,
-      id: `insp-${Date.now()}`
-    };
-    setInspections(prev => [newRecord, ...prev]);
-
-    // Update equipment status and last inspection date
-    setEquipment(prev => prev.map(eq => {
-      if (eq.id === record.equipmentId) {
-        return {
-          ...eq,
-          lastInspectionDate: record.date,
-          status: record.overallResult === 'pass' ? 'good' : 'damaged'
-        };
-      }
-      return eq;
-    }));
+  const deleteEquipment = async (id: string) => {
+    await apiRequest("DELETE", `/api/fire-equipment/${encodeURIComponent(id)}`);
+    await refresh("/api/fire-equipment");
   };
 
-  const dismissAlert = (id: string) => {
-    setAlerts(prev => prev.map(a => a.id === id ? { ...a, isRead: true } : a));
+  const addInspection = async (record: Omit<FireInspectionRecord, "id">) => {
+    await apiRequest("POST", "/api/fire-inspections", record);
+    await apiRequest("PATCH", `/api/fire-equipment/${encodeURIComponent(record.equipmentId)}`, {
+      lastInspectionDate: record.date,
+      status: record.overallResult === "pass" ? "good" : "damaged",
+    });
+    await Promise.all([refresh("/api/fire-inspections"), refresh("/api/fire-equipment")]);
+  };
+
+  const deleteInspection = async (id: string) => {
+    await apiRequest("DELETE", `/api/fire-inspections/${encodeURIComponent(id)}`);
+    await refresh("/api/fire-inspections");
+  };
+  const deletePumpTest = async (id: string) => {
+    await apiRequest("DELETE", `/api/fire-pump-tests/${encodeURIComponent(id)}`);
+    await refresh("/api/fire-pump-tests");
+  };
+  const deleteZone = async (id: string) => {
+    await apiRequest("DELETE", `/api/fire-alarm-zones/${encodeURIComponent(id)}`);
+    await refresh("/api/fire-alarm-zones");
+  };
+  const deleteMaintenance = async (id: string) => {
+    await apiRequest("DELETE", `/api/fire-maintenance-orders/${encodeURIComponent(id)}`);
+    await refresh("/api/fire-maintenance-orders");
+  };
+  const deleteAlert = async (id: string) => {
+    await apiRequest("DELETE", `/api/fire-alerts/${encodeURIComponent(id)}`);
+    await refresh("/api/fire-alerts");
+  };
+
+  const dismissAlert = async (id: string) => {
+    await apiRequest("PATCH", `/api/fire-alerts/${encodeURIComponent(id)}`, { isRead: true });
+    await refresh("/api/fire-alerts");
   };
 
   const updateSettings = (newSettings: FireProtectionSettings) => {
     setSettings(newSettings);
+    try {
+      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(newSettings));
+    } catch {
+      // Settings remain available in memory if browser storage is unavailable.
+    }
   };
 
   return {
@@ -240,7 +231,12 @@ export function useFireProtectionStore() {
     addEquipment,
     deleteEquipment,
     addInspection,
+    deleteInspection,
+    deletePumpTest,
+    deleteZone,
+    deleteMaintenance,
+    deleteAlert,
     dismissAlert,
-    updateSettings
+    updateSettings,
   };
 }
