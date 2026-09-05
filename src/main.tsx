@@ -9,6 +9,7 @@ import "./ncr-preview-fix.css";
 import "./sidebar-layout-fix.css";
 import "./sidebar-theme.css";
 import "./sidebar-brand-footer-contrast.css";
+import "./mobile-board.css";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 const printStyle = document.createElement("style");
