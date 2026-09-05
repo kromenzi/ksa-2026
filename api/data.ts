@@ -21,10 +21,19 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   trainings: { table: "trainings", module: "reports" },
   "training-matrix": { table: "training_matrix", module: "reports" },
   competency: { table: "competency", module: "reports" },
+  inspections: { table: "inspections", module: "reports" },
+  audits: { table: "audits", module: "reports" },
+  compliance: { table: "compliance", module: "reports" },
+  loto: { table: "loto", module: "reports" },
+  permits: { table: "permits", module: "reports" },
+  "escalation-matrix": { table: "escalation_matrix", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
-const GENERIC_TABLES = new Set(["plants", "licenses", "equipment_auth", "trainings", "training_matrix", "competency"]);
+const GENERIC_TABLES = new Set([
+  "plants", "licenses", "equipment_auth", "trainings", "training_matrix", "competency",
+  "inspections", "audits", "compliance", "loto", "permits", "escalation_matrix",
+]);
 
 const COLUMNS: Record<string, Set<string>> = {
   users: new Set(["id", "name", "email", "role", "is_active", "avatar", "joined_at", "auth_user_id"]),
@@ -47,6 +56,12 @@ const COLUMNS: Record<string, Set<string>> = {
   trainings: GENERIC_COLUMNS,
   training_matrix: GENERIC_COLUMNS,
   competency: GENERIC_COLUMNS,
+  inspections: GENERIC_COLUMNS,
+  audits: GENERIC_COLUMNS,
+  compliance: GENERIC_COLUMNS,
+  loto: GENERIC_COLUMNS,
+  permits: GENERIC_COLUMNS,
+  escalation_matrix: GENERIC_COLUMNS,
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
