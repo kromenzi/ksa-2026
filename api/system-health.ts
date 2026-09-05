@@ -32,7 +32,7 @@ async function processEnvironmentalReminders(){
 }
 
 async function resourceHandler(req:any,res:any,resource:string){
-  const user=await getAuthUser(req);const profile=await getProfile(req);if(!user||!profile||!profile.is_active)return json(res,401,{error:"Not authenticated"});
+  const user=await getAuthUser(req);const profile=user?await getProfile(req,user):null;if(!user||!profile||!profile.is_active)return json(res,401,{error:"Not authenticated"});
   const config=RESOURCE_MAP[resource];if(!config)return json(res,404,{error:"Unknown API resource"});if(config.adminOnly&&profile.role!=="admin")return json(res,403,{error:"Insufficient permission"});
   const rawId=String(req.query?.id||"").trim();const table=config.table;const base=`/rest/v1/${table}`;
   if(req.method==="GET"){
@@ -69,7 +69,7 @@ export default async function handler(req:any,res:any){
   const timestamp=new Date().toISOString();
 
   const user=await getAuthUser(req);
-  const profile=user?await getProfile(req):null;
+  const profile=user?await getProfile(req,user):null;
   const canSeeDetails=Boolean(profile?.is_active&&profile.role==="admin");
 
   if(!canSeeDetails){
