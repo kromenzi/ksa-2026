@@ -6,31 +6,13 @@ import { defineConfig } from "vite"
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: '0.0.0.0',
+    host: "0.0.0.0",
     port: 3000,
     allowedHosts: true,
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          "react-vendor": ["react", "react-dom", "wouter"],
-          "ui-vendor": [
-            "framer-motion",
-            "lucide-react",
-            "sonner",
-            "next-themes",
-          ],
-          "data-vendor": ["@tanstack/react-query", "zod", "date-fns", "recharts"],
-          "documents-vendor": ["jspdf", "jspdf-autotable", "jszip"],
-          "ocr-vendor": ["tesseract.js"],
-        },
-      },
     },
   },
 });
