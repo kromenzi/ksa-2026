@@ -26,14 +26,30 @@ export async function supabaseFetch(path: string, init: RequestInit = {}) {
 }
 
 export async function supabaseFetchForRequest(req: any, path: string, init: RequestInit = {}) {
+  requireBackend();
+  if (!anonKey) {
+    const error = new Error("Publishable Supabase credential is not configured.");
+    (error as any).statusCode = 503;
+    throw error;
+  }
+
+  // User-scoped requests intentionally use the publishable/anon API key so that
+  // the caller's JWT and RLS policies remain the authorization boundary.
   const headers = new Headers(init.headers);
+  headers.set("apikey", anonKey);
   const token = getAccessToken(req);
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  return supabaseFetch(path, { ...init, headers });
+  else if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${anonKey}`);
+  headers.set("Content-Type", "application/json");
+  return fetch(`${url}${path}`, { ...init, headers });
 }
 
 export function json(res: any, status: number, body: unknown) {
-  res.status(status).setHeader("Content-Type", "application/json").json(body);
+  res.status(status);
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  res.setHeader("Vary", "Authorization, Cookie");
+  return res.json(body);
 }
 
 export function getAccessToken(req: any) {
@@ -55,19 +71,20 @@ export function getAccessToken(req: any) {
 export async function getAuthUser(req: any) {
   const token = getAccessToken(req);
   if (!token || !url || !anonKey) return null;
-  const response = await fetch(`${url}/auth/v1/user`, { headers: { apikey: anonKey, Authorization: `Bearer ${token}` } });
+  const response = await fetch(`${url}/auth/v1/user`, {
+    headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
   if (!response.ok) return null;
   return response.json();
 }
 
-export async function getProfile(req: any) {
-  const user = await getAuthUser(req);
+export async function getProfile(req: any, verifiedUser?: any) {
+  const user = verifiedUser || await getAuthUser(req);
   if (!user?.id || !url || !anonKey) return null;
   const token = getAccessToken(req);
   if (!token) return null;
 
-  // Use the same verified Supabase user JWT for the application profile lookup.
-  // The users table uses joined_at (not created_at).
   const response = await fetch(
     `${url}/rest/v1/users?auth_user_id=eq.${encodeURIComponent(String(user.id))}&select=id,name,role,is_active,joined_at&limit=1`,
     {
@@ -76,6 +93,7 @@ export async function getProfile(req: any) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
+      cache: "no-store",
     },
   );
   if (!response.ok) return null;
