@@ -1,0 +1,9 @@
+[functions.admin-users]
+verify_jwt = true
+
+[functions.esp-devices]
+# ESP hardware POST requests use x-esp-token; browser GET verifies a user JWT in function code.
+verify_jwt = false
+
+[functions.local-safety-ai]
+verify_jwt = true
