@@ -1,4 +1,4 @@
-import { getAuthUser, getProfile, json, supabaseFetchForRequest } from "./_lib/supabase.js";
+import { getAuthUser, getProfile, json, supabaseFetch, supabaseFetchForRequest } from "./_lib/supabase.js";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "https://sfdpkpqokazsegsstjfs.supabase.co").replace(/\/$/, "");
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable__ve50anGhjvRKxXi6UdrcQ_SQ945faS";
@@ -26,7 +26,10 @@ function canWrite(profile:any,module:string,action:string){if(!profile?.is_activ
 
 async function checkSupabase(){try{const response=await fetch(`${SUPABASE_URL}/rest/v1/users?select=id&limit=1`,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}});return{ok:response.ok,status:response.status};}catch{return{ok:false,status:0};}}
 async function checkHttp(url?:string){if(!url)return{configured:false,ok:false,status:0};try{const response=await fetch(url,{method:"GET",signal:AbortSignal.timeout(4000)});return{configured:true,ok:response.ok,status:response.status};}catch{return{configured:true,ok:false,status:0};}}
-async function processEnvironmentalReminders(req:any){await supabaseFetchForRequest(req,"/rest/v1/rpc/process_environmental_measurement_reminders",{method:"POST",body:"{}"}).catch(()=>undefined);}
+async function processEnvironmentalReminders(){
+  const response=await supabaseFetch("/rest/v1/rpc/process_environmental_measurement_reminders",{method:"POST",body:"{}"});
+  if(!response.ok) console.error("Environmental reminder RPC failed",response.status);
+}
 
 async function resourceHandler(req:any,res:any,resource:string){
   const user=await getAuthUser(req);const profile=await getProfile(req);if(!user||!profile||!profile.is_active)return json(res,401,{error:"Not authenticated"});
@@ -48,9 +51,9 @@ async function resourceHandler(req:any,res:any,resource:string){
   if(resource==="permissions"&&(req.method==="PUT"||req.method==="PATCH")){const role=String(body.role||"").trim(),module=String(body.module||"").trim(),actions=Array.isArray(body.actions)?body.actions:[];if(!role||!module)return json(res,422,{error:"role and module are required"});const lookup=`${base}?role=eq.${encodeURIComponent(role)}&module=eq.${encodeURIComponent(module)}`;const existing=await supabaseFetchForRequest(req,`${lookup}&select=id`);const erows=await existing.json();if(!existing.ok)return json(res,existing.status,{error:erows?.message||"Unable to load permission"});const request=erows[0]?await supabaseFetchForRequest(req,`${base}?id=eq.${encodeURIComponent(erows[0].id)}`,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({actions})}):await supabaseFetchForRequest(req,base,{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({role,module,actions})});const result=await request.json();if(!request.ok)return json(res,request.status,{error:result?.message||"Unable to save permission"});return json(res,200,mapClient(result[0]));}
   if(resource==="section-config"){const sectionType=rawId;if(!sectionType)return json(res,400,{error:"Section type is required"});if(req.method==="DELETE")return json(res,405,{error:"Deleting section configuration is not supported"});const patch=sanitizeBody(table,body,"update");patch.section_type=sectionType;const lookup=`${base}?section_type=eq.${encodeURIComponent(sectionType)}`;const existing=await supabaseFetchForRequest(req,`${lookup}&select=id`);const erows=await existing.json();if(!existing.ok)return json(res,existing.status,{error:erows?.message||"Unable to load section configuration"});const request=erows[0]?await supabaseFetchForRequest(req,lookup,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(patch)}):await supabaseFetchForRequest(req,base,{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(patch)});const result=await request.json();if(!request.ok)return json(res,request.status,{error:result?.message||"Unable to save section configuration"});return json(res,200,mapClient(result[0]));}
   if(req.method==="POST"){const row=sanitizeBody(table,body,"insert");if(["documents","reports","posts","form_templates","employees","routing_rules","activity_logs","environmental_measurements","employee_violations"].includes(table))row.created_at=row.created_at||new Date().toISOString();if(table==="activity_logs"){row.performed_by=row.performed_by||user.id;row.performed_by_name=row.performed_by_name||profile.name;row.timestamp=row.timestamp||new Date().toISOString();}if(table==="documents")row.created_by=row.created_by||user.id;if(table==="employee_violations")row.created_by=row.created_by||user.id;if(table==="posts")row.author_id=row.author_id||user.id;if(table==="environmental_measurements")row.created_by=row.created_by||user.id;
-    const r=await supabaseFetchForRequest(req,base,{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(row)});const rows=await r.json();if(!r.ok)return json(res,r.status,{error:rows?.message||"Unable to create resource"});if(table==="environmental_measurements")await processEnvironmentalReminders(req);return json(res,201,mapClient(rows[0]));}
+    const r=await supabaseFetchForRequest(req,base,{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(row)});const rows=await r.json();if(!r.ok)return json(res,r.status,{error:rows?.message||"Unable to create resource"});if(table==="environmental_measurements")await processEnvironmentalReminders().catch(error=>console.error("Environmental reminder processing failed",error));return json(res,201,mapClient(rows[0]));}
   const id=rawId||(config.single?"main":"");if(!id)return json(res,400,{error:"Resource id is required"});const url=`${base}?id=eq.${encodeURIComponent(id)}`;
-  if(req.method==="PATCH"||req.method==="PUT"){const patch=sanitizeBody(table,body,"update");if(table==="documents"||table==="environmental_measurements"||table==="employee_violations")patch.updated_at=new Date().toISOString();const r=await supabaseFetchForRequest(req,url,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(patch)});const rows=await r.json();if(!r.ok)return json(res,r.status,{error:rows?.message||"Unable to update resource"});if(table==="environmental_measurements")await processEnvironmentalReminders(req);return json(res,200,mapClient(rows[0]||null));}
+  if(req.method==="PATCH"||req.method==="PUT"){const patch=sanitizeBody(table,body,"update");if(table==="documents"||table==="environmental_measurements"||table==="employee_violations")patch.updated_at=new Date().toISOString();const r=await supabaseFetchForRequest(req,url,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(patch)});const rows=await r.json();if(!r.ok)return json(res,r.status,{error:rows?.message||"Unable to update resource"});if(table==="environmental_measurements")await processEnvironmentalReminders().catch(error=>console.error("Environmental reminder processing failed",error));return json(res,200,mapClient(rows[0]||null));}
   const r=await supabaseFetchForRequest(req,url,{method:"DELETE",headers:{Prefer:"return=representation"}});const rows=await r.json().catch(()=>[]);if(!r.ok)return json(res,r.status,{error:rows?.message||"Unable to delete resource"});if(!Array.isArray(rows)||rows.length===0)return json(res,404,{error:"Resource not found or could not be deleted"});return json(res,200,{ok:true,deletedId:id});
 }
 
@@ -58,6 +61,20 @@ export default async function handler(req:any,res:any){
   const resource=String(req.query?.resource||"").trim();
   if(resource&&RESOURCE_MAP[resource]) return resourceHandler(req,res,resource);
   if(req.method!=="GET") return json(res,405,{error:"Method not allowed"});
-  const supabase=await checkSupabase();const gateway=await checkHttp(process.env.CAMERA_GATEWAY_HEALTH_URL);const esp=await checkHttp(process.env.ESP_AI_HEALTH_URL);const overall=supabase.ok&&(!gateway.configured||gateway.ok)&&(!esp.configured||esp.ok);
-  return json(res,overall?200:503,{ok:overall,timestamp:new Date().toISOString(),services:{supabase:{state:supabase.ok?"online":"offline",status:supabase.status},cameraGateway:{state:!gateway.configured?"not-configured":gateway.ok?"online":"offline",status:gateway.status},espAI:{state:!esp.configured?"not-configured":esp.ok?"online":"offline",status:esp.status}}});
+
+  const supabase=await checkSupabase();
+  const gateway=await checkHttp(process.env.CAMERA_GATEWAY_HEALTH_URL);
+  const esp=await checkHttp(process.env.ESP_AI_HEALTH_URL);
+  const overall=supabase.ok&&(!gateway.configured||gateway.ok)&&(!esp.configured||esp.ok);
+  const timestamp=new Date().toISOString();
+
+  const user=await getAuthUser(req);
+  const profile=user?await getProfile(req):null;
+  const canSeeDetails=Boolean(profile?.is_active&&profile.role==="admin");
+
+  if(!canSeeDetails){
+    return json(res,overall?200:503,{ok:overall,timestamp});
+  }
+
+  return json(res,overall?200:503,{ok:overall,timestamp,services:{supabase:{state:supabase.ok?"online":"offline",status:supabase.status},cameraGateway:{state:!gateway.configured?"not-configured":gateway.ok?"online":"offline",status:gateway.status},espAI:{state:!esp.configured?"not-configured":esp.ok?"online":"offline",status:esp.status}}});
 }

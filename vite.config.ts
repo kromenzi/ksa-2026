@@ -6,7 +6,7 @@ import { defineConfig } from "vite"
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: '0.0.0.0',
+    host: "0.0.0.0",
     port: 3000,
     allowedHosts: true,
   },
@@ -18,17 +18,12 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          "react-vendor": ["react", "react-dom", "wouter"],
-          "ui-vendor": [
-            "framer-motion",
-            "lucide-react",
-            "sonner",
-            "next-themes",
-          ],
-          "data-vendor": ["@tanstack/react-query", "zod", "date-fns", "recharts"],
-          "documents-vendor": ["jspdf", "jspdf-autotable", "jszip"],
-          "ocr-vendor": ["tesseract.js"],
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/scheduler/") || id.includes("/wouter/")) return "framework";
+          if (id.includes("/@tanstack/")) return "query";
+          if (id.includes("/@radix-ui/")) return "radix";
+          if (id.includes("/framer-motion/")) return "motion";
         },
       },
     },
