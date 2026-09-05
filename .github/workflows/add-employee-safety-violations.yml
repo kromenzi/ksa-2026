@@ -21,11 +21,11 @@ jobs:
         run: npm ci
       - name: TypeScript and Vite build
         run: npm run build
-      - name: Commit navigation integration
+      - name: Commit verified integration
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/App.tsx src/components/layouts/admin-layout.tsx
+          git add src/App.tsx src/components/layouts/admin-layout.tsx src/pages/admin/employee-violations.tsx api/system-health.ts vercel.json
           if git diff --cached --quiet; then
             echo "No integration changes required"
             exit 0
