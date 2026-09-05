@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useData } from "@/lib/data-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,13 +9,12 @@ import { toast } from "sonner";
 export default function AdminActivityLogs() {
   const { settings, activityLogs, logActivity, currentUser, isAuthenticated, isLoading } = useData();
   const isAr = settings.language === "ar";
+  const hasLoggedViewRef = useRef(false);
 
   useEffect(() => {
-    // Do not attempt to write before /api/auth/me has resolved.
-    // Previously this ran once on mount, often before currentUser existed,
-    // causing the POST to fail with 401 and leaving the log empty forever.
-    if (isLoading || !isAuthenticated || !currentUser) return;
+    if (isLoading || !isAuthenticated || !currentUser || hasLoggedViewRef.current) return;
 
+    hasLoggedViewRef.current = true;
     let cancelled = false;
     void (async () => {
       try {
