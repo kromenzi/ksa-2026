@@ -1,3 +1,4 @@
+import { lazy, Suspense, useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
@@ -5,70 +6,69 @@ import { queryClient } from "./lib/queryClient";
 import Home from "@/pages/home";
 import NotFound from "@/pages/not-found";
 import AdminLogin from "@/pages/admin/login";
-import AdminDashboard from "@/pages/admin/dashboard";
-import AdminUsers from "@/pages/admin/users";
-import AdminPosts from "@/pages/admin/posts";
-import AdminSections from "@/pages/admin/sections";
-import AdminForms from "@/pages/admin/forms";
-import AdminReports from "@/pages/admin/reports";
-import AdminNCR from "@/pages/admin/ncr/list";
-import AdminNCRForm from "@/pages/admin/ncr/form";
-import AdminNCRNewFixed from "@/pages/admin/ncr/new-fixed";
-import AdminFiles from "@/pages/admin/files";
-import AdminContracts from "@/pages/admin/contracts";
-import AdminPermits from "@/pages/admin/permits";
-import AdminInvoices from "@/pages/admin/invoices";
-import AdminSettings from "@/pages/admin/settings";
-import AdminActivityLogs from "@/pages/admin/activity-logs";
-import AdminPlants from "@/pages/admin/plants";
-import AdminIntegrations from "@/pages/admin/integrations";
-import AdminEmailSettings from "@/pages/admin/email-settings";
-import AdminInbox from "@/pages/admin/inbox";
-import AdminMailConfig from "@/pages/admin/mail-config";
-import AdminNotificationRules from "@/pages/admin/notification-rules";
-import AdminGamification from "@/pages/admin/gamification";
-import AdminEmployees from "@/pages/admin/employees";
-import AdminTrainings from "@/pages/admin/trainings";
-import AdminTrainingMatrix from "@/pages/admin/training-matrix";
-import AdminCompetency from "@/pages/admin/competency";
-import AdminIncidents from "@/pages/admin/incidents";
-import AdminRiskAssessment from "@/pages/admin/risk-assessment";
-import AdminInspections from "@/pages/admin/inspections";
-import AdminAudits from "@/pages/admin/audits";
-import AdminLoto from "@/pages/admin/loto";
-import AdminAssets from "@/pages/admin/assets";
-import AdminVisitors from "@/pages/admin/visitors";
-import AdminEmergency from "@/pages/admin/emergency";
-import AdminEnterpriseReports from "@/pages/admin/enterprise-reports";
-import AdminCompliance from "@/pages/admin/compliance";
-import AdminLicenses from "@/pages/admin/licenses";
-import FacilityRegulatoryLicenses from "@/pages/admin/facility-regulatory-licenses";
-import EnvironmentalMeasurements from "@/pages/admin/environmental-measurements";
-import AdminEquipmentAuth from "@/pages/admin/equipment-auth";
-import AdminSafetyPyramid from "@/pages/admin/safety-pyramid";
-import AdminSafetyPyramidPrint from "@/pages/admin/safety-pyramid-print";
-import EscalationDashboard from "@/pages/admin/escalations/dashboard";
-import EscalationHistory from "@/pages/admin/escalations/history";
-import EscalationMatrix from "@/pages/admin/escalations/matrix";
-import VisionDashboard from "@/pages/admin/vision/dashboard";
-import VisionLive from "@/pages/admin/vision/live";
-import VisionCameras from "@/pages/admin/vision/cameras";
-import VisionDevices from "@/pages/admin/vision/devices";
-import VisionMap from "@/pages/admin/vision/map";
-import VisionRules from "@/pages/admin/vision/rules";
-import VisionEvents from "@/pages/admin/vision/events";
-import VisionAlerts from "@/pages/admin/vision/alerts";
-import VisionAnalytics from "@/pages/admin/vision/analytics";
-import VisionSettings from "@/pages/admin/vision/settings";
-import AdminFireProtection from "@/pages/admin/fire-protection";
-import AdminSafetySigns from "@/pages/admin/safety-signs";
-import AdminEmployeeViolations from "@/pages/admin/employee-violations";
-
 import { DataProvider, useData } from "@/lib/data-context";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import EnvironmentalMeasurementsAlert from "@/components/environmental-measurements-alert";
-import PublicReport from "@/pages/public-report";
-import { useEffect } from "react";
+
+const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
+const AdminUsers = lazy(() => import("@/pages/admin/users"));
+const AdminPosts = lazy(() => import("@/pages/admin/posts"));
+const AdminSections = lazy(() => import("@/pages/admin/sections"));
+const AdminForms = lazy(() => import("@/pages/admin/forms"));
+const AdminReports = lazy(() => import("@/pages/admin/reports"));
+const AdminNCR = lazy(() => import("@/pages/admin/ncr/list"));
+const AdminNCRForm = lazy(() => import("@/pages/admin/ncr/form"));
+const AdminNCRNewFixed = lazy(() => import("@/pages/admin/ncr/new-fixed"));
+const AdminFiles = lazy(() => import("@/pages/admin/files"));
+const AdminContracts = lazy(() => import("@/pages/admin/contracts"));
+const AdminPermits = lazy(() => import("@/pages/admin/permits"));
+const AdminInvoices = lazy(() => import("@/pages/admin/invoices"));
+const AdminSettings = lazy(() => import("@/pages/admin/settings"));
+const AdminActivityLogs = lazy(() => import("@/pages/admin/activity-logs"));
+const AdminPlants = lazy(() => import("@/pages/admin/plants"));
+const AdminIntegrations = lazy(() => import("@/pages/admin/integrations"));
+const AdminEmailSettings = lazy(() => import("@/pages/admin/email-settings"));
+const AdminInbox = lazy(() => import("@/pages/admin/inbox"));
+const AdminMailConfig = lazy(() => import("@/pages/admin/mail-config"));
+const AdminNotificationRules = lazy(() => import("@/pages/admin/notification-rules"));
+const AdminGamification = lazy(() => import("@/pages/admin/gamification"));
+const AdminEmployees = lazy(() => import("@/pages/admin/employees"));
+const AdminEmployeeViolations = lazy(() => import("@/pages/admin/employee-violations"));
+const AdminTrainings = lazy(() => import("@/pages/admin/trainings"));
+const AdminTrainingMatrix = lazy(() => import("@/pages/admin/training-matrix"));
+const AdminCompetency = lazy(() => import("@/pages/admin/competency"));
+const AdminIncidents = lazy(() => import("@/pages/admin/incidents"));
+const AdminRiskAssessment = lazy(() => import("@/pages/admin/risk-assessment"));
+const AdminInspections = lazy(() => import("@/pages/admin/inspections"));
+const AdminAudits = lazy(() => import("@/pages/admin/audits"));
+const AdminLoto = lazy(() => import("@/pages/admin/loto"));
+const AdminAssets = lazy(() => import("@/pages/admin/assets"));
+const AdminVisitors = lazy(() => import("@/pages/admin/visitors"));
+const AdminEmergency = lazy(() => import("@/pages/admin/emergency"));
+const AdminFireProtection = lazy(() => import("@/pages/admin/fire-protection"));
+const AdminSafetySigns = lazy(() => import("@/pages/admin/safety-signs"));
+const AdminEnterpriseReports = lazy(() => import("@/pages/admin/enterprise-reports"));
+const AdminCompliance = lazy(() => import("@/pages/admin/compliance"));
+const AdminLicenses = lazy(() => import("@/pages/admin/licenses"));
+const FacilityRegulatoryLicenses = lazy(() => import("@/pages/admin/facility-regulatory-licenses"));
+const EnvironmentalMeasurements = lazy(() => import("@/pages/admin/environmental-measurements"));
+const AdminEquipmentAuth = lazy(() => import("@/pages/admin/equipment-auth"));
+const AdminSafetyPyramid = lazy(() => import("@/pages/admin/safety-pyramid"));
+const AdminSafetyPyramidPrint = lazy(() => import("@/pages/admin/safety-pyramid-print"));
+const EscalationDashboard = lazy(() => import("@/pages/admin/escalations/dashboard"));
+const EscalationHistory = lazy(() => import("@/pages/admin/escalations/history"));
+const EscalationMatrix = lazy(() => import("@/pages/admin/escalations/matrix"));
+const VisionDashboard = lazy(() => import("@/pages/admin/vision/dashboard"));
+const VisionLive = lazy(() => import("@/pages/admin/vision/live"));
+const VisionCameras = lazy(() => import("@/pages/admin/vision/cameras"));
+const VisionDevices = lazy(() => import("@/pages/admin/vision/devices"));
+const VisionMap = lazy(() => import("@/pages/admin/vision/map"));
+const VisionRules = lazy(() => import("@/pages/admin/vision/rules"));
+const VisionEvents = lazy(() => import("@/pages/admin/vision/events"));
+const VisionAlerts = lazy(() => import("@/pages/admin/vision/alerts"));
+const VisionAnalytics = lazy(() => import("@/pages/admin/vision/analytics"));
+const VisionSettings = lazy(() => import("@/pages/admin/vision/settings"));
+const PublicReport = lazy(() => import("@/pages/public-report"));
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useData();
@@ -79,13 +79,20 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }, [isAuthenticated, setLocation]);
 
   if (!isAuthenticated) return null;
-  return <AdminLayout><EnvironmentalMeasurementsAlert /><Component /></AdminLayout>;
+  return (
+    <AdminLayout>
+      <EnvironmentalMeasurementsAlert />
+      <Component />
+    </AdminLayout>
+  );
 }
 
 function AdminRedirect() {
   const { isAuthenticated } = useData();
   const [, setLocation] = useLocation();
-  useEffect(() => { setLocation(isAuthenticated ? "/admin/dashboard" : "/admin/login"); }, [isAuthenticated, setLocation]);
+  useEffect(() => {
+    setLocation(isAuthenticated ? "/admin/dashboard" : "/admin/login");
+  }, [isAuthenticated, setLocation]);
   return null;
 }
 
@@ -165,7 +172,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <DataProvider>
         <Toaster />
-        <Router />
+        <Suspense fallback={<div className="min-h-screen grid place-items-center text-sm text-muted-foreground">Loading…</div>}>
+          <Router />
+        </Suspense>
       </DataProvider>
     </QueryClientProvider>
   );
