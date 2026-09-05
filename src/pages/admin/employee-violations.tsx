@@ -90,13 +90,46 @@ export default function AdminEmployeeViolations() {
         cache: "no-store",
       });
       if (!response.ok) throw new Error("Unable to load employee violations");
-      return response.json();
+      const rows = (await response.json()) as any[];
+      const employeeCounts = new Map<string, number>();
+      const sameViolationCounts = new Map<string, number>();
+      const employeeKey = (item: any) => String(item.employeeId || item.employeeName || "").trim().toLocaleLowerCase();
+      const violationText = (item: any) => String(item.violation || item.violationDescription || "").trim();
+      for (const item of rows) {
+        const key = employeeKey(item);
+        if (!key) continue;
+        employeeCounts.set(key, (employeeCounts.get(key) || 0) + 1);
+        const sameKey = `${key}::${violationText(item).toLocaleLowerCase()}`;
+        sameViolationCounts.set(sameKey, (sameViolationCounts.get(sameKey) || 0) + 1);
+      }
+      return rows.map((item: any) => {
+        const key = employeeKey(item);
+        const normalizedViolation = violationText(item);
+        const repeatCount = key ? employeeCounts.get(key) || 1 : 1;
+        const sameViolationCount = key ? sameViolationCounts.get(`${key}::${normalizedViolation.toLocaleLowerCase()}`) || 1 : 1;
+        return {
+          ...item,
+          department: item.department || item.data?.department || "",
+          occupation: item.occupation || item.position || item.data?.occupation || "",
+          violation: normalizedViolation,
+          notes: item.notes || item.data?.notes || "",
+          severity: item.severity || item.data?.severity || "medium",
+          repeatCount,
+          sameViolationCount,
+          isRepeat: repeatCount > 1,
+          isSameViolationRepeat: sameViolationCount > 1,
+        } as ViolationRecord;
+      });
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/employee-violations", form);
+      const response = await apiRequest("POST", "/api/employee-violations", {
+        ...form,
+        refNo: `VIO-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`,
+        status: "open",
+      });
       return response.json();
     },
     onSuccess: async () => {
@@ -109,9 +142,26 @@ export default function AdminEmployeeViolations() {
   });
 
   const escalateMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await apiRequest("POST", `/api/employee-violations?id=${encodeURIComponent(id)}&action=escalate`, {});
-      return response.json();
+    mutationFn: async (item: ViolationRecord) => {
+      const level = item.repeatCount >= 3 ? "Level 3 - HSE Manager / HR" : "Level 2 - Department Manager";
+      const severity = item.repeatCount >= 3 ? "CRITICAL" : "HIGH";
+      const reason = `Employee safety violation. Employee: ${item.employeeName} (${item.employeeId}). Violation: ${item.violation}. Total recorded violations: ${item.repeatCount}.`;
+      const escalationResponse = await apiRequest("POST", "/api/escalations", {
+        title: `Safety Violation - ${item.employeeName}`,
+        source: `SAFETY-VIOLATION:${item.id}`,
+        severity,
+        level,
+        department: item.department || "HSE",
+        responsible: "Department Manager / HSE",
+        reason,
+      });
+      const escalation = await escalationResponse.json();
+      const violationResponse = await apiRequest("PATCH", `/api/employee-violations/${encodeURIComponent(item.id)}`, {
+        status: "escalated",
+        escalationId: escalation.id,
+        escalatedAt: new Date().toISOString(),
+      });
+      return { escalation, violation: await violationResponse.json() };
     },
     onSuccess: async () => {
       toast.success(isAr ? "تم إنشاء التصعيد الإداري وربطه بالمخالفة" : "Administrative escalation created and linked");
@@ -427,7 +477,7 @@ export default function AdminEmployeeViolations() {
                                 `Escalate ${item.employeeName}'s safety violation to management?`,
                               ),
                             );
-                            if (confirmed) escalateMutation.mutate(item.id);
+                            if (confirmed) escalateMutation.mutate(item);
                           }}
                         >
                           <ArrowUpRight className="h-4 w-4" />

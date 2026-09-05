@@ -15,6 +15,8 @@
     { "source": "/api/activity-logs/:id", "destination": "/api/system-health?resource=activity-logs&id=:id" },
     { "source": "/api/employees", "destination": "/api/system-health?resource=employees" },
     { "source": "/api/employees/:id", "destination": "/api/system-health?resource=employees&id=:id" },
+    { "source": "/api/employee-violations", "destination": "/api/system-health?resource=employee-violations" },
+    { "source": "/api/employee-violations/:id", "destination": "/api/system-health?resource=employee-violations&id=:id" },
     { "source": "/api/routing-rules", "destination": "/api/system-health?resource=routing-rules" },
     { "source": "/api/routing-rules/:id", "destination": "/api/system-health?resource=routing-rules&id=:id" },
     { "source": "/api/permissions", "destination": "/api/system-health?resource=permissions" },
