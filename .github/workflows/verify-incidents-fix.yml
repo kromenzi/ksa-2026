@@ -1,0 +1,36 @@
+name: Verify Incidents Repair Branch
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-incidents-fix.yml"
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/incidents-near-miss-persistence
+          fetch-depth: 0
+      - name: Apply persistence wiring
+        run: python3 scripts/fix-incidents-persistence.py
+      - name: Link dashboard and pyramids
+        run: python3 scripts/link-incidents-dashboard-pyramid.py
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Commit verified repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/admin/incidents.tsx src/pages/admin/dashboard.tsx src/pages/admin/safety-pyramid.tsx src/components/incident-pyramid.tsx api/data.ts vercel.json
+          if git diff --cached --quiet; then
+            echo "No source changes"
+            exit 0
+          fi
+          git commit -m "fix: persist incidents and sync Near Miss KPIs"
+          git push origin HEAD:fix/incidents-near-miss-persistence
