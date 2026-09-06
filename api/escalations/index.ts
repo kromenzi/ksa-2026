@@ -8,6 +8,9 @@ function toClient(row: any) {
     id: row.id,
     refNo: row.ref_no,
     source: data.source || row.ref_no,
+    sourceType: data.sourceType || null,
+    sourceId: data.sourceId || null,
+    sourceRef: data.sourceRef || data.source || null,
     title: row.title,
     severity: data.severity || "HIGH",
     level: data.level || "Level 2 - Dept Manager",
@@ -52,6 +55,19 @@ export default async function handler(req: any, res: any) {
       const title = String(body.title || "").trim();
       if (!title) return json(res, 422, { error: "Issue title is required" });
 
+      const sourceType = String(body.sourceType || "").trim().toUpperCase();
+      const sourceId = String(body.sourceId || "").trim();
+      const sourceRef = String(body.sourceRef || body.source || "").trim();
+      if (sourceType && sourceId) {
+        const existingResponse = await supabaseFetchForRequest(req, "/rest/v1/escalations?select=*&order=created_at.desc");
+        const existingRows = await existingResponse.json();
+        if (!existingResponse.ok) return json(res, existingResponse.status, { error: existingRows?.message || "Unable to verify source escalation" });
+        const existing = Array.isArray(existingRows)
+          ? existingRows.find((row: any) => String(row?.data?.sourceType || "").toUpperCase() === sourceType && String(row?.data?.sourceId || "") === sourceId)
+          : null;
+        if (existing) return json(res, 200, { ...toClient(existing), alreadyExists: true });
+      }
+
       const year = new Date().getFullYear();
       const refNo = `ESC-${year}-${Date.now().toString(36).toUpperCase()}`;
       const status = String(body.status || "OPEN");
@@ -65,7 +81,10 @@ export default async function handler(req: any, res: any) {
         date: dueDate,
         created_by: user.id,
         data: {
-          source: String(body.source || "MANUAL"),
+          source: String(body.source || sourceRef || "MANUAL"),
+          sourceType: sourceType || null,
+          sourceId: sourceId || null,
+          sourceRef: sourceRef || null,
           severity: String(body.severity || "HIGH"),
           level: String(body.level || "Level 2 - Dept Manager"),
           responsible: String(body.responsible || (profile.name || "HSE Lead")),
