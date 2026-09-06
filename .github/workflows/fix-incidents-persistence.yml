@@ -1,0 +1,38 @@
+name: Verify Incident Persistence
+on:
+  push:
+    branches: [fix/incidents-near-miss-persistence]
+    paths:
+      - "scripts/fix-incidents-persistence.py"
+      - "scripts/link-incidents-dashboard-pyramid.py"
+      - "supabase/migrations/20260906062000_add_incidents_persistence.sql"
+      - ".github/workflows/fix-incidents-persistence.yml"
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Wire persistent incident storage
+        run: python3 scripts/fix-incidents-persistence.py
+      - name: Link incidents to Dashboard and Safety Pyramid
+        run: python3 scripts/link-incidents-dashboard-pyramid.py
+      - name: Install dependencies
+        run: npm ci
+      - name: TypeScript and Vite build
+        run: npm run build
+      - name: Commit verified source changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/admin/incidents.tsx src/pages/admin/dashboard.tsx src/pages/admin/safety-pyramid.tsx src/components/incident-pyramid.tsx api/data.ts vercel.json
+          if git diff --cached --quiet; then
+            echo "No generated changes required"
+            exit 0
+          fi
+          git commit -m "fix: persist incidents and sync Near Miss KPIs"
+          git push origin HEAD:fix/incidents-near-miss-persistence
