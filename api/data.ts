@@ -22,6 +22,7 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "training-matrix": { table: "training_matrix", module: "reports" },
   competency: { table: "competency", module: "reports" },
   inspections: { table: "inspections", module: "reports" },
+  incidents: { table: "incidents", module: "reports" },
   audits: { table: "audits", module: "reports" },
   compliance: { table: "compliance", module: "reports" },
   loto: { table: "loto", module: "reports" },
@@ -32,7 +33,7 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
 const GENERIC_TABLES = new Set([
   "plants", "licenses", "equipment_auth", "trainings", "training_matrix", "competency",
-  "inspections", "audits", "compliance", "loto", "permits", "escalation_matrix",
+  "inspections", "incidents", "audits", "compliance", "loto", "permits", "escalation_matrix",
 ]);
 
 const COLUMNS: Record<string, Set<string>> = {
@@ -57,6 +58,7 @@ const COLUMNS: Record<string, Set<string>> = {
   training_matrix: GENERIC_COLUMNS,
   competency: GENERIC_COLUMNS,
   inspections: GENERIC_COLUMNS,
+  incidents: GENERIC_COLUMNS,
   audits: GENERIC_COLUMNS,
   compliance: GENERIC_COLUMNS,
   loto: GENERIC_COLUMNS,
