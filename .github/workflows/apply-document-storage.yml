@@ -1,0 +1,44 @@
+name: Apply document storage upload support
+
+on:
+  push:
+    branches:
+      - feat/documents-all-file-types
+    paths:
+      - scripts/patch-document-storage.py
+      - .github/workflows/apply-document-storage.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/documents-all-file-types
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply storage API patch
+        run: python scripts/patch-document-storage.py
+      - name: Install dependencies
+        run: npm ci
+      - name: Production build
+        run: npm run build
+      - name: Commit generated API change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api/system-health.ts
+          if git diff --cached --quiet; then
+            echo "No generated API changes to commit"
+          else
+            git commit -m "feat: add private signed storage flow for documents"
+            git push origin HEAD:feat/documents-all-file-types
+          fi
