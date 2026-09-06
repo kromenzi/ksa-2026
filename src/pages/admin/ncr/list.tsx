@@ -14,7 +14,7 @@ import {
   Search, Edit, Trash2, Mail, AlertTriangle, Printer, Upload, FileEdit, ChevronDown, 
   Eye, ClipboardList, MapPin, Calendar, Building2, User, Clock, CheckCircle2, 
   ShieldAlert, FileText, X, Zap, Activity, Filter, XCircle, FileBarChart,
-  ShieldCheck, ShieldAlert as ShieldAlertIcon, Archive, FileSpreadsheet, FileCode2, Download, FileText as FileDocIcon
+  ShieldCheck, ShieldAlert as ShieldAlertIcon, Archive, FileSpreadsheet, FileCode2, Download, FileText as FileDocIcon, Loader2
 } from "lucide-react";
 import PrintShareDialog from "@/components/print-share-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -25,9 +25,10 @@ import { cn } from "@/lib/utils";
 import JSZip from "jszip";
 import { useToast } from "@/hooks/use-toast";
 import ExportPreviewModal, { type ExportColumnDef, type ExportOptions } from "@/components/export-preview-modal";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function AdminNCRList() {
-  const { ncrs, deleteNCR, sendNCREmail, settings, hasPermission } = useData();
+  const { ncrs, deleteNCR, sendNCREmail, updateNCR, settings, hasPermission, currentUser } = useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
@@ -37,6 +38,7 @@ export default function AdminNCRList() {
   const [shareItem, setShareItem] = useState<NCR | null>(null);
   const [previewNCR, setPreviewNCR] = useState<NCR | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [escalatingId, setEscalatingId] = useState<string | null>(null);
 
   const ncrColumns: ExportColumnDef[] = [
     { id: "refNo", labelEn: "Reference No", labelAr: "رقم المرجع" },
@@ -210,6 +212,74 @@ export default function AdminNCRList() {
   const hasActiveFilters = searchTerm || statusFilter !== 'all' || severityFilter !== 'all';
 
   const { toast } = useToast();
+
+  const handleEscalateNCR = async (ncr: NCR) => {
+    const existing = ncr.sourceMetadata?.escalation;
+    if (existing?.id) {
+      setLocation('/admin/escalations/history');
+      return;
+    }
+
+    setEscalatingId(ncr.id);
+    try {
+      const severity = String(ncr.severity || 'medium').toLowerCase();
+      const level = severity === 'critical'
+        ? 'Level 4 - Plant Manager'
+        : severity === 'high'
+          ? 'Level 3 - HSE Manager'
+          : severity === 'medium'
+            ? 'Level 2 - Dept Manager'
+            : 'Level 1 - Supervisor';
+      const description = String(ncr.description || '').trim();
+      const response = await apiRequest('POST', '/api/escalations', {
+        source: ncr.refNo || `NCR:${ncr.id}`,
+        sourceType: 'NCR',
+        sourceId: ncr.id,
+        sourceRef: ncr.refNo,
+        title: `${ncr.refNo || 'NCR'} - ${description.slice(0, 120) || (isAr ? 'عدم مطابقة' : 'Non-conformance')}`,
+        severity: severity.toUpperCase(),
+        level,
+        department: ncr.department || 'HSE',
+        responsible: currentUser?.name || 'HSE Lead',
+        reason: description || (isAr ? 'تصعيد تقرير عدم مطابقة' : 'NCR management escalation'),
+      });
+      const escalation = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(escalation?.error || 'Unable to create escalation');
+
+      const previousMetadata = ncr.sourceMetadata && typeof ncr.sourceMetadata === 'object'
+        ? ncr.sourceMetadata
+        : {};
+      await updateNCR(ncr.id, {
+        sourceMetadata: {
+          ...previousMetadata,
+          escalation: {
+            id: escalation.id,
+            refNo: escalation.refNo,
+            status: escalation.status,
+            createdAt: escalation.createdAt || new Date().toISOString(),
+            sourceType: 'NCR',
+            sourceId: ncr.id,
+            sourceRef: ncr.refNo,
+          },
+        },
+      });
+
+      toast({
+        title: escalation.alreadyExists
+          ? (isAr ? 'تم ربط التصعيد الموجود' : 'Existing escalation linked')
+          : (isAr ? 'تم تصعيد NCR للإدارة' : 'NCR escalated to management'),
+        description: escalation.refNo || undefined,
+      });
+    } catch (error: any) {
+      toast({
+        title: isAr ? 'فشل تصعيد NCR' : 'NCR escalation failed',
+        description: error?.message || (isAr ? 'تعذر إنشاء التصعيد' : 'Unable to create escalation'),
+        variant: 'destructive',
+      });
+    } finally {
+      setEscalatingId(null);
+    }
+  };
 
   const handleExportCSV = () => {
     const headers = ["Reference No", "Department", "Location", "Severity", "Status", "Date", "Description", "Corrective Action"];
@@ -673,20 +743,38 @@ export default function AdminNCRList() {
                             <TooltipContent side="bottom" className="text-xs">{isAr ? 'طباعة' : 'Print'}</TooltipContent>
                           </Tooltip>
                           
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 rounded-lg text-rose-500 hover:bg-rose-500/10 hover:text-rose-600" 
-                                onClick={() => setLocation("/admin/escalations?source=" + encodeURIComponent(ncr.refNo))} 
-                                data-testid={"button-escalate-ncr-" + ncr.id}
-                              >
-                                <ShieldAlert className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="text-xs">{isAr ? 'تصعيد للإدارة' : 'Escalate to Management'}</TooltipContent>
-                          </Tooltip>
+                          {canEdit && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={cn(
+                                    "h-8 w-8 rounded-lg",
+                                    ncr.sourceMetadata?.escalation?.id
+                                      ? "text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700"
+                                      : "text-rose-500 hover:bg-rose-500/10 hover:text-rose-600",
+                                  )}
+                                  onClick={() => void handleEscalateNCR(ncr)}
+                                  disabled={escalatingId === ncr.id}
+                                  data-testid={"button-escalate-ncr-" + ncr.id}
+                                >
+                                  {escalatingId === ncr.id
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : ncr.sourceMetadata?.escalation?.id
+                                      ? <ShieldCheck className="h-4 w-4" />
+                                      : <ShieldAlert className="h-4 w-4" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="text-xs">
+                                {ncr.sourceMetadata?.escalation?.id
+                                  ? (isAr
+                                      ? `تم التصعيد: ${ncr.sourceMetadata.escalation.refNo || ''}`
+                                      : `Escalated: ${ncr.sourceMetadata.escalation.refNo || ''}`)
+                                  : (isAr ? 'تصعيد للإدارة' : 'Escalate to Management')}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           {canEdit && (
                             <Tooltip>
                               <TooltipTrigger asChild>
