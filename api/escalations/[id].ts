@@ -26,21 +26,22 @@ export default async function handler(req: any, res: any) {
       const sourceData = deleted?.data && typeof deleted.data === "object" ? deleted.data : {};
       const sourceType = String(sourceData.sourceType || "").toUpperCase();
       const sourceId = String(sourceData.sourceId || "").trim();
-      if (sourceId && (sourceType === "SOR" || sourceType === "NCR")) {
-        const table = sourceType === "SOR" ? "safety_reports" : "ncr";
-        const sourceResponse = await supabaseFetchForRequest(req, `/rest/v1/${table}?id=eq.${encodeURIComponent(sourceId)}&select=source_metadata&limit=1`);
+      if (sourceId && ["SOR", "NCR", "INCIDENT"].includes(sourceType)) {
+        const table = sourceType === "SOR" ? "safety_reports" : sourceType === "NCR" ? "ncr" : "incidents";
+        const linkColumn = sourceType === "INCIDENT" ? "data" : "source_metadata";
+        const sourceResponse = await supabaseFetchForRequest(req, `/rest/v1/${table}?id=eq.${encodeURIComponent(sourceId)}&select=${linkColumn}&limit=1`);
         const sourceRows = await sourceResponse.json().catch(() => []);
         if (sourceResponse.ok && Array.isArray(sourceRows) && sourceRows[0]) {
-          const metadata = sourceRows[0].source_metadata && typeof sourceRows[0].source_metadata === "object"
-            ? { ...sourceRows[0].source_metadata }
+          const sourceLinkData = sourceRows[0][linkColumn] && typeof sourceRows[0][linkColumn] === "object"
+            ? { ...sourceRows[0][linkColumn] }
             : {};
-          const linkedId = String(metadata?.escalation?.id || "");
+          const linkedId = String(sourceLinkData?.escalation?.id || "");
           if (!linkedId || linkedId === id) {
-            delete metadata.escalation;
+            delete sourceLinkData.escalation;
             await supabaseFetchForRequest(req, `/rest/v1/${table}?id=eq.${encodeURIComponent(sourceId)}`, {
               method: "PATCH",
               headers: { Prefer: "return=minimal" },
-              body: JSON.stringify({ source_metadata: metadata, updated_at: new Date().toISOString() }),
+              body: JSON.stringify({ [linkColumn]: sourceLinkData, updated_at: new Date().toISOString() }),
             });
           }
         }
