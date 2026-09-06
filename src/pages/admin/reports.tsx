@@ -78,11 +78,6 @@ export default function AdminReports() {
   }, [isAr, toast, logActivity, getPublicUrl]);
 
   const handleEscalateSafetyReport = useCallback(async (report: SafetyReport) => {
-    const existing = report.sourceMetadata?.escalation;
-    if (existing?.id) {
-      window.location.assign('/admin/escalations/history');
-      return;
-    }
     if (report.status === 'closed') {
       toast({
         title: isAr ? 'لا يمكن تصعيد تقرير مغلق' : 'Closed report cannot be escalated',

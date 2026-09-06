@@ -21,6 +21,31 @@ export default async function handler(req: any, res: any) {
       const rows = await response.json().catch(() => []);
       if (!response.ok) return json(res, response.status, { error: rows?.message || "Unable to delete escalation" });
       if (!Array.isArray(rows) || rows.length === 0) return json(res, 404, { error: "Escalation not found or could not be deleted" });
+
+      const deleted = rows[0];
+      const sourceData = deleted?.data && typeof deleted.data === "object" ? deleted.data : {};
+      const sourceType = String(sourceData.sourceType || "").toUpperCase();
+      const sourceId = String(sourceData.sourceId || "").trim();
+      if (sourceId && (sourceType === "SOR" || sourceType === "NCR")) {
+        const table = sourceType === "SOR" ? "safety_reports" : "ncr";
+        const sourceResponse = await supabaseFetchForRequest(req, `/rest/v1/${table}?id=eq.${encodeURIComponent(sourceId)}&select=source_metadata&limit=1`);
+        const sourceRows = await sourceResponse.json().catch(() => []);
+        if (sourceResponse.ok && Array.isArray(sourceRows) && sourceRows[0]) {
+          const metadata = sourceRows[0].source_metadata && typeof sourceRows[0].source_metadata === "object"
+            ? { ...sourceRows[0].source_metadata }
+            : {};
+          const linkedId = String(metadata?.escalation?.id || "");
+          if (!linkedId || linkedId === id) {
+            delete metadata.escalation;
+            await supabaseFetchForRequest(req, `/rest/v1/${table}?id=eq.${encodeURIComponent(sourceId)}`, {
+              method: "PATCH",
+              headers: { Prefer: "return=minimal" },
+              body: JSON.stringify({ source_metadata: metadata, updated_at: new Date().toISOString() }),
+            });
+          }
+        }
+      }
+
       return json(res, 200, { ok: true, deletedId: id });
     }
 
