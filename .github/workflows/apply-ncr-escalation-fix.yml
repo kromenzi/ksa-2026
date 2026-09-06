@@ -1,0 +1,48 @@
+name: Apply NCR escalation fix
+
+on:
+  push:
+    branches:
+      - fix/ncr-escalation-button
+    paths:
+      - .github/workflows/apply-ncr-escalation-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/ncr-escalation-button
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply NCR escalation patch
+        run: python scripts/fix-ncr-escalation-button.py
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Production build
+        run: npm run build
+
+      - name: Commit generated source change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/admin/ncr/list.tsx
+          if git diff --cached --quiet; then
+            echo "No source changes to commit"
+          else
+            git commit -m "fix: make NCR escalation button create real escalation"
+            git push origin HEAD:fix/ncr-escalation-button
+          fi
