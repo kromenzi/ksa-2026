@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useData } from "@/lib/data-context";
 import { Calendar, Download, Printer, Settings, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ function classifyNcr(r: any): LevelId {
 export default function SafetyPyramidPage() {
   const { settings, safetyReports, ncrs, logActivity } = useData();
   const isAr = settings.language === "ar";
+  const { data: incidentRecords = [] } = useQuery<any[]>({ queryKey: ["/api/incidents"], queryFn: async () => { const response = await fetch("/api/incidents", { credentials: "include", cache: "no-store" }); if (!response.ok) throw new Error("Unable to load incidents"); const rows = await response.json(); return Array.isArray(rows) ? rows : []; } });
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
@@ -63,8 +65,9 @@ export default function SafetyPyramidPage() {
     const out: RecordItem[] = [];
     safetyReports.forEach((r: any) => { const d = new Date(r.date || r.createdAt); if (Number.isNaN(d.getTime())) return; out.push({ id: r.id, refNo: r.reportNo || r.id, date: d.toISOString().slice(0,10), month: d.getMonth()+1, year: d.getFullYear(), level: classifySafetyReport(r), description: r.observationDescription || "Safety observation", location: r.location || "Main Plant", department: r.department || "General", status: r.status || "Open" }); });
     ncrs.forEach((r: any) => { const d = new Date(r.date || r.createdAt); if (Number.isNaN(d.getTime())) return; out.push({ id: `ncr-${r.id}`, refNo: r.refNo || r.id, date: d.toISOString().slice(0,10), month: d.getMonth()+1, year: d.getFullYear(), level: classifyNcr(r), description: r.description || "NCR", location: r.location || "Main Plant", department: r.department || "General", status: r.status || "Open" }); });
+    incidentRecords.forEach((r: any) => { const d = new Date(r.date || r.createdAt); if (Number.isNaN(d.getTime())) return; const type = String(r.data?.type || "").toLowerCase(); const description = String(r.data?.description || r.title || ""); const lower = description.toLowerCase(); let level: LevelId = "unsafeActs"; if (lower.includes("fatal")) level = "fatality"; else if (type === "lost time injury" || lower.includes("lost time") || lower.includes("lti")) level = "lostTime"; else if (lower.includes("restricted") || lower.includes("rwd")) level = "restrictedWork"; else if (type === "medical treatment" || lower.includes("medical") || lower.includes("mtc")) level = "medicalTreatment"; else if (type === "first aid" || lower.includes("first aid") || lower.includes("fac")) level = "firstAid"; else if (type === "near miss" || lower.includes("near miss") || lower.includes("near-miss")) level = "nearMiss"; out.push({ id: `incident-${r.id}`, refNo: r.refNo || r.id, date: d.toISOString().slice(0,10), month: d.getMonth()+1, year: d.getFullYear(), level, description: description || "Incident / Near Miss", location: r.data?.location || "Main Plant", department: r.department || "General", status: r.status || "Under Investigation" }); });
     return out;
-  }, [safetyReports, ncrs]);
+  }, [safetyReports, ncrs, incidentRecords]);
 
   const counts = useMemo(() => {
     const monthly = Object.fromEntries(LEVELS.map(l => [l.id, 0])) as Record<LevelId, number>;

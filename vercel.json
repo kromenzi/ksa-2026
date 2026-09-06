@@ -72,6 +72,8 @@
     { "source": "/api/competency/:id", "destination": "/api/data?resource=competency&id=:id" },
     { "source": "/api/inspections", "destination": "/api/data?resource=inspections" },
     { "source": "/api/inspections/:id", "destination": "/api/data?resource=inspections&id=:id" },
+    { "source": "/api/incidents", "destination": "/api/data?resource=incidents" },
+    { "source": "/api/incidents/:id", "destination": "/api/data?resource=incidents&id=:id" },
     { "source": "/api/audits", "destination": "/api/data?resource=audits" },
     { "source": "/api/audits/:id", "destination": "/api/data?resource=audits&id=:id" },
     { "source": "/api/compliance", "destination": "/api/data?resource=compliance" },
