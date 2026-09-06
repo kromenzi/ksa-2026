@@ -1,0 +1,44 @@
+name: Apply SOR escalation fix
+
+on:
+  push:
+    branches:
+      - fix/sor-escalation-stale-link
+    paths:
+      - scripts/fix-sor-escalation-stale-link.py
+      - .github/workflows/apply-sor-escalation-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/sor-escalation-stale-link
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply SOR escalation patch
+        run: python scripts/fix-sor-escalation-stale-link.py
+      - name: Install dependencies
+        run: npm ci
+      - name: Production build
+        run: npm run build
+      - name: Commit generated source change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/admin/reports.tsx 'api/escalations/[id].ts'
+          if git diff --cached --quiet; then
+            echo "No generated source changes to commit"
+          else
+            git commit -m "fix: keep SOR escalation in page and repair stale links"
+            git push origin HEAD:fix/sor-escalation-stale-link
+          fi
