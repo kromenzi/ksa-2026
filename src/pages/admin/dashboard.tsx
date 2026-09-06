@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import IncidentPyramid from "@/components/incident-pyramid";
+import { isNearMissText } from "@/lib/safety-outcome";
 import {
   Shield, AlertTriangle, FileText, Activity, TrendingUp,
   BarChart3, CheckCircle2, Clock,
@@ -119,7 +120,7 @@ export default function AdminDashboard() {
   const highRiskReports = safetyReports.filter(r => r.riskLevel === 'high' || r.riskLevel === 'critical').length;
   const openReports = safetyReports.filter(r => r.status !== 'closed').length;
   const ncrClosureRate = totalNCRs > 0 ? Math.round((closedNCRs / totalNCRs) * 100) : 0;
-  const nearMissCount = safetyReports.filter(r => String(r.category || '').toLowerCase().includes('near miss')).length + incidentRecords.filter((r: any) => String(r.data?.type || '').toLowerCase() === 'near miss').length;
+  const nearMissCount = safetyReports.filter(r => isNearMissText(r.category, r.observationDescription)).length + incidentRecords.filter((r: any) => isNearMissText(r.data?.type, r.data?.description, r.title)).length;
   const criticalRiskCount = safetyReports.filter(r => r.riskLevel === 'critical').length;
   const openActionItems = openReports + openNCRs;
   const overdueNCRs = ncrs.filter(n => {

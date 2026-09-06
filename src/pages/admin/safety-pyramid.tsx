@@ -5,6 +5,7 @@ import { Calendar, Download, Printer, Settings, ShieldAlert } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { classifySafetyOutcome } from "@/lib/safety-outcome";
 
 const LEVELS = [
   { id: "fatality", en: "Fatality", ar: "الوفاة", color: "#b91c1c", text: "#ffffff" },
@@ -20,17 +21,11 @@ type LevelId = typeof LEVELS[number]["id"];
 type RecordItem = { id: string; refNo: string; date: string; month: number; year: number; level: LevelId; description: string; location: string; department: string; status: string };
 
 function classifySafetyReport(r: any): LevelId {
-  const category = String(r.category || "").toLowerCase();
-  const risk = String(r.riskLevel || "").toLowerCase();
-  const text = String(r.observationDescription || "").toLowerCase();
-  if (text.includes("fatal") || category.includes("fatal")) return "fatality";
-  if (text.includes("lost time") || text.includes("lti")) return "lostTime";
-  if (text.includes("restricted") || text.includes("rwd")) return "restrictedWork";
-  if (text.includes("medical") || text.includes("mtc") || text.includes("hospital")) return "medicalTreatment";
-  if (text.includes("first aid") || text.includes("fac") || text.includes("clinic")) return "firstAid";
-  if (category.includes("near miss") || category.includes("near_miss") || text.includes("near miss") || text.includes("near-miss")) return "nearMiss";
-  if (risk === "high" && text.includes("injury")) return "lostTime";
-  return "unsafeActs";
+  return classifySafetyOutcome({
+    category: r.category,
+    description: r.observationDescription,
+    riskLevel: r.riskLevel,
+  });
 }
 
 function classifyNcr(r: any): LevelId {

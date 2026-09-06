@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-import { FileBarChart, Trash2, Download, AlertTriangle, Printer, Eye, Link2, Edit, Upload, PenLine, Loader2, Image as ImageIcon, X, ChevronDown, Shield, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, BarChart3, Calendar, MapPin, Activity, Sparkles, FileText, FileText as FileDocIcon, Search, Filter, XCircle, FileSearch, Copy, Archive, FileSpreadsheet, FileCode2 } from "lucide-react";
+import { FileBarChart, Trash2, Download, AlertTriangle, Printer, Eye, Link2, Edit, Upload, PenLine, Loader2, Image as ImageIcon, X, ChevronDown, Shield, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, BarChart3, Calendar, MapPin, Activity, Sparkles, FileText, FileText as FileDocIcon, Search, Filter, XCircle, FileSearch, Copy, Archive, FileSpreadsheet, FileCode2, Send } from "lucide-react";
 import PrintShareDialog from "@/components/print-share-dialog";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,6 +21,7 @@ import { QRCodeSVG } from "qrcode.react";
 import type { SafetyReport } from "@/lib/data-context";
 import JSZip from "jszip";
 import ExportPreviewModal, { type ExportColumnDef, type ExportOptions } from "@/components/export-preview-modal";
+import { apiRequest } from "@/lib/queryClient";
 
 const SAFETY_COLUMNS: ExportColumnDef[] = [
   { id: "reportNo", labelEn: "Report No", labelAr: "رقم التقرير" },
@@ -56,6 +57,7 @@ export default function AdminReports() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRisk, setFilterRisk] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [escalatingId, setEscalatingId] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   const isAr = settings.language === 'ar';
@@ -74,6 +76,83 @@ export default function AdminReports() {
       logActivity("Copy Report Link", `Copied public link for report ${report.reportNo}`, "reports");
     });
   }, [isAr, toast, logActivity, getPublicUrl]);
+
+  const handleEscalateSafetyReport = useCallback(async (report: SafetyReport) => {
+    const existing = report.sourceMetadata?.escalation;
+    if (existing?.id) {
+      window.location.assign('/admin/escalations/history');
+      return;
+    }
+    if (report.status === 'closed') {
+      toast({
+        title: isAr ? 'لا يمكن تصعيد تقرير مغلق' : 'Closed report cannot be escalated',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setEscalatingId(report.id);
+    try {
+      const risk = String(report.riskLevel || 'medium').toLowerCase();
+      const level = risk === 'critical'
+        ? 'Level 3 - HSE / Plant Manager'
+        : risk === 'high'
+          ? 'Level 2 - Department Manager'
+          : 'Level 1 - Supervisor';
+      const description = String(report.observationDescription || '').trim();
+      const response = await apiRequest('POST', '/api/escalations', {
+        source: report.reportNo || `SOR:${report.id}`,
+        sourceType: 'SOR',
+        sourceId: report.id,
+        sourceRef: report.reportNo,
+        title: `${report.reportNo || 'SOR'} - ${description.slice(0, 120) || (isAr ? 'ملاحظة سلامة' : 'Safety observation')}`,
+        severity: risk.toUpperCase(),
+        level,
+        department: report.department || 'HSE',
+        responsible: currentUser?.name || 'HSE Lead',
+        reason: description || (isAr ? 'تصعيد تقرير ملاحظة سلامة' : 'Safety observation report escalation'),
+      });
+      const escalation = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(escalation?.error || 'Unable to create escalation');
+
+      const previousMetadata = report.sourceMetadata && typeof report.sourceMetadata === 'object'
+        ? report.sourceMetadata
+        : {};
+      await updateSafetyReport(report.id, {
+        sourceMetadata: {
+          ...previousMetadata,
+          escalation: {
+            id: escalation.id,
+            refNo: escalation.refNo,
+            status: escalation.status,
+            createdAt: escalation.createdAt || new Date().toISOString(),
+            sourceType: 'SOR',
+            sourceId: report.id,
+            sourceRef: report.reportNo,
+          },
+        },
+      });
+      logActivity(
+        'Escalate Safety Report',
+        `Escalated ${report.reportNo} to ${escalation.refNo || 'existing escalation'}`,
+        'reports',
+      );
+      toast({
+        title: escalation.alreadyExists
+          ? (isAr ? 'التقرير مصعّد مسبقاً' : 'Report already escalated')
+          : (isAr ? 'تم تصعيد تقرير SOR' : 'SOR escalated successfully'),
+        description: escalation.refNo || undefined,
+      });
+    } catch (error: any) {
+      toast({
+        title: isAr ? 'فشل تصعيد التقرير' : 'Escalation failed',
+        description: error?.message || (isAr ? 'تعذر إنشاء التصعيد' : 'Unable to create escalation'),
+        variant: 'destructive',
+      });
+    } finally {
+      setEscalatingId(null);
+    }
+  }, [currentUser?.name, isAr, logActivity, toast, updateSafetyReport]);
 
   const handlePrint = useCallback(() => {
     if (previewReport) {
@@ -810,6 +889,25 @@ export default function AdminReports() {
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-blue-500/10 hover:text-blue-600" onClick={() => handleCopyLink(sr)} title={isAr ? 'نسخ الرابط' : 'Copy Link'} data-testid={`button-copy-link-${sr.id}`}>
                           <Link2 className="h-4 w-4" />
                         </Button>
+                        {canCreate && sr.status !== 'closed' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-8 w-8 rounded-lg ${sr.sourceMetadata?.escalation?.id ? 'text-emerald-600 hover:bg-emerald-500/10' : 'hover:bg-red-500/10 hover:text-red-600'}`}
+                            onClick={() => handleEscalateSafetyReport(sr)}
+                            disabled={escalatingId === sr.id}
+                            title={sr.sourceMetadata?.escalation?.id
+                              ? (isAr ? `تم التصعيد: ${sr.sourceMetadata.escalation.refNo || ''}` : `Escalated: ${sr.sourceMetadata.escalation.refNo || ''}`)
+                              : (isAr ? 'تصعيد التقرير' : 'Escalate SOR')}
+                            data-testid={`button-escalate-sor-${sr.id}`}
+                          >
+                            {escalatingId === sr.id
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : sr.sourceMetadata?.escalation?.id
+                                ? <ShieldCheck className="h-4 w-4" />
+                                : <Send className="h-4 w-4" />}
+                          </Button>
+                        )}
                         {canCreate && (
                           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-amber-500/10 hover:text-amber-600" onClick={() => { setEditingReport(sr); setFormOpen(true); }} title={isAr ? 'تعديل' : 'Edit'} data-testid={`button-edit-${sr.id}`}>
                             <Edit className="h-4 w-4" />
