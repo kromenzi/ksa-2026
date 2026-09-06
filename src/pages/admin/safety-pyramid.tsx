@@ -34,16 +34,13 @@ function classifySafetyReport(r: any): LevelId {
 }
 
 function classifyNcr(r: any): LevelId {
-  const severity = String(r.severity || "").toLowerCase();
   const text = String(r.description || "").toLowerCase();
   if (text.includes("fatal")) return "fatality";
   if (text.includes("lost time") || text.includes("lti")) return "lostTime";
   if (text.includes("restricted") || text.includes("rwd")) return "restrictedWork";
   if (text.includes("medical") || text.includes("mtc") || text.includes("hospital")) return "medicalTreatment";
-  if (text.includes("first aid") || text.includes("fac")) return "firstAid";
+  if (text.includes("first aid") || text.includes("fac") || text.includes("clinic")) return "firstAid";
   if (text.includes("near miss") || text.includes("near-miss")) return "nearMiss";
-  if (severity === "critical") return "lostTime";
-  if (severity === "high") return "medicalTreatment";
   return "unsafeActs";
 }
 
