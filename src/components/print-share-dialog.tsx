@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useData } from "@/lib/data-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { Printer, Mail, MessageSquare, Send, Plus, X, CheckCircle2, XCircle, Loader2, Copy } from "lucide-react";
 import type { Module } from "@/lib/data-context";
+import { resolveHseImageUrls } from "@/lib/hse-image-storage";
 
 const itemTypeToModule: Record<string, Module> = {
   ncr: "ncr",
@@ -173,10 +174,10 @@ function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, s
     ${ncrImages.length > 0 ? `
       <div style="border:1px solid #d1d5db;background:#fff;border-${isAr ? 'right' : 'left'}:4px solid ${accent};padding:12px 14px;border-radius:6px;margin-bottom:12px;text-align:${align};page-break-inside:avoid;">
         <h3 style="font-size:14px;margin:0 0 8px 0;color:#334155;font-weight:700;">${isAr ? "الصور المرفقة" : "Attached Images"}</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="display:grid;grid-template-columns:${ncrImages.length === 1 ? "1fr" : "1fr 1fr"};gap:8px;">
           ${ncrImages.map((src, idx) => `
-            <div style="border:1px solid #d1d5db;border-radius:6px;height:130px;background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;page-break-inside:avoid;">
-              <img src="${escapeHtml(src)}" alt="Image ${idx + 1}" style="max-width:100%;max-height:100%;object-fit:cover;" />
+            <div style="border:1px solid #d1d5db;border-radius:6px;height:${ncrImages.length === 1 ? "240px" : "150px"};${ncrImages.length === 3 && idx === 2 ? "grid-column:1/-1;" : ""}background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;page-break-inside:avoid;">
+              <img src="${escapeHtml(src)}" alt="Image ${idx + 1}" style="width:100%;height:100%;object-fit:contain;" />
             </div>
           `).join("")}
         </div>
@@ -392,10 +393,10 @@ function PrintView({ item, siteName, isAr, settings }: { item: PrintShareItem; s
           {ncrImages.length > 0 && (
             <div className={`${isAr ? "border-r-4 pr-3" : "border-l-4 pl-3"} ${accentClass} rounded-sm bg-slate-50/70 py-1.5`}>
               <h3 className="mb-2 text-sm font-semibold text-gray-700">{isAr ? "الصور المرفقة" : "Attached Images"}</h3>
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className={`grid gap-2.5 ${ncrImages.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
                 {ncrImages.map((src, idx) => (
-                  <div key={idx} className="flex h-32 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white">
-                    <img src={src} alt={`Image ${idx + 1}`} className="h-full w-full object-cover" />
+                  <div key={idx} className={`flex items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white ${ncrImages.length === 1 ? "h-60" : "h-36"} ${ncrImages.length === 3 && idx === 2 ? "col-span-2" : ""}`}>
+                    <img src={src} alt={`Image ${idx + 1}`} className="h-full w-full object-contain" />
                   </div>
                 ))}
               </div>
@@ -439,6 +440,19 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
   const [sendResult, setSendResult] = useState<{ success: boolean; channel: string; error?: string; recipients?: string[] } | null>(null);
   const [customSubject, setCustomSubject] = useState("");
   const [customBody, setCustomBody] = useState("");
+  const [resolvedImages, setResolvedImages] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    if (!open || !item.images?.length) {
+      setResolvedImages([]);
+      return () => { active = false; };
+    }
+    void resolveHseImageUrls(item.images).then((urls) => { if (active) setResolvedImages(urls); });
+    return () => { active = false; };
+  }, [open, item.id, item.refNo, item.images]);
+
+  const renderItem = useMemo(() => resolvedImages.length ? { ...item, images: resolvedImages } : item, [item, resolvedImages]);
 
   const isAr = settings.language === "ar";
   const canSend = hasPermission("ncr", "send_email");
@@ -453,7 +467,7 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
       return;
     }
 
-    const html = buildPrintHtml(item, settings.siteName, isAr, settings);
+    const html = buildPrintHtml(renderItem, settings.siteName, isAr, settings);
     
     // Remove existing print iframe if any to prevent memory leaks
     const existingIframe = document.getElementById('print-share-iframe');
@@ -493,7 +507,7 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
         }
       }, 1000);
     }
-  }, [item, isAr, settings, customContent]);
+  }, [renderItem, isAr, settings, customContent]);
 
   const addRecipient = () => {
     const val = newRecipient.trim();
@@ -590,7 +604,7 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
 
           <TabsContent value="print" className="space-y-4">
             <div className="border rounded-lg overflow-hidden bg-white">
-              <PrintView item={item} siteName={settings.siteName} isAr={isAr} settings={settings} />
+              <PrintView item={renderItem} siteName={settings.siteName} isAr={isAr} settings={settings} />
             </div>
             <Button onClick={handlePrint} className="w-full">
               <Printer className="h-4 w-4 mr-2" />

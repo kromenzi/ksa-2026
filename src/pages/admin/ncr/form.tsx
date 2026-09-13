@@ -11,6 +11,7 @@ import { ArrowLeft, Save, Printer, Upload, Plus, Trash2, FileText, Send, Loader2
 import PrintShareDialog from "@/components/print-share-dialog";
 import FilePreviewDialog, { type FilePreviewItem } from "@/components/file-preview-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { resolveHseImageUrls } from "@/lib/hse-image-storage";
 
 interface NCRActionRow {
   no: number;
@@ -116,6 +117,7 @@ export default function AdminNCRForm() {
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
+  const [resolvedStoredImages, setResolvedStoredImages] = useState<string[]>([]);
 
   const isAr = settings.language === "ar";
   const canSendEmail = hasPermission("ncr", "send_email");
@@ -153,6 +155,13 @@ export default function AdminNCRForm() {
       if (ncr) setFormData((prev: any) => ({ ...prev, ...ncr, correctiveActions: ncr.correctiveActions?.length ? ncr.correctiveActions : prev.correctiveActions }));
     }
   }, [isNew, params?.id, ncrs]);
+
+  useEffect(() => {
+    let active = true;
+    const values = [formData.image1, formData.image2, formData.image3, formData.image4];
+    void resolveHseImageUrls(values).then((urls) => { if (active) setResolvedStoredImages(urls); });
+    return () => { active = false; };
+  }, [formData.image1, formData.image2, formData.image3, formData.image4]);
 
   const updateField = useCallback((field: string, value: any) => setFormData((prev: any) => ({ ...prev, [field]: value })), []);
   const updateActionRow = useCallback((index: number, field: string, value: string) => setFormData((prev: any) => {
@@ -262,7 +271,7 @@ export default function AdminNCRForm() {
             <div className="space-y-2"><Label>{isAr ? "الإجراء التصحيحي" : "Corrective Action"}</Label><Textarea rows={3} value={formData.correctiveAction} onChange={e => updateField("correctiveAction", e.target.value)} /></div>
           </CardContent></Card>
 
-          <Card><CardHeader><CardTitle>{isAr ? "الصور المرفقة" : "Attached Images"}</CardTitle></CardHeader><CardContent><div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{imageSlots.map(slot => { const image = formData[`image${slot}`]; return <div key={slot} className="relative aspect-square rounded-lg border-2 border-dashed border-border flex items-center justify-center overflow-hidden">{image ? <><img src={image} className="h-full w-full object-cover" /><button type="button" onClick={() => clearImage(slot)} className="absolute top-1 end-1 h-6 w-6 rounded-full bg-destructive text-white flex items-center justify-center"><X className="h-3.5 w-3.5" /></button></> : <label className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground"><ImageIcon className="h-5 w-5" /><span className="text-[10px]">{isAr ? `صورة ${slot}` : `Image ${slot}`}</span><input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, slot)} /></label>}</div>; })}</div></CardContent></Card>
+          <Card><CardHeader><CardTitle>{isAr ? "الصور المرفقة" : "Attached Images"}</CardTitle></CardHeader><CardContent><div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{imageSlots.map(slot => { const image = resolvedStoredImages[slot - 1] || formData[`image${slot}`]; return <div key={slot} className="relative aspect-square rounded-lg border-2 border-dashed border-border flex items-center justify-center overflow-hidden">{image ? <><img src={image} className="h-full w-full object-cover" /><button type="button" onClick={() => clearImage(slot)} className="absolute top-1 end-1 h-6 w-6 rounded-full bg-destructive text-white flex items-center justify-center"><X className="h-3.5 w-3.5" /></button></> : <label className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground"><ImageIcon className="h-5 w-5" /><span className="text-[10px]">{isAr ? `صورة ${slot}` : `Image ${slot}`}</span><input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, slot)} /></label>}</div>; })}</div></CardContent></Card>
 
           <Card><CardHeader><CardTitle className="flex items-center justify-between"><span>{isAr ? "جدول الإجراءات التصحيحية" : "Corrective Actions Table"}</span><Button type="button" variant="outline" size="sm" onClick={addActionRow}><Plus className="h-4 w-4 me-1" />{isAr ? "إضافة صف" : "Add Row"}</Button></CardTitle></CardHeader><CardContent className="overflow-x-auto"><table className="w-full text-sm border-collapse"><thead><tr className="bg-muted">{[isAr?"الرقم":"No.",isAr?"الإجراء":"Action",isAr?"المسؤول":"Responsible",isAr?"تاريخ التنفيذ":"Due Date",isAr?"الفعالية":"Effectiveness",isAr?"التوقيع":"Signature",""] .map(h => <th key={h} className="border p-2">{h}</th>)}</tr></thead><tbody>{(formData.correctiveActions || []).map((r: NCRActionRow, i: number) => <tr key={i}><td className="border p-2 text-center">{r.no}</td><td className="border p-1"><Input value={r.action} onChange={e=>updateActionRow(i,"action",e.target.value)} /></td><td className="border p-1"><Input value={r.responsible} onChange={e=>updateActionRow(i,"responsible",e.target.value)} /></td><td className="border p-1"><Input type="date" value={r.dueDate} onChange={e=>updateActionRow(i,"dueDate",e.target.value)} /></td><td className="border p-1"><Input value={r.effectiveness} onChange={e=>updateActionRow(i,"effectiveness",e.target.value)} /></td><td className="border p-1"><Input value={r.signature} onChange={e=>updateActionRow(i,"signature",e.target.value)} /></td><td className="border p-1"><Button type="button" variant="ghost" size="icon" onClick={()=>removeActionRow(i)}><Trash2 className="h-4 w-4 text-destructive" /></Button></td></tr>)}</tbody></table></CardContent></Card>
 
@@ -283,7 +292,7 @@ export default function AdminNCRForm() {
 
       {showMobilePreview && <div className="fixed inset-0 z-50 bg-black/60 p-3 lg:hidden" onClick={()=>setShowMobilePreview(false)}><div className="h-full max-w-xl mx-auto bg-background rounded-lg overflow-hidden p-2" onClick={e=>e.stopPropagation()}><div className="flex justify-between items-center p-2 border-b"><strong>{isAr?"معاينة NCR":"NCR Preview"}</strong><Button variant="ghost" size="sm" onClick={()=>setShowMobilePreview(false)}>✕</Button></div>{preview}</div></div>}
 
-      {showShare && <PrintShareDialog open={showShare} onOpenChange={setShowShare} item={{ id: shareNcrMeta?.id || params?.id, url: shareNcrMeta?.id || params?.id ? `${window.location.origin}/admin/ncr/${shareNcrMeta?.id || params?.id}` : undefined, type: "ncr", refNo: shareNcrMeta?.refNo || formData.refNo, title: `NCR: ${shareNcrMeta?.refNo || formData.refNo || "New"}`, department: formData.department, severity: formData.severity, status: formData.status, date: formData.date, images: [formData.image1,formData.image2,formData.image3,formData.image4], sections: [{label:isAr?"الوصف":"Description",value:formData.description},{label:isAr?"الإجراء الفوري":"Immediate Action",value:formData.immediateAction||""},{label:isAr?"السبب الجذري":"Root Cause",value:formData.rootCause||""},{label:isAr?"الإجراء التصحيحي":"Corrective Action",value:formData.correctiveAction||""},{label:isAr?"جدول الإجراءات":"Corrective Actions Table",value:formatActionsForSections()},{label:isAr?"ملاحظات التحقق":"Verification Notes",value:formData.verificationNotes||""}] }} />}
+      {showShare && <PrintShareDialog open={showShare} onOpenChange={setShowShare} item={{ id: shareNcrMeta?.id || params?.id, url: shareNcrMeta?.id || params?.id ? `${window.location.origin}/admin/ncr/${shareNcrMeta?.id || params?.id}` : undefined, type: "ncr", refNo: shareNcrMeta?.refNo || formData.refNo, title: `NCR: ${shareNcrMeta?.refNo || formData.refNo || "New"}`, department: formData.department, severity: formData.severity, status: formData.status, date: formData.date, images: resolvedStoredImages.length ? resolvedStoredImages : [formData.image1,formData.image2,formData.image3,formData.image4], sections: [{label:isAr?"الوصف":"Description",value:formData.description},{label:isAr?"الإجراء الفوري":"Immediate Action",value:formData.immediateAction||""},{label:isAr?"السبب الجذري":"Root Cause",value:formData.rootCause||""},{label:isAr?"الإجراء التصحيحي":"Corrective Action",value:formData.correctiveAction||""},{label:isAr?"جدول الإجراءات":"Corrective Actions Table",value:formatActionsForSections()},{label:isAr?"ملاحظات التحقق":"Verification Notes",value:formData.verificationNotes||""}] }} />}
       <FilePreviewDialog open={!!previewFile} onOpenChange={open=>!open && setPreviewFile(null)} file={previewFile} />
     </div>
   );
