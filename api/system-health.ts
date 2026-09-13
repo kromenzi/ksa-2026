@@ -47,6 +47,10 @@ const DOCUMENT_STORAGE_BUCKET="board-uploads";
 const DOCUMENT_STORAGE_MAX_BYTES=50*1024*1024;
 const encodeStoragePath=(value:string)=>value.split("/").filter(Boolean).map(part=>encodeURIComponent(part)).join("/");
 const isDocumentStoragePath=(value:string)=>/^documents\/[A-Za-z0-9_-]+\/[0-9]{4}-[0-9]{2}-[0-9]{2}\/[A-Za-z0-9._-]+$/.test(value);
+const HSE_IMAGE_MAX_BYTES=10*1024*1024;
+const HSE_IMAGE_SCOPES=new Set(["ncr","violation"]);
+const isHseImageStoragePath=(value:string)=>/^hse-images\/(ncr|violation)\/[A-Za-z0-9_-]+\/[0-9]{4}-[0-9]{2}-[0-9]{2}\/[A-Za-z0-9._-]+$/.test(value);
+const isReadableStoragePath=(value:string)=>isDocumentStoragePath(value)||isHseImageStoragePath(value);
 
 async function documentStorageHandler(req:any,res:any){
   const user=await getAuthUser(req);
@@ -56,6 +60,31 @@ async function documentStorageHandler(req:any,res:any){
 
   const action=String(req.query?.action||"").trim();
   const body=req.body||{};
+
+  if(action==="sign-image-upload"){
+    if(!["admin","manager","editor"].includes(String(profile.role||"")))return json(res,403,{error:"Insufficient permission"});
+    const scope=String(body.scope||"").trim().toLowerCase();
+    const fileName=String(body.fileName||"").trim();
+    const fileType=String(body.fileType||"").trim().toLowerCase();
+    const fileSize=Number(body.fileSize||0);
+    if(!HSE_IMAGE_SCOPES.has(scope))return json(res,422,{error:"Invalid HSE image scope"});
+    if(!fileName)return json(res,422,{error:"File name is required"});
+    if(!fileType.startsWith("image/"))return json(res,415,{error:"Only image files are allowed"});
+    if(!Number.isFinite(fileSize)||fileSize<=0)return json(res,422,{error:"Valid image size is required"});
+    if(fileSize>HSE_IMAGE_MAX_BYTES)return json(res,413,{error:"Image exceeds the 10MB upload limit"});
+    const extensionMatch=fileName.toLowerCase().match(/(\.[a-z0-9]{1,10})$/);
+    const extension=extensionMatch?.[1]||"";
+    const objectPath=`hse-images/${scope}/${user.id}/${new Date().toISOString().slice(0,10)}/${Date.now()}-${Math.random().toString(36).slice(2,10)}${extension}`;
+    const response=await supabaseFetchForRequest(req,`/storage/v1/object/upload/sign/${DOCUMENT_STORAGE_BUCKET}/${encodeStoragePath(objectPath)}`,{
+      method:"POST",headers:{"x-upsert":"false"},body:"{}",
+    });
+    const payload=await response.json().catch(()=>({}));
+    if(!response.ok)return json(res,response.status,{error:payload?.message||payload?.error||"Unable to create signed image upload URL"});
+    const relativeUrl=String(payload?.url||"");
+    if(!relativeUrl)return json(res,502,{error:"Storage did not return a signed upload URL"});
+    const signedUrl=relativeUrl.startsWith("http")?relativeUrl:`${SUPABASE_URL}/storage/v1${relativeUrl.startsWith("/")?relativeUrl:`/${relativeUrl}`}`;
+    return json(res,200,{bucket:DOCUMENT_STORAGE_BUCKET,path:objectPath,signedUrl,maxFileSize:HSE_IMAGE_MAX_BYTES});
+  }
 
   if(action==="sign-upload"){
     if(!canWrite(profile,"documents","create"))return json(res,403,{error:"Insufficient permission"});
@@ -83,7 +112,7 @@ async function documentStorageHandler(req:any,res:any){
 
   if(action==="sign-read"){
     const objectPath=String(body.path||"").trim();
-    if(!isDocumentStoragePath(objectPath))return json(res,422,{error:"Invalid document storage path"});
+    if(!isReadableStoragePath(objectPath))return json(res,422,{error:"Invalid storage path"});
     const response=await supabaseFetchForRequest(req,`/storage/v1/object/sign/${DOCUMENT_STORAGE_BUCKET}/${encodeStoragePath(objectPath)}`,{
       method:"POST",
       body:JSON.stringify({expiresIn:900}),
@@ -98,6 +127,19 @@ async function documentStorageHandler(req:any,res:any){
       signedUrl+=`${signedUrl.includes("?")?"&":"?"}download=${encodeURIComponent(fileName)}`;
     }
     return json(res,200,{signedUrl,expiresIn:900});
+  }
+
+  if(action==="delete-hse-image"){
+    const objectPath=String(body.path||"").trim();
+    if(!isHseImageStoragePath(objectPath))return json(res,422,{error:"Invalid HSE image storage path"});
+    const ownerId=objectPath.split("/")[2]||"";
+    if(!["admin","manager"].includes(String(profile.role||""))&&ownerId!==String(user.id))return json(res,403,{error:"Insufficient permission"});
+    const response=await supabaseFetchForRequest(req,`/storage/v1/object/${DOCUMENT_STORAGE_BUCKET}`,{
+      method:"DELETE",body:JSON.stringify({prefixes:[objectPath]}),
+    });
+    const payload=await response.json().catch(()=>[]);
+    if(!response.ok)return json(res,response.status,{error:payload?.message||payload?.error||"Unable to delete stored image"});
+    return json(res,200,{ok:true,path:objectPath});
   }
 
   if(action==="delete"){

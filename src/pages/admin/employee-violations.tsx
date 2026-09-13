@@ -16,6 +16,8 @@ import {
 import { toast } from "sonner";
 import { useData } from "@/lib/data-context";
 import { apiRequest } from "@/lib/queryClient";
+import { HseImagePicker } from "@/components/hse-image-picker";
+import { deleteHseImages, resolveHseImageUrls, uploadHseImages, type HseStoredImage } from "@/lib/hse-image-storage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +46,8 @@ interface ViolationRecord {
   sameViolationCount: number;
   isRepeat: boolean;
   isSameViolationRepeat: boolean;
+  data?: Record<string, any>;
+  images?: HseStoredImage[];
 }
 
 interface OffenderSummary {
@@ -92,6 +96,7 @@ export default function AdminEmployeeViolations() {
   const [repeatOnly, setRepeatOnly] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const canDelete = currentUser?.role === "admin" || currentUser?.role === "manager";
 
   const t = (ar: string, en: string) => (isAr ? ar : en);
@@ -127,6 +132,8 @@ export default function AdminEmployeeViolations() {
           violation: normalizedViolation,
           notes: item.notes || item.data?.notes || "",
           severity: item.severity || item.data?.severity || "medium",
+          data: item.data && typeof item.data === "object" ? item.data : {},
+          images: Array.isArray(item.data?.images) ? item.data.images.slice(0, 4) : [],
           repeatCount,
           sameViolationCount,
           isRepeat: repeatCount > 1,
@@ -138,16 +145,31 @@ export default function AdminEmployeeViolations() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/employee-violations", {
-        ...form,
-        refNo: `VIO-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`,
-        status: "open",
-      });
-      return response.json();
+      let uploaded: HseStoredImage[] = [];
+      try {
+        uploaded = await uploadHseImages(photoFiles, "violation");
+        const response = await apiRequest("POST", "/api/employee-violations", {
+          ...form,
+          refNo: `VIO-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`,
+          status: "open",
+          data: {
+            department: form.department,
+            occupation: form.occupation,
+            notes: form.notes,
+            severity: form.severity,
+            images: uploaded,
+          },
+        });
+        return response.json();
+      } catch (error) {
+        if (uploaded.length) await deleteHseImages(uploaded).catch(() => undefined);
+        throw error;
+      }
     },
     onSuccess: async () => {
       toast.success(t("تم تسجيل مخالفة السلامة", "Safety violation recorded"));
       setForm(initialForm());
+      setPhotoFiles([]);
       setIsCreateOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["/api/employee-violations"] });
     },
@@ -157,7 +179,9 @@ export default function AdminEmployeeViolations() {
   const deleteMutation = useMutation({
     mutationFn: async (item: ViolationRecord) => {
       const response = await apiRequest("DELETE", `/api/employee-violations/${encodeURIComponent(item.id)}`);
-      return response.json();
+      const payload = await response.json();
+      if (item.images?.length) await deleteHseImages(item.images).catch(() => undefined);
+      return payload;
     },
     onSuccess: async () => {
       toast.success(t("تم حذف المخالفة", "Violation deleted"));
@@ -198,13 +222,23 @@ export default function AdminEmployeeViolations() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const handlePrintViolation = (item: ViolationRecord) => {
+  const handlePrintViolation = async (item: ViolationRecord) => {
     const printWindow = window.open("", "_blank", "width=900,height=1100");
     if (!printWindow) {
       toast.error(t("تعذر فتح نافذة الطباعة", "Unable to open print window"));
       return;
     }
     const dir = isAr ? "rtl" : "ltr";
+    const images = await resolveHseImageUrls(item.images || []);
+    const imageColumns = images.length === 1 ? "1fr" : "1fr 1fr";
+    const imageHeight = images.length === 1 ? "245px" : "165px";
+    const imagesHtml = images.length ? `
+      <div class="photos wide">
+        <span class="label">${t("صور الإثبات", "Evidence Photos")}</span>
+        <div class="photo-grid" style="grid-template-columns:${imageColumns}">
+          ${images.map((src, index) => `<div class="photo" style="height:${imageHeight};${images.length === 3 && index === 2 ? "grid-column:1/-1;" : ""}"><img src="${escapeHtml(src)}" alt="Photo ${index + 1}" /></div>`).join("")}
+        </div>
+      </div>` : "";
     printWindow.document.write(`<!doctype html>
 <html dir="${dir}">
 <head>
@@ -220,6 +254,10 @@ export default function AdminEmployeeViolations() {
   .wide { grid-column: 1 / -1; }
   .label { display: block; font-size: 11px; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
   .value { white-space: pre-wrap; font-size: 14px; font-weight: 600; }
+  .photos { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; page-break-inside: avoid; }
+  .photo-grid { display: grid; gap: 8px; margin-top: 8px; }
+  .photo { border: 1px solid #dbe3ec; border-radius: 7px; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; }
+  .photo img { width: 100%; height: 100%; object-fit: contain; }
   .footer { margin-top: 30px; font-size: 11px; color: #64748b; text-align: center; }
 </style>
 </head>
@@ -239,6 +277,7 @@ export default function AdminEmployeeViolations() {
     <div class="field"><span class="label">${t("عدد المخالفات", "Violation Count")}</span><div class="value">${escapeHtml(item.repeatCount)}</div></div>
     <div class="field wide"><span class="label">${t("المخالفة", "Violation")}</span><div class="value">${escapeHtml(item.violation)}</div></div>
     <div class="field wide"><span class="label">${t("الملاحظات", "Notes")}</span><div class="value">${escapeHtml(item.notes || "—")}</div></div>
+    ${imagesHtml}
   </div>
   <div class="footer">UTEC Safety Board · ${new Date().toLocaleString(isAr ? "ar-SA" : "en-US")}</div>
   <script>window.onload = () => { window.print(); };</script>
@@ -324,6 +363,9 @@ export default function AdminEmployeeViolations() {
                 </Select>
               </div>
               <div className="space-y-2"><Label htmlFor="date">{t("التاريخ", "Date")}</Label><Input id="date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
+              <div className="sm:col-span-2 rounded-lg border p-3">
+                <HseImagePicker files={photoFiles} onChange={setPhotoFiles} isAr={isAr} disabled={createMutation.isPending} label={t("صور إثبات المخالفة", "Violation Evidence Photos")} />
+              </div>
               <div className="flex justify-end gap-2 sm:col-span-2">
                 <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>{t("إلغاء", "Cancel")}</Button>
                 <Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? t("جارٍ الحفظ...", "Saving...") : t("حفظ المخالفة", "Save Violation")}</Button>
@@ -377,7 +419,7 @@ export default function AdminEmployeeViolations() {
                       <td className="px-4 py-4 align-top">{item.escalationId ? <Badge className="gap-1"><CheckCircle2 className="h-3 w-3" />{t("مصعّد", "Escalated")}</Badge> : <Badge variant="outline">{item.status}</Badge>}</td>
                       <td className="px-4 py-4 align-top">
                         <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => handlePrintViolation(item)}><Printer className="h-4 w-4" />{t("طباعة", "Print")}</Button>
+                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => void handlePrintViolation(item)}><Printer className="h-4 w-4" />{t("طباعة", "Print")}</Button>
                           <Button size="sm" variant="outline" className="gap-1.5" disabled={Boolean(item.escalationId) || escalateMutation.isPending} onClick={() => { const confirmed = window.confirm(t(`هل تريد تصعيد مخالفة ${item.employeeName} للإدارة؟`, `Escalate ${item.employeeName}'s safety violation to management?`)); if (confirmed) escalateMutation.mutate(item); }}><ArrowUpRight className="h-4 w-4" />{item.escalationId ? t("مصعّد", "Escalated") : t("تصعيد", "Escalate")}</Button>
                           {canDelete && <Button size="sm" variant="destructive" className="gap-1.5" disabled={deleteMutation.isPending} onClick={() => { const confirmed = window.confirm(t(`هل تريد حذف المخالفة ${item.refNo} نهائيًا؟`, `Delete violation ${item.refNo} permanently?`)); if (confirmed) deleteMutation.mutate(item); }}><Trash2 className="h-4 w-4" />{t("حذف", "Delete")}</Button>}
                         </div>

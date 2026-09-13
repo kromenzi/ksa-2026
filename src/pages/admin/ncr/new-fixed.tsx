@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { apiRequest } from "@/lib/queryClient";
 import { useData } from "@/lib/data-context";
 import { ArrowLeft, Save, Send, Eye, RefreshCw } from "lucide-react";
+import { HseImagePicker } from "@/components/hse-image-picker";
+import { deleteHseImages, uploadHseImages, type HseStoredImage } from "@/lib/hse-image-storage";
 
 type Department = { id: string; name: string; code?: string | null };
 
@@ -50,7 +52,7 @@ function PreviewField({ label, value }: { label: string; value: string }) {
   );
 }
 
-function A4Preview({ form, isAr }: { form: FormState; isAr: boolean }) {
+function A4Preview({ form, isAr, images = [] }: { form: FormState; isAr: boolean; images?: string[] }) {
   return (
     <div className="h-full overflow-auto bg-slate-200 p-3">
       <div className="relative mx-auto min-h-[640px] w-[365px] overflow-hidden rounded bg-white shadow-xl" dir={isAr ? "rtl" : "ltr"} lang={isAr ? "ar" : "en"}>
@@ -96,6 +98,19 @@ function A4Preview({ form, isAr }: { form: FormState; isAr: boolean }) {
             <div className="bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">{isAr ? "ملاحظات التحقق والإغلاق" : "Verification / Closure Notes"}</div>
             <div className="min-h-[60px] whitespace-pre-wrap p-3 text-sm">{form.verificationNotes || "—"}</div>
           </section>
+
+          {images.length > 0 && (
+            <section className="mt-3 overflow-hidden rounded-lg border border-slate-200">
+              <div className="bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700">{isAr ? "صور الإثبات" : "Evidence Photos"}</div>
+              <div className="grid grid-cols-2 gap-2 p-2">
+                {images.map((src, index) => (
+                  <div key={src} className={`flex items-center justify-center overflow-hidden rounded border bg-slate-50 ${images.length === 1 ? "col-span-2 h-52" : "h-28"} ${images.length === 3 && index === 2 ? "col-span-2" : ""}`}>
+                    <img src={src} alt={`Evidence ${index + 1}`} className="h-full w-full object-contain" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>
@@ -112,6 +127,14 @@ export default function NewNCRFixed() {
   const [saving, setSaving] = useState(false);
   const [savingAndSending, setSavingAndSending] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+
+  useEffect(() => {
+    const urls = photoFiles.map((file) => URL.createObjectURL(file));
+    setPhotoPreviews(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [photoFiles]);
 
   const loadDepartments = async () => {
     setLoadingDepartments(true);
@@ -144,17 +167,29 @@ export default function NewNCRFixed() {
       return null;
     }
 
-    const payload = {
-      ...form,
-      department: form.department.trim(),
-      description: form.description.trim(),
-      createdBy: currentUser?.id || "",
-    };
+    let uploaded: HseStoredImage[] = [];
+    try {
+      uploaded = await uploadHseImages(photoFiles, "ncr");
+      const payload = {
+        ...form,
+        department: form.department.trim(),
+        description: form.description.trim(),
+        createdBy: currentUser?.id || "",
+        image1: uploaded[0]?.path || null,
+        image2: uploaded[1]?.path || null,
+        image3: uploaded[2]?.path || null,
+        image4: uploaded[3]?.path || null,
+        sourceMetadata: uploaded.length ? { images: uploaded } : null,
+      };
 
-    const response = await apiRequest("POST", "/api/ncr", payload);
-    const created = await response.json();
-    if (!created?.id) throw new Error(created?.error || (isAr ? "تعذر إنشاء التقرير" : "Unable to create NCR"));
-    return created;
+      const response = await apiRequest("POST", "/api/ncr", payload);
+      const created = await response.json();
+      if (!created?.id) throw new Error(created?.error || (isAr ? "تعذر إنشاء التقرير" : "Unable to create NCR"));
+      return created;
+    } catch (error) {
+      if (uploaded.length) await deleteHseImages(uploaded).catch(() => undefined);
+      throw error;
+    }
   };
 
   const handleSave = async () => {
@@ -275,6 +310,10 @@ export default function NewNCRFixed() {
             </div>
             <div className="space-y-2"><Label>{isAr ? "ملاحظات التحقق والإغلاق" : "Verification / Closure Notes"}</Label><Textarea rows={4} value={form.verificationNotes} onChange={(e) => setField("verificationNotes", e.target.value)} /></div>
 
+            <div className="rounded-lg border p-4">
+              <HseImagePicker files={photoFiles} onChange={setPhotoFiles} isAr={isAr} disabled={saving || savingAndSending} label={isAr ? "صور إثبات عدم المطابقة" : "NCR Evidence Photos"} />
+            </div>
+
             <div className="flex flex-col justify-end gap-2 border-t pt-4 sm:flex-row">
               <Button type="button" variant="outline" onClick={() => setLocation("/admin/ncr")}>{isAr ? "إلغاء" : "Cancel"}</Button>
               <Button type="button" onClick={handleSave} disabled={saving || savingAndSending}>
@@ -287,7 +326,7 @@ export default function NewNCRFixed() {
           </CardContent>
         </Card>
 
-        {showPreview && <div className="sticky top-4 h-[680px] min-h-0 overflow-hidden rounded-lg border bg-slate-900 shadow-lg"><A4Preview form={form} isAr={isAr} /></div>}
+        {showPreview && <div className="sticky top-4 h-[680px] min-h-0 overflow-hidden rounded-lg border bg-slate-900 shadow-lg"><A4Preview form={form} isAr={isAr} images={photoPreviews} /></div>}
       </div>
     </main>
   );
