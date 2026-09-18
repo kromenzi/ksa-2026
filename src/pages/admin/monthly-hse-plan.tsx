@@ -72,6 +72,8 @@ export default function MonthlyHsePlanPage(){
   const [tasks,setTasks]=useState<Task[]>([]);
   const [templates,setTemplates]=useState<Template[]>([]);
   const [assignees,setAssignees]=useState<Assignee[]>([]);
+  const [assigneesLoading,setAssigneesLoading]=useState(false);
+  const [assigneesError,setAssigneesError]=useState("");
   const [loading,setLoading]=useState(true);
   const [view,setView]=useState<"my"|"team">("my");
   const [statusFilter,setStatusFilter]=useState("all");
@@ -93,15 +95,38 @@ export default function MonthlyHsePlanPage(){
   const [generateForm,setGenerateForm]=useState<any>({assignedTo:"",backupUserId:"none",factory:"MV/LV",department:""});
   const [templateForm,setTemplateForm]=useState<any>({titleAr:"",titleEn:"",description:"",category:"General",priority:"Medium",recurrence:"Monthly",defaultStartDay:1,defaultDueDay:5,evidenceRequired:false,linkedModule:""});
 
+  const loadAssignees=async(showToast=false)=>{
+    setAssigneesLoading(true);
+    setAssigneesError("");
+    try{
+      const ur=await apiRequest("GET","/api/monthly-hse-plan?action=assignees");
+      const up=await ur.json();
+      const list=Array.isArray(up)?up:[];
+      setAssignees(list);
+      if(!list.length){
+        const message=isAr?"لا توجد أسماء موظفين نشطة متاحة للتوزيع.":"No active employee names are available for assignment.";
+        setAssigneesError(message);
+        if(showToast) toast.error(message);
+      }
+      return list;
+    }catch(err:any){
+      const message=err?.message||(isAr?"تعذر استيراد أسماء الموظفين":"Unable to import employee names");
+      setAssignees([]);
+      setAssigneesError(message);
+      if(showToast) toast.error(message);
+      return [];
+    }finally{
+      setAssigneesLoading(false);
+    }
+  };
+
   const load=async()=>{
     setLoading(true);
     try{
       const response=await apiRequest("GET","/api/monthly-hse-plan?action=tasks&month="+month+"&year="+year);
       const payload=await response.json();
       setTasks(Array.isArray(payload)?payload:[]);
-      const ur=await apiRequest("GET","/api/monthly-hse-plan?action=assignees");
-      const up=await ur.json();
-      setAssignees(Array.isArray(up)?up:[]);
+      await loadAssignees(false);
       if(canManage){
         const tr=await apiRequest("GET","/api/monthly-hse-plan?action=templates");
         const tp=await tr.json();
@@ -177,6 +202,16 @@ export default function MonthlyHsePlanPage(){
     finally{setSavingEvidence(false);}
   };
 
+  const openNewTaskDialog=async()=>{
+    await loadAssignees(true);
+    setTaskDialog(true);
+  };
+
+  const openGenerateDialog=async()=>{
+    await loadAssignees(true);
+    setGenerateDialog(true);
+  };
+
   const createTask=async()=>{
     try{
       const start=taskForm.startDate||year+"-"+String(month).padStart(2,"0")+"-01";
@@ -236,7 +271,7 @@ export default function MonthlyHsePlanPage(){
         <div className="min-w-[170px] rounded-lg border bg-card px-4 py-2 text-center text-sm font-bold">{monthLabel(month,isAr)} {year}</div>
         <Button variant="outline" size="sm" onClick={()=>changeMonth(1)}><ChevronLeft className="h-4 w-4"/></Button>
         <Button variant="outline" size="sm" onClick={()=>void load()} disabled={loading}><RefreshCw className={"me-2 h-4 w-4 "+(loading?"animate-spin":"")}/>{isAr?"تحديث":"Refresh"}</Button>
-        {canManage&&<><Button size="sm" className="gap-2" onClick={()=>setGenerateDialog(true)}><Sparkles className="h-4 w-4"/>{isAr?"إنشاء خطة الشهر":"Generate Plan"}</Button><Button size="sm" variant="outline" className="gap-2" onClick={()=>setTaskDialog(true)}><Plus className="h-4 w-4"/>{isAr?"مهمة جديدة":"New Task"}</Button></>}
+        {canManage&&<><Button size="sm" className="gap-2" onClick={()=>void openGenerateDialog()}><Sparkles className="h-4 w-4"/>{isAr?"إنشاء خطة الشهر":"Generate Plan"}</Button><Button size="sm" variant="outline" className="gap-2" onClick={()=>void openNewTaskDialog()}><Plus className="h-4 w-4"/>{isAr?"مهمة جديدة":"New Task"}</Button></>}
       </div>
     </div>
 
@@ -321,7 +356,7 @@ export default function MonthlyHsePlanPage(){
         <div className="space-y-2"><Label>{isAr?"العنوان العربي":"Arabic title"}</Label><Input value={taskForm.titleAr} onChange={e=>setTaskForm({...taskForm,titleAr:e.target.value})}/></div>
         <div className="space-y-2"><Label>{isAr?"العنوان الإنجليزي":"English title"}</Label><Input value={taskForm.titleEn} onChange={e=>setTaskForm({...taskForm,titleEn:e.target.value})}/></div>
         <div className="space-y-2 sm:col-span-2"><Label>{isAr?"الوصف":"Description"}</Label><Textarea value={taskForm.description} onChange={e=>setTaskForm({...taskForm,description:e.target.value})}/></div>
-        <div className="space-y-2"><Label>{isAr?"المسؤول":"Assigned employee"}</Label><Select value={taskForm.assignedTo} onValueChange={v=>setTaskForm({...taskForm,assignedTo:v})}><SelectTrigger><SelectValue placeholder={isAr?"اختر الموظف":"Select employee"}/></SelectTrigger><SelectContent>{assignees.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-2"><div className="flex items-center justify-between gap-2"><Label>{isAr?"المسؤول":"Assigned employee"}</Label><Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={()=>void loadAssignees(true)} disabled={assigneesLoading}><RefreshCw className={"me-1 h-3.5 w-3.5 "+(assigneesLoading?"animate-spin":"")}/>{isAr?"تحديث الأسماء":"Refresh names"}</Button></div><Select value={taskForm.assignedTo} onValueChange={v=>setTaskForm({...taskForm,assignedTo:v})} disabled={assigneesLoading||!assignees.length}><SelectTrigger><SelectValue placeholder={assigneesLoading?(isAr?"جارٍ استيراد الأسماء...":"Loading employees..."):(isAr?"اختر الموظف":"Select employee")}/></SelectTrigger><SelectContent>{assignees.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select>{assigneesError&&<p className="text-xs text-red-600">{assigneesError}</p>}</div>
         <div className="space-y-2"><Label>{isAr?"البديل":"Backup"}</Label><Select value={taskForm.backupUserId} onValueChange={v=>setTaskForm({...taskForm,backupUserId:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">{isAr?"بدون":"None"}</SelectItem>{assignees.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-2"><Label>{isAr?"المجال":"Category"}</Label><Select value={taskForm.category} onValueChange={v=>setTaskForm({...taskForm,category:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categories.map(c=><SelectItem value={c} key={c}>{c}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-2"><Label>{isAr?"الأولوية":"Priority"}</Label><Select value={taskForm.priority} onValueChange={v=>setTaskForm({...taskForm,priority:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{priorities.map(p=><SelectItem value={p} key={p}>{p}</SelectItem>)}</SelectContent></Select></div>
@@ -335,7 +370,7 @@ export default function MonthlyHsePlanPage(){
 
     <Dialog open={generateDialog} onOpenChange={setGenerateDialog}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>{isAr?"إنشاء خطة الشهر من القوالب":"Generate Monthly Plan from Templates"}</DialogTitle></DialogHeader>
       <div className="space-y-4"><div className="rounded-xl border bg-teal-500/5 p-3 text-sm"><p className="font-semibold">{monthLabel(month,isAr)} {year}</p><p className="text-xs text-muted-foreground">{isAr?"سيتم إنشاء المهام الشهرية والأسبوعية النشطة للموظف المختار.":"Active monthly and weekly templates will be expanded for the selected employee."}</p></div>
-        <div className="space-y-2"><Label>{isAr?"الموظف المسؤول":"Assigned employee"}</Label><Select value={generateForm.assignedTo} onValueChange={v=>setGenerateForm({...generateForm,assignedTo:v})}><SelectTrigger><SelectValue placeholder={isAr?"اختر الموظف":"Select employee"}/></SelectTrigger><SelectContent>{assignees.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-2"><div className="flex items-center justify-between gap-2"><Label>{isAr?"الموظف المسؤول":"Assigned employee"}</Label><Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={()=>void loadAssignees(true)} disabled={assigneesLoading}><RefreshCw className={"me-1 h-3.5 w-3.5 "+(assigneesLoading?"animate-spin":"")}/>{isAr?"تحديث الأسماء":"Refresh names"}</Button></div><Select value={generateForm.assignedTo} onValueChange={v=>setGenerateForm({...generateForm,assignedTo:v})} disabled={assigneesLoading||!assignees.length}><SelectTrigger><SelectValue placeholder={assigneesLoading?(isAr?"جارٍ استيراد الأسماء...":"Loading employees..."):(isAr?"اختر الموظف":"Select employee")}/></SelectTrigger><SelectContent>{assignees.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select>{assigneesError&&<p className="text-xs text-red-600">{assigneesError}</p>}</div>
         <div className="space-y-2"><Label>{isAr?"الموظف البديل":"Backup employee"}</Label><Select value={generateForm.backupUserId} onValueChange={v=>setGenerateForm({...generateForm,backupUserId:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">{isAr?"بدون":"None"}</SelectItem>{assignees.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
         <div className="grid gap-3 sm:grid-cols-2"><div className="space-y-2"><Label>{isAr?"المصنع":"Factory"}</Label><Input value={generateForm.factory} onChange={e=>setGenerateForm({...generateForm,factory:e.target.value})}/></div><div className="space-y-2"><Label>{isAr?"القسم":"Department"}</Label><Input value={generateForm.department} onChange={e=>setGenerateForm({...generateForm,department:e.target.value})}/></div></div>
       </div><DialogFooter><Button variant="outline" onClick={()=>setGenerateDialog(false)}>{isAr?"إلغاء":"Cancel"}</Button><Button onClick={()=>void generatePlan()} disabled={!generateForm.assignedTo}><Sparkles className="me-2 h-4 w-4"/>{isAr?"إنشاء الخطة":"Generate"}</Button></DialogFooter>
