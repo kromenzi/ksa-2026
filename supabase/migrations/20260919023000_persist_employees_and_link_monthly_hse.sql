@@ -85,7 +85,9 @@ where t.backup_employee_id is null
   and t.backup_user_id is not null
   and e.user_id = t.backup_user_id;
 
-create or replace function public.monthly_hse_assignees()
+drop function if exists public.monthly_hse_assignees();
+
+create function public.monthly_hse_assignees()
 returns table (
   id uuid,
   name text,
