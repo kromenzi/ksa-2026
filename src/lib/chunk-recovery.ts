@@ -1,4 +1,5 @@
-const CHUNK_RELOAD_KEY = "safety-board-chunk-reload";
+const CHUNK_RELOAD_KEY = "safety-board-chunk-reload-at";
+const RELOAD_COOLDOWN_MS = 15_000;
 
 function isChunkLoadFailure(value: unknown) {
   const message =
@@ -11,11 +12,15 @@ function isChunkLoadFailure(value: unknown) {
 
 function recoverFromStaleChunk(value: unknown) {
   if (!isChunkLoadFailure(value)) return false;
+
   try {
-    const alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY) === "1";
-    if (alreadyReloaded) return false;
-    sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
+    const previous = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || "0");
+    if (Number.isFinite(previous) && Date.now() - previous < RELOAD_COOLDOWN_MS) {
+      return false;
+    }
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
   } catch {}
+
   window.location.reload();
   return true;
 }
@@ -24,14 +29,14 @@ export function installChunkRecovery() {
   const onUnhandledRejection = (event: PromiseRejectionEvent) => {
     if (recoverFromStaleChunk(event.reason)) event.preventDefault();
   };
+
   const onError = (event: ErrorEvent) => {
     recoverFromStaleChunk(event.error || event.message);
   };
+
   window.addEventListener("unhandledrejection", onUnhandledRejection);
   window.addEventListener("error", onError);
-  window.addEventListener("pageshow", () => {
-    try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch {}
-  }, { once: true });
+
   return () => {
     window.removeEventListener("unhandledrejection", onUnhandledRejection);
     window.removeEventListener("error", onError);
