@@ -33,6 +33,7 @@ const AdminMailConfig = lazy(() => import("@/pages/admin/mail-config"));
 const AdminNotificationRules = lazy(() => import("@/pages/admin/notification-rules"));
 const AdminGamification = lazy(() => import("@/pages/admin/gamification"));
 const AdminEmployees = lazy(() => import("@/pages/admin/employees"));
+const AdminHseTeam = lazy(() => import("@/pages/admin/hse-team"));
 const AdminEmployeeViolations = lazy(() => import("@/pages/admin/employee-violations"));
 const AdminTrainings = lazy(() => import("@/pages/admin/trainings"));
 const AdminTrainingMatrix = lazy(() => import("@/pages/admin/training-matrix"));
@@ -135,6 +136,7 @@ function Router() {
       <Route path="/admin/notification-rules"><ProtectedRoute component={AdminNotificationRules} /></Route>
       <Route path="/admin/gamification"><ProtectedRoute component={AdminGamification} /></Route>
       <Route path="/admin/employees"><ProtectedRoute component={AdminEmployees} /></Route>
+      <Route path="/admin/hse-team"><ProtectedRoute component={AdminHseTeam} /></Route>
       <Route path="/admin/employee-violations"><ProtectedRoute component={AdminEmployeeViolations} /></Route>
       <Route path="/admin/trainings"><ProtectedRoute component={AdminTrainings} /></Route>
       <Route path="/admin/training-matrix"><ProtectedRoute component={AdminTrainingMatrix} /></Route>
