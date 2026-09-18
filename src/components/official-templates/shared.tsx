@@ -74,12 +74,12 @@ export function SecurityPattern() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(circle at 8% 5%, rgba(15,143,138,.15), transparent 26%), radial-gradient(circle at 92% 94%, rgba(11,58,103,.14), transparent 30%), linear-gradient(145deg,#ffffff 0%,#f8fbfd 50%,#eef6f8 100%)",
+            "radial-gradient(circle at 8% 5%, rgba(15,143,138,.10), transparent 26%), radial-gradient(circle at 92% 94%, rgba(11,58,103,.09), transparent 30%), linear-gradient(145deg,#ffffff 0%,#fbfdfe 50%,#f2f8fa 100%)",
         }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[.055]"
+        className="pointer-events-none absolute inset-0 opacity-[.035]"
         style={{
           backgroundImage:
             "radial-gradient(circle at 25% 25%, #0f8f8a 0 1px, transparent 1px), repeating-linear-gradient(135deg, transparent 0 10px, #0b3a67 10px 11px, transparent 11px 20px)",

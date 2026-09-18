@@ -504,14 +504,15 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
       const aspectRatio = bounds && bounds.height > 0
         ? bounds.width / bounds.height
         : (orientation === "portrait" ? 0.69 : 1.414);
-      // A4 minus the 8 mm CSS page margin on each side.
-      // Fit by both width and height, then keep a small safety margin for
-      // Chrome/Windows printer rounding so no footer spills onto page 2.
-      const printableWidthMm = orientation === "portrait" ? 194 : 281;
-      const printableHeightMm = orientation === "portrait" ? 281 : 194;
+      // A4 minus a compact 4 mm CSS page margin on each side.
+      // Fit by both width and height and keep a 2 mm safety margin for
+      // Chrome/Windows printer rounding. This fills the sheet without
+      // allowing the footer to spill onto a second page.
+      const printableWidthMm = orientation === "portrait" ? 202 : 289;
+      const printableHeightMm = orientation === "portrait" ? 289 : 202;
       const fittedWidthMm = Math.max(
         40,
-        Math.min(printableWidthMm, printableHeightMm * aspectRatio) - 6,
+        Math.min(printableWidthMm, printableHeightMm * aspectRatio) - 2,
       );
       const inheritedStyles = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style'))
         .map(node => node.outerHTML)
@@ -546,7 +547,7 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 ${inheritedStyles}
 <style>
-  @page { size: A4 ${orientation}; margin: 8mm; }
+  @page { size: A4 ${orientation}; margin: 4mm; }
   html, body {
     margin: 0 !important;
     padding: 0 !important;
