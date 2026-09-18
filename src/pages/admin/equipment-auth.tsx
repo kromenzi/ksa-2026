@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, ShieldCheck, Trash2, RefreshCw, Printer } from "lucide-react";
 import { toast } from "sonner";
-import PrintShareDialog from "@/components/print-share-dialog";\nimport { OfficialHseTemplate } from "@/components/official-templates";
+import PrintShareDialog from "@/components/print-share-dialog";
+import { OfficialHseTemplate } from "@/components/official-templates";
 
 const CATEGORIES = [
   { value: "forklift", en: "Forklift", ar: "رافعة شوكية" },
