@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
+import { installChunkRecovery } from "@/lib/chunk-recovery";
 import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
@@ -180,6 +181,8 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => installChunkRecovery(), []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <DataProvider>
