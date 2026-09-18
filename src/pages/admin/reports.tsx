@@ -1596,183 +1596,254 @@ function SafetyReportFormDialog({
   updateSafetyReport: (id: string, data: any) => Promise<void>;
   currentUserId: string;
 }) {
-  const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
-    time: '',
-    location: '',
-    department: '',
-    observerName: '',
-    riskLevel: 'low',
-    category: '',
-    status: 'open',
-    observationDescription: '',
-    correctiveAction: '',
+  const { toast } = useToast();
+  const riskLevelFromScore = (score: number) => score >= 17 ? "critical" : score >= 10 ? "high" : score >= 5 ? "medium" : "low";
+  const emptyState = () => ({
+    date: new Date().toISOString().split("T")[0],
+    time: "",
+    location: "",
+    department: "",
+    observerName: "",
+    riskLevel: "low",
+    category: "General Safety",
+    status: "open",
+    observationDescription: "",
+    correctiveAction: "",
+    observationType: "Unsafe Condition",
+    likelihood: 1,
+    consequence: 1,
+    immediateAction: "",
+    actionOwner: "",
+    targetDate: "",
+    verificationNotes: "",
   });
+
+  const [form, setForm] = useState(emptyState);
   const [images, setImages] = useState<(string | null)[]>([null, null, null, null]);
+  const [saving, setSaving] = useState(false);
 
-  const [prevEditing, setPrevEditing] = useState<SafetyReport | null>(null);
-  const [prevOpen, setPrevOpen] = useState(false);
-
-  if (open !== prevOpen || editingReport !== prevEditing) {
-    setPrevOpen(open);
-    setPrevEditing(editingReport);
-    if (open) {
-      if (editingReport) {
-        setForm({
-          date: editingReport.date,
-          time: editingReport.time || '',
-          location: editingReport.location || '',
-          department: editingReport.department || '',
-          observerName: editingReport.observerName || '',
-          riskLevel: editingReport.riskLevel,
-          category: editingReport.category || '',
-          status: editingReport.status,
-          observationDescription: editingReport.observationDescription || '',
-          correctiveAction: editingReport.correctiveAction || '',
-        });
-        setImages([editingReport.image1 || null, editingReport.image2 || null, editingReport.image3 || null, editingReport.image4 || null]);
-      } else {
-        setForm({
-          date: new Date().toISOString().split('T')[0],
-          time: '', location: '', department: '', observerName: '',
-          riskLevel: 'low', category: '', status: 'open',
-          observationDescription: '', correctiveAction: '',
-        });
-        setImages([null, null, null, null]);
-      }
+  useEffect(() => {
+    if (!open) return;
+    if (editingReport) {
+      const metadata = editingReport.sourceMetadata && typeof editingReport.sourceMetadata === "object"
+        ? editingReport.sourceMetadata
+        : {};
+      const likelihood = Math.min(5, Math.max(1, Number(metadata.likelihood || 1)));
+      const consequence = Math.min(5, Math.max(1, Number(metadata.consequence || 1)));
+      setForm({
+        date: editingReport.date,
+        time: editingReport.time || "",
+        location: editingReport.location || "",
+        department: editingReport.department || "",
+        observerName: editingReport.observerName || "",
+        riskLevel: editingReport.riskLevel || riskLevelFromScore(likelihood * consequence),
+        category: editingReport.category || "General Safety",
+        status: editingReport.status || "open",
+        observationDescription: editingReport.observationDescription || "",
+        correctiveAction: editingReport.correctiveAction || "",
+        observationType: String(metadata.observationType || "Unsafe Condition"),
+        likelihood,
+        consequence,
+        immediateAction: String(metadata.immediateAction || ""),
+        actionOwner: String(metadata.actionOwner || ""),
+        targetDate: String(metadata.targetDate || ""),
+        verificationNotes: String(metadata.verificationNotes || ""),
+      });
+      setImages([editingReport.image1 || null, editingReport.image2 || null, editingReport.image3 || null, editingReport.image4 || null]);
+    } else {
+      setForm(emptyState());
+      setImages([null, null, null, null]);
     }
-  }
+  }, [open, editingReport]);
+
+  const setRiskFactor = (key: "likelihood" | "consequence", value: number) => {
+    setForm(prev => {
+      const next = { ...prev, [key]: value };
+      const score = Number(next.likelihood) * Number(next.consequence);
+      return { ...next, riskLevel: riskLevelFromScore(score) };
+    });
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      // Create local object URL for the image
-      const imageUrl = URL.createObjectURL(file);
-      const newImages = [...images];
-      newImages[idx] = imageUrl;
-      setImages(newImages);
-      toast({ title: isAr ? 'تم رفع الصورة' : 'Image uploaded' });
-    } catch {
-      toast({ title: isAr ? 'فشل رفع الصورة' : 'Image upload failed', variant: 'destructive' });
-    }
+    const imageUrl = URL.createObjectURL(file);
+    setImages(prev => prev.map((image, imageIndex) => imageIndex === idx ? imageUrl : image));
   };
 
-  const { toast } = useToast();
-
   const handleSubmit = async () => {
+    if (!form.date || !form.location.trim() || form.observationDescription.trim().length < 5) {
+      toast({
+        title: isAr ? "بيانات ناقصة" : "Missing information",
+        description: isAr ? "التاريخ والموقع ووصف الملاحظة مطلوبة." : "Date, location, and observation description are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const riskScore = form.likelihood * form.consequence;
+    if (["high", "critical"].includes(form.riskLevel) && !form.immediateAction.trim()) {
+      toast({
+        title: isAr ? "الإجراء الفوري مطلوب" : "Immediate action required",
+        description: isAr ? "أدخل إجراءً فوريًا للحالات عالية أو حرجة الخطورة." : "Enter an immediate action for high or critical observations.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
     try {
-      const payload = { ...form, image1: images[0], image2: images[1], image3: images[2], image4: images[3] };
+      const previousMetadata = editingReport?.sourceMetadata && typeof editingReport.sourceMetadata === "object"
+        ? editingReport.sourceMetadata
+        : {};
+      const payload = {
+        date: form.date,
+        time: form.time || null,
+        location: form.location.trim(),
+        department: form.department.trim() || null,
+        observerName: form.observerName.trim() || null,
+        riskLevel: riskLevelFromScore(riskScore),
+        category: form.category,
+        status: form.status,
+        observationDescription: form.observationDescription.trim(),
+        correctiveAction: form.correctiveAction.trim() || null,
+        sourceMetadata: {
+          ...previousMetadata,
+          observationType: form.observationType,
+          likelihood: form.likelihood,
+          consequence: form.consequence,
+          riskScore,
+          immediateAction: form.immediateAction.trim(),
+          actionOwner: form.actionOwner.trim(),
+          targetDate: form.targetDate,
+          verificationNotes: form.verificationNotes.trim(),
+          formVersion: "SOR-UX-2026.09",
+        },
+        image1: images[0],
+        image2: images[1],
+        image3: images[2],
+        image4: images[3],
+      };
       if (editingReport) {
         await updateSafetyReport(editingReport.id, payload);
+        toast({ title: isAr ? "تم تحديث تقرير الملاحظة" : "Safety observation updated" });
       } else {
         await addSafetyReport({ ...payload, createdBy: currentUserId });
+        toast({ title: isAr ? "تم إنشاء تقرير الملاحظة" : "Safety observation created" });
       }
       onOpenChange(false);
     } catch (err: any) {
-      toast({ title: isAr ? 'فشل في حفظ التقرير' : 'Failed to save report', description: err?.message, variant: 'destructive' });
+      toast({
+        title: isAr ? "فشل حفظ التقرير" : "Failed to save report",
+        description: err?.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
+  const riskScore = form.likelihood * form.consequence;
+  const riskLabel = ({
+    low: isAr ? "منخفض" : "Low",
+    medium: isAr ? "متوسط" : "Medium",
+    high: isAr ? "عالٍ" : "High",
+    critical: isAr ? "حرج" : "Critical",
+  } as Record<string, string>)[riskLevelFromScore(riskScore)];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-[calc(100%-1rem)] sm:w-auto max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[94vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {editingReport ? (isAr ? 'تعديل تقرير السلامة' : 'Edit Safety Report') : (isAr ? 'تقرير سلامة جديد' : 'New Safety Report')}
-          </DialogTitle>
-          <DialogDescription>
-            {isAr ? 'أدخل بيانات الملاحظة' : 'Enter observation details'}
-          </DialogDescription>
+          <DialogTitle>{editingReport ? (isAr ? "تعديل تقرير ملاحظة السلامة" : "Edit Safety Observation Report") : (isAr ? "تقرير ملاحظة سلامة جديد (SOR)" : "New Safety Observation Report (SOR)")}</DialogTitle>
+          <DialogDescription>{isAr ? "سجّل الملاحظة، قيّم المخاطر 5×5، وحدد الإجراء والمسؤول والمتابعة." : "Record the observation, assess 5×5 risk, assign action ownership, and verify closeout."}</DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>{isAr ? 'التاريخ' : 'Date'}</Label>
-            <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} data-testid="input-report-date" />
-          </div>
-          <div className="space-y-2">
-            <Label>{isAr ? 'الوقت' : 'Time'}</Label>
-            <Input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} data-testid="input-report-time" />
-          </div>
-          <div className="space-y-2">
-            <Label>{isAr ? 'الموقع' : 'Location'}</Label>
-            <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder={isAr ? 'مثال: المنطقة أ' : 'e.g., Zone A'} data-testid="input-report-location" />
-          </div>
-          <div className="space-y-2">
-            <Label>{isAr ? 'القسم' : 'Department'}</Label>
-            <Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} data-testid="input-report-department" />
-          </div>
-          <div className="space-y-2">
-            <Label>{isAr ? 'اسم المراقب' : 'Observer Name'}</Label>
-            <Input value={form.observerName} onChange={(e) => setForm({ ...form, observerName: e.target.value })} data-testid="input-report-observer" />
-          </div>
-          <div className="space-y-2">
-            <Label>{isAr ? 'الفئة' : 'Category'}</Label>
-            <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder={isAr ? 'مثال: كهرباء، سقالات' : 'e.g., Electrical, Scaffolding'} data-testid="input-report-category" />
-          </div>
-          <div className="space-y-2">
-            <Label>{isAr ? 'مستوى الخطر' : 'Risk Level'}</Label>
-            <Select value={form.riskLevel} onValueChange={(v) => setForm({ ...form, riskLevel: v })}>
-              <SelectTrigger data-testid="select-risk-level"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">{isAr ? 'منخفض' : 'Low'}</SelectItem>
-                <SelectItem value="medium">{isAr ? 'متوسط' : 'Medium'}</SelectItem>
-                <SelectItem value="high">{isAr ? 'عالي' : 'High'}</SelectItem>
-                <SelectItem value="critical">{isAr ? 'حرج' : 'Critical'}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>{isAr ? 'الحالة' : 'Status'}</Label>
-            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-              <SelectTrigger data-testid="select-status"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="open">{isAr ? 'مفتوح' : 'Open'}</SelectItem>
-                <SelectItem value="in_progress">{isAr ? 'قيد التنفيذ' : 'In Progress'}</SelectItem>
-                <SelectItem value="closed">{isAr ? 'مغلق' : 'Closed'}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label>{isAr ? 'وصف الملاحظة' : 'Observation Description'}</Label>
-          <Textarea value={form.observationDescription} onChange={(e) => setForm({ ...form, observationDescription: e.target.value })} rows={3} data-testid="textarea-observation" />
-        </div>
-        <div className="space-y-2">
-          <Label>{isAr ? 'الإجراء التصحيحي' : 'Corrective Action'}</Label>
-          <Textarea value={form.correctiveAction} onChange={(e) => setForm({ ...form, correctiveAction: e.target.value })} rows={3} data-testid="textarea-corrective-action" />
-        </div>
-        <div className="space-y-2">
-          <Label>{isAr ? 'الصور' : 'Images'}</Label>
-          <div className="grid grid-cols-4 gap-3">
-            {[0, 1, 2, 3].map(idx => (
-              <div key={idx} className="relative aspect-square rounded-lg border-2 border-dashed border-border bg-muted/20 flex items-center justify-center overflow-hidden">
-                {images[idx] ? (
-                  <>
-                    <img src={images[idx]!} alt={`Image ${idx + 1}`} className="h-full w-full object-cover" />
-                    <button
-                      onClick={() => { const n = [...images]; n[idx] = null; setImages(n); }}
-                      className="absolute top-1 right-1 h-5 w-5 rounded-full bg-destructive text-white flex items-center justify-center"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </>
-                ) : (
-                  <label className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
-                    <ImageIcon className="h-5 w-5" />
-                    <span className="text-[10px]">{idx + 1}</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, idx)} />
-                  </label>
-                )}
+
+        <Tabs defaultValue="observation" className="space-y-4">
+          <TabsList className="grid h-auto w-full grid-cols-3">
+            <TabsTrigger value="observation">{isAr ? "1. الملاحظة" : "1. Observation"}</TabsTrigger>
+            <TabsTrigger value="risk">{isAr ? "2. المخاطر والإجراء" : "2. Risk & Action"}</TabsTrigger>
+            <TabsTrigger value="evidence">{isAr ? "3. الأدلة والمتابعة" : "3. Evidence & Follow-up"}</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="observation" className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2"><Label>{isAr ? "التاريخ *" : "Date *"}</Label><Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isAr ? "الوقت" : "Time"}</Label><Input type="time" value={form.time} onChange={e => setForm({ ...form, time: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isAr ? "الموقع *" : "Location *"}</Label><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder={isAr ? "مثال: MV Testing Area" : "e.g. MV Testing Area"} /></div>
+              <div className="space-y-2"><Label>{isAr ? "القسم" : "Department"}</Label><Input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} /></div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-2"><Label>{isAr ? "نوع الملاحظة" : "Observation Type"}</Label><Select value={form.observationType} onValueChange={observationType => setForm({ ...form, observationType })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Unsafe Condition">{isAr ? "حالة غير آمنة" : "Unsafe Condition"}</SelectItem><SelectItem value="Unsafe Act">{isAr ? "تصرف غير آمن" : "Unsafe Act"}</SelectItem><SelectItem value="Positive Observation">{isAr ? "ملاحظة إيجابية" : "Positive Observation"}</SelectItem><SelectItem value="Environmental Observation">{isAr ? "ملاحظة بيئية" : "Environmental Observation"}</SelectItem></SelectContent></Select></div>
+              <div className="space-y-2"><Label>{isAr ? "الفئة" : "Category"}</Label><Select value={form.category} onValueChange={category => setForm({ ...form, category })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
+                <SelectItem value="General Safety">{isAr ? "سلامة عامة" : "General Safety"}</SelectItem>
+                <SelectItem value="Electrical">{isAr ? "كهرباء" : "Electrical"}</SelectItem>
+                <SelectItem value="Fire Safety">{isAr ? "السلامة من الحريق" : "Fire Safety"}</SelectItem>
+                <SelectItem value="PPE">{isAr ? "معدات الوقاية الشخصية" : "PPE"}</SelectItem>
+                <SelectItem value="Housekeeping">{isAr ? "الترتيب والنظافة" : "Housekeeping"}</SelectItem>
+                <SelectItem value="Machine Guarding">{isAr ? "حواجز وحماية الآلات" : "Machine Guarding"}</SelectItem>
+                <SelectItem value="Work at Height">{isAr ? "العمل على ارتفاع" : "Work at Height"}</SelectItem>
+                <SelectItem value="LOTO">{isAr ? "عزل مصادر الطاقة (LOTO)" : "LOTO"}</SelectItem>
+                <SelectItem value="Material Handling">{isAr ? "مناولة المواد" : "Material Handling"}</SelectItem>
+                <SelectItem value="Ergonomics">{isAr ? "العوامل البشرية / الإرغونوميكس" : "Ergonomics"}</SelectItem>
+                <SelectItem value="Environmental">{isAr ? "بيئي" : "Environmental"}</SelectItem>
+                <SelectItem value="Contractor Safety">{isAr ? "سلامة المقاولين" : "Contractor Safety"}</SelectItem>
+                <SelectItem value="Other">{isAr ? "أخرى" : "Other"}</SelectItem>
+              </SelectContent></Select></div>
+              <div className="space-y-2"><Label>{isAr ? "اسم المراقب" : "Observer Name"}</Label><Input value={form.observerName} onChange={e => setForm({ ...form, observerName: e.target.value })} /></div>
+            </div>
+
+            <div className="space-y-2"><Label>{isAr ? "وصف الملاحظة *" : "Observation Description *"}</Label><Textarea rows={7} value={form.observationDescription} onChange={e => setForm({ ...form, observationDescription: e.target.value })} placeholder={isAr ? "اكتب الحالة كما شوهدت: ماذا، أين، ومتى، بدون افتراض السبب." : "Describe what was observed, where, and when, without assuming the cause."} /></div>
+          </TabsContent>
+
+          <TabsContent value="risk" className="space-y-4">
+            <div className="rounded-xl border bg-muted/30 p-4">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div><p className="font-semibold">{isAr ? "تقييم المخاطر 5×5" : "5×5 Risk Assessment"}</p><p className="text-xs text-muted-foreground">{isAr ? "الاحتمالية × العواقب = درجة الخطر." : "Likelihood × consequence = risk score."}</p></div>
+                <div className="flex items-center gap-2"><Badge variant="outline" className="text-base">{riskScore}/25</Badge><Badge variant="outline">{riskLabel}</Badge></div>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2"><Label>{isAr ? "الاحتمالية (1–5)" : "Likelihood (1–5)"}</Label><Select value={String(form.likelihood)} onValueChange={value => setRiskFactor("likelihood", Number(value))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[1,2,3,4,5].map(value => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}</SelectContent></Select></div>
+                <div className="space-y-2"><Label>{isAr ? "شدة العواقب (1–5)" : "Consequence (1–5)"}</Label><Select value={String(form.consequence)} onValueChange={value => setRiskFactor("consequence", Number(value))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[1,2,3,4,5].map(value => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}</SelectContent></Select></div>
+              </div>
+            </div>
+
+            <div className="space-y-2"><Label>{isAr ? "الإجراء الفوري / السيطرة المؤقتة" : "Immediate Action / Temporary Control"}</Label><Textarea rows={4} value={form.immediateAction} onChange={e => setForm({ ...form, immediateAction: e.target.value })} placeholder={isAr ? "مثال: عزل المنطقة، إيقاف المعدة، إزالة العائق، توفير PPE..." : "e.g. isolate area, stop equipment, remove obstruction, provide PPE..."} /></div>
+            <div className="space-y-2"><Label>{isAr ? "الإجراء التصحيحي / الوقائي" : "Corrective / Preventive Action"}</Label><Textarea rows={5} value={form.correctiveAction} onChange={e => setForm({ ...form, correctiveAction: e.target.value })} placeholder={isAr ? "الإجراء الذي يعالج الخطر ويمنع تكراره." : "Action that controls the hazard and prevents recurrence."} /></div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2"><Label>{isAr ? "مسؤول الإجراء" : "Action Owner"}</Label><Input value={form.actionOwner} onChange={e => setForm({ ...form, actionOwner: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isAr ? "الموعد المستهدف" : "Target Date"}</Label><Input type="date" value={form.targetDate} onChange={e => setForm({ ...form, targetDate: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isAr ? "الحالة" : "Status"}</Label><Select value={form.status} onValueChange={status => setForm({ ...form, status })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="open">{isAr ? "مفتوح" : "Open"}</SelectItem><SelectItem value="in_progress">{isAr ? "قيد التنفيذ" : "In Progress"}</SelectItem><SelectItem value="closed">{isAr ? "مغلق" : "Closed"}</SelectItem></SelectContent></Select></div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="evidence" className="space-y-5">
+            <div className="space-y-2"><Label>{isAr ? "ملاحظات التحقق والمتابعة" : "Verification / Follow-up Notes"}</Label><Textarea rows={5} value={form.verificationNotes} onChange={e => setForm({ ...form, verificationNotes: e.target.value })} placeholder={isAr ? "وثّق ماذا تم التحقق منه، النتيجة، وتاريخ/دليل إغلاق الإجراء." : "Record what was verified, the result, and closeout evidence/date."} /></div>
+            <div className="space-y-2">
+              <Label>{isAr ? "الصور / الأدلة المرئية" : "Images / Visual Evidence"}</Label>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[0, 1, 2, 3].map(idx => (
+                  <div key={idx} className="relative aspect-square overflow-hidden rounded-lg border-2 border-dashed border-border bg-muted/20">
+                    {images[idx] ? (
+                      <>
+                        <img src={images[idx]!} alt={`Evidence ${idx + 1}`} className="h-full w-full object-cover" />
+                        <button type="button" onClick={() => setImages(prev => prev.map((image, imageIndex) => imageIndex === idx ? null : image))} className="absolute end-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-white"><X className="h-3 w-3" /></button>
+                      </>
+                    ) : (
+                      <label className="flex h-full cursor-pointer flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary"><ImageIcon className="h-5 w-5" /><span className="text-[10px]">{isAr ? "صورة" : "Image"} {idx + 1}</span><input type="file" accept="image/*" className="hidden" onChange={e => void handleImageUpload(e, idx)} /></label>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>{isAr ? 'إلغاء' : 'Cancel'}</Button>
-          <Button onClick={handleSubmit} disabled={!form.date} data-testid="button-submit-report">
-            {editingReport ? (isAr ? 'تحديث' : 'Update') : (isAr ? 'إنشاء' : 'Create')}
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{isAr ? "إلغاء" : "Cancel"}</Button>
+          <Button onClick={() => void handleSubmit()} disabled={saving}>{saving ? (isAr ? "جارٍ الحفظ..." : "Saving...") : editingReport ? (isAr ? "حفظ التعديلات" : "Save Changes") : (isAr ? "إنشاء SOR" : "Create SOR")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
