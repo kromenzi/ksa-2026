@@ -23,7 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 type Task = {
   id:string; taskNo:string; titleAr:string; titleEn:string; description?:string|null; category:string;
-  factory?:string|null; department?:string|null; assignedTo?:string|null; backupUserId?:string|null;
+  factory?:string|null; department?:string|null; assignedTo?:string|null; backupUserId?:string|null; assignedEmployeeId?:string|null; backupEmployeeId?:string|null;
   month:number; year:number; priority:"Critical"|"High"|"Medium"|"Low"; startDate:string; dueDate:string;
   recurrence:string; status:string; progress:number; evidenceRequired:boolean; linkedModule?:string|null;
   linkedRecordId?:string|null; escalationLevel:number; notes?:string|null; completedAt?:string|null;
@@ -31,7 +31,7 @@ type Task = {
 };
 type Evidence={id:string;taskId:string;filePath:string;fileName:string;mimeType:string;sizeBytes:number;note?:string|null;createdAt:string};
 type Template={id:string;slug:string;titleAr:string;titleEn:string;description?:string|null;category:string;priority:string;recurrence:string;defaultStartDay:number;defaultDueDay:number;evidenceRequired:boolean;linkedModule?:string|null;active:boolean};
-type Assignee={id:string;name:string;role:string;isActive:boolean};
+type Assignee={id:string;name:string;role:string;isActive:boolean;userId?:string|null;title?:string|null;employeeId?:string|null};
 
 const statusOptions=["Not Started","In Progress","Completed","Blocked","Escalated","Cancelled"];
 const priorities=["Critical","High","Medium","Low"];
@@ -139,7 +139,12 @@ export default function MonthlyHsePlanPage(){
 
   const filtered=useMemo(()=>tasks.filter(task=>{
     if(view==="my"&&task.assignedTo!==currentUser?.id&&task.backupUserId!==currentUser?.id) return false;
-    if(view==="team"&&assigneeFilter!=="all"&&task.assignedTo!==assigneeFilter) return false;
+    if(view==="team"&&assigneeFilter!=="all"){
+      const assignee=assignees.find(a=>a.id===assigneeFilter);
+      const matchesEmployee=task.assignedEmployeeId===assigneeFilter;
+      const matchesLinkedUser=Boolean(assignee?.userId&&task.assignedTo===assignee.userId);
+      if(!matchesEmployee&&!matchesLinkedUser) return false;
+    }
     if(statusFilter==="overdue"){if(!isOverdue(task)) return false;}
     else if(statusFilter!=="all"&&task.status!==statusFilter) return false;
     if(categoryFilter!=="all"&&task.category!==categoryFilter) return false;
@@ -216,7 +221,7 @@ export default function MonthlyHsePlanPage(){
     try{
       const start=taskForm.startDate||year+"-"+String(month).padStart(2,"0")+"-01";
       const due=taskForm.dueDate||year+"-"+String(month).padStart(2,"0")+"-05";
-      const r=await apiRequest("POST","/api/monthly-hse-plan?action=create",{...taskForm,backupUserId:taskForm.backupUserId==="none"?"":taskForm.backupUserId,month,year,startDate:start,dueDate:due});
+      const r=await apiRequest("POST","/api/monthly-hse-plan?action=create",{...taskForm,assignedEmployeeId:taskForm.assignedTo,backupEmployeeId:taskForm.backupUserId==="none"?"":taskForm.backupUserId,month,year,startDate:start,dueDate:due});
       const row=await r.json();if(!r.ok) throw new Error(row?.error||"Unable to create task");
       setTaskDialog(false);await load();toast.success(isAr?"تم إنشاء المهمة":"Task created");
     }catch(err:any){toast.error(err?.message||(isAr?"تعذر إنشاء المهمة":"Unable to create task"));}
@@ -224,7 +229,7 @@ export default function MonthlyHsePlanPage(){
 
   const generatePlan=async()=>{
     try{
-      const r=await apiRequest("POST","/api/monthly-hse-plan?action=generate",{...generateForm,backupUserId:generateForm.backupUserId==="none"?"":generateForm.backupUserId,month,year});
+      const r=await apiRequest("POST","/api/monthly-hse-plan?action=generate",{...generateForm,assignedEmployeeId:generateForm.assignedTo,backupEmployeeId:generateForm.backupUserId==="none"?"":generateForm.backupUserId,month,year});
       const body=await r.json();if(!r.ok) throw new Error(body?.error||"Unable to generate plan");
       setGenerateDialog(false);await load();toast.success((isAr?"تم إنشاء ":"Created ")+body.created+(isAr?" مهمة":" tasks"));
     }catch(err:any){toast.error(err?.message||(isAr?"تعذر إنشاء الخطة":"Unable to generate plan"));}
@@ -253,9 +258,9 @@ export default function MonthlyHsePlanPage(){
   };
 
   const taskUser=(id?:string|null)=>{
-    const found=assignees.find(u=>u.id===id);
+    const found=assignees.find(u=>u.id===id||u.userId===id);
     if(found) return found;
-    if(currentUser&&id===currentUser.id) return {id:currentUser.id,name:currentUser.name,role:currentUser.role,isActive:true};
+    if(currentUser&&id===currentUser.id) return {id:currentUser.id,name:currentUser.name,role:currentUser.role,isActive:true,userId:currentUser.id};
     return undefined;
   };
   const calendarDays=Array.from({length:new Date(year,month,0).getDate()},(_,i)=>i+1);
@@ -305,7 +310,7 @@ export default function MonthlyHsePlanPage(){
           {!loading&&filtered.length===0&&<TableRow><TableCell colSpan={7} className="py-14 text-center text-muted-foreground">{isAr?"لا توجد مهام لهذه الفترة":"No tasks for this period"}</TableCell></TableRow>}
           {filtered.map(task=><TableRow key={task.id} className="cursor-pointer hover:bg-muted/40" onClick={()=>void openTask(task)}>
             <TableCell><p className="font-semibold">{isAr?task.titleAr:task.titleEn}</p><p className="text-[11px] text-muted-foreground">{task.taskNo} · {task.factory||"—"}</p></TableCell>
-            <TableCell>{taskUser(task.assignedTo)?.name||"—"}</TableCell><TableCell>{task.category}</TableCell>
+            <TableCell><div><p>{taskUser(task.assignedEmployeeId||task.assignedTo)?.name||"—"}</p>{taskUser(task.assignedEmployeeId||task.assignedTo)?.title&&<p className="text-[10px] text-muted-foreground">{taskUser(task.assignedEmployeeId||task.assignedTo)?.title}</p>}</div></TableCell><TableCell>{task.category}</TableCell>
             <TableCell><Badge className={priorityClass(task.priority)} variant="outline">{task.priority}</Badge></TableCell>
             <TableCell className={isOverdue(task)?"font-semibold text-red-600":""}>{task.dueDate}</TableCell>
             <TableCell><Badge variant="outline" className={statusClass(task)}>{displayStatus(task,isAr)}</Badge></TableCell>
@@ -337,7 +342,7 @@ export default function MonthlyHsePlanPage(){
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2"><Label>{isAr?"الحالة":"Status"}</Label><Select value={selected.status} onValueChange={v=>setSelected({...selected,status:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{statusOptions.map(s=><SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-2"><Label>{isAr?"نسبة الإنجاز":"Progress"} %</Label><Input type="number" min={0} max={100} value={selected.progress} onChange={e=>setSelected({...selected,progress:Math.max(0,Math.min(100,Number(e.target.value)||0))})}/></div>
-        <div className="space-y-2"><Label>{isAr?"المسؤول":"Assigned"}</Label><Input value={taskUser(selected.assignedTo)?.name||"—"} disabled/></div>
+        <div className="space-y-2"><Label>{isAr?"المسؤول":"Assigned"}</Label><Input value={taskUser(selected.assignedEmployeeId||selected.assignedTo)?.name||"—"} disabled/></div>
         <div className="space-y-2"><Label>{isAr?"الموعد":"Due Date"}</Label><Input value={selected.dueDate} disabled/></div>
       </div>
       <div className="rounded-xl border bg-muted/20 p-4 text-sm"><p className="font-semibold">{selected.category} · {selected.priority}</p><p className="mt-2 whitespace-pre-wrap text-muted-foreground">{selected.description||"—"}</p></div>
