@@ -170,6 +170,16 @@ export default function ExportPreviewModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto p-0 rounded-2xl gap-0 border-border/80 shadow-2xl">
+        <style>{`
+          .export-preview-font-scope,
+          .export-preview-font-scope * {
+            color: ${fontColor} !important;
+          }
+          .export-preview-font-scope .export-preserve-contrast,
+          .export-preview-font-scope .export-preserve-contrast * {
+            color: #ffffff !important;
+          }
+        `}</style>
         {/* Header */}
         <DialogHeader className="p-6 border-b bg-muted/30">
           <div className="flex items-center justify-between gap-4">
@@ -396,10 +406,10 @@ export default function ExportPreviewModal({
             </div>
 
             {/* Paper Sheet Mockup */}
-            <div className="w-full bg-white shadow-xl border rounded-lg p-6 font-sans space-y-4 text-xs transition-all" style={{ color: fontColor }}>
+            <div className="export-preview-font-scope w-full bg-white shadow-xl border rounded-lg p-6 font-sans space-y-4 text-xs transition-all" style={{ color: fontColor }}>
               {/* Header Banner */}
               <div
-                className="p-4 rounded-lg text-white flex items-center justify-between shadow-sm"
+                className="export-preserve-contrast p-4 rounded-lg text-white flex items-center justify-between shadow-sm"
                 style={{ backgroundColor: headerColor }}
               >
                 <div>
