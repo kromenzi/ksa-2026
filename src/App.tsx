@@ -69,6 +69,9 @@ const VisionAlerts = lazy(() => import("@/pages/admin/vision/alerts"));
 const VisionAnalytics = lazy(() => import("@/pages/admin/vision/analytics"));
 const VisionSettings = lazy(() => import("@/pages/admin/vision/settings"));
 const PublicReport = lazy(() => import("@/pages/public-report"));
+const PublicSafetyReport = lazy(() => import("@/pages/safety-report"));
+const PublicSafetyReportStatus = lazy(() => import("@/pages/safety-report-status"));
+const AdminSafetyReporting = lazy(() => import("@/pages/admin/safety-reporting"));
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useData();
@@ -100,6 +103,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/report" component={PublicSafetyReport} />
+      <Route path="/report/status" component={PublicSafetyReportStatus} />
       <Route path="/report/:id" component={PublicReport} />
       <Route path="/admin" component={AdminRedirect} />
       <Route path="/admin/login" component={AdminLogin} />
@@ -109,6 +114,7 @@ function Router() {
       <Route path="/admin/sections"><ProtectedRoute component={AdminSections} /></Route>
       <Route path="/admin/forms"><ProtectedRoute component={AdminForms} /></Route>
       <Route path="/admin/reports"><ProtectedRoute component={AdminReports} /></Route>
+      <Route path="/admin/safety-reporting"><ProtectedRoute component={AdminSafetyReporting} /></Route>
       <Route path="/admin/ncr"><ProtectedRoute component={AdminNCR} /></Route>
       <Route path="/admin/ncr/new"><ProtectedRoute component={AdminNCRNewFixed} /></Route>
       <Route path="/admin/ncr/:id"><ProtectedRoute component={AdminNCRForm} /></Route>
