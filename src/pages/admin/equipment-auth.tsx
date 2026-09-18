@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, ShieldCheck, Trash2, RefreshCw, Printer } from "lucide-react";
 import { toast } from "sonner";
-import PrintShareDialog from "@/components/print-share-dialog";
+import PrintShareDialog from "@/components/print-share-dialog";\nimport { OfficialHseTemplate } from "@/components/official-templates";
 
 const CATEGORIES = [
   { value: "forklift", en: "Forklift", ar: "رافعة شوكية" },
@@ -149,6 +149,19 @@ export default function AdminEquipmentAuthorizationPage() {
       status: record.status,
       date: record.expiryDate || record.issueDate,
       createdAt: record.issueDate,
+      templateKind: "equipment-authorization",
+      templateData: {
+        reference: record.refNo,
+        employeeName: record.employeeName,
+        employeeId: record.employeeId,
+        jobTitle: record.jobTitle,
+        department: record.department || "HSE",
+        licenseType: categoryLabel(record.category, isAr),
+        authorizedEquipment: [record.equipmentType, record.equipmentId].filter(Boolean).join(" - ") || categoryLabel(record.category, isAr),
+        issueDate: record.issueDate,
+        expiryDate: record.expiryDate,
+        approver: record.supervisor || "HSE Manager",
+      },
       sections: [
         { label: isAr ? "الموظف" : "Employee", value: `${record.employeeName} (${record.employeeId})` },
         { label: isAr ? "نوع التفويض" : "Authorization Type", value: categoryLabel(record.category, isAr) },
@@ -280,7 +293,22 @@ export default function AdminEquipmentAuthorizationPage() {
         </DialogContent>
       </Dialog>
 
-      {printItem && <PrintShareDialog open={!!printItem} onOpenChange={open => !open && setPrintItem(null)} item={printItem} />}
+      {printItem && (
+        <PrintShareDialog
+          open={!!printItem}
+          onOpenChange={open => !open && setPrintItem(null)}
+          item={printItem}
+          preserveCustomColors
+          customContent={
+            <OfficialHseTemplate
+              kind="equipment-authorization"
+              data={printItem.templateData}
+              branding={settings.branding}
+              qrValue={printItem.refNo}
+            />
+          }
+        />
+      )}
     </div>
   );
 }
