@@ -51,6 +51,7 @@ export interface ExportOptions {
   format: "zip" | "doc" | "csv" | "json" | "pdf";
   companyName: string;
   headerColor: string;
+  fontColor: string;
   showLogo: boolean;
   showMetadata: boolean;
   selectedSections: string[];
@@ -68,6 +69,15 @@ interface ExportPreviewModalProps {
   sections?: ExportSectionDef[];
   onConfirmExport: (options: ExportOptions) => void;
 }
+
+const FONT_COLORS = [
+  { id: "#0f172a", nameEn: "Slate Black", nameAr: "أسود داكن" },
+  { id: "#111827", nameEn: "Graphite", nameAr: "جرافيت" },
+  { id: "#1e3a8a", nameEn: "Royal Blue", nameAr: "أزرق ملكي" },
+  { id: "#0f766e", nameEn: "HSE Teal", nameAr: "تيل للسلامة" },
+  { id: "#166534", nameEn: "Safety Green", nameAr: "أخضر سلامة" },
+  { id: "#991b1b", nameEn: "Dark Red", nameAr: "أحمر داكن" },
+];
 
 const BRAND_COLORS = [
   { id: "#0f766e", nameEn: "Teal HSE", nameAr: "تيل للسلامة", class: "bg-teal-700" },
@@ -99,6 +109,7 @@ export default function ExportPreviewModal({
     isAr ? "مجلس السلامة الموحد - HSE System" : "UTEC SAFETY BOARD HSE ENTERPRISE"
   );
   const [headerColor, setHeaderColor] = useState("#0f766e");
+  const [fontColor, setFontColor] = useState("#0f172a");
   const [showLogo, setShowLogo] = useState(true);
   const [showMetadata, setShowMetadata] = useState(true);
   const [hideSensitiveData, setHideSensitiveData] = useState(false);
@@ -146,6 +157,7 @@ export default function ExportPreviewModal({
       format,
       companyName,
       headerColor,
+      fontColor,
       showLogo,
       showMetadata,
       selectedSections,
@@ -253,6 +265,47 @@ export default function ExportPreviewModal({
                 </div>
               </div>
 
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">{isAr ? "لون الخط الرئيسي" : "Main Font Color"}</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {FONT_COLORS.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setFontColor(c.id)}
+                      className="h-7 w-7 rounded-full border border-border flex items-center justify-center transition-all"
+                      style={{
+                        backgroundColor: c.id,
+                        boxShadow: fontColor === c.id ? "0 0 0 2px hsl(var(--primary)), 0 0 0 4px hsl(var(--background))" : undefined,
+                        transform: fontColor === c.id ? "scale(1.08)" : undefined,
+                      }}
+                      title={isAr ? c.nameAr : c.nameEn}
+                    >
+                      {fontColor === c.id && <Check className="h-3.5 w-3.5 text-white" />}
+                    </button>
+                  ))}
+                  <div className="ms-auto flex items-center gap-2">
+                    <Input
+                      type="color"
+                      value={fontColor}
+                      onChange={(e) => setFontColor(e.target.value)}
+                      className="h-8 w-12 cursor-pointer p-1"
+                      title={isAr ? "اختيار لون مخصص" : "Choose custom font color"}
+                    />
+                    <Input
+                      value={fontColor}
+                      onChange={(e) => /^#[0-9A-Fa-f]{0,6}$/.test(e.target.value) && setFontColor(e.target.value)}
+                      onBlur={() => { if (!/^#[0-9A-Fa-f]{6}$/.test(fontColor)) setFontColor("#0f172a"); }}
+                      className="h-8 w-24 font-mono text-[11px]"
+                      aria-label={isAr ? "كود لون الخط" : "Font color hex"}
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {isAr ? "يطبق على محتوى المستند والجداول في Word / PDF / الطباعة. CSV وJSON لا يدعمان تنسيق الألوان." : "Applied to document/table text in Word, PDF, and print. CSV/JSON do not support font styling."}
+                </p>
+              </div>
+
               <div className="pt-1 flex items-center justify-between">
                 <span className="text-xs">{isAr ? "إظهار الشعار الرسمي" : "Include Official Logo"}</span>
                 <Switch checked={showLogo} onCheckedChange={setShowLogo} />
@@ -343,7 +396,7 @@ export default function ExportPreviewModal({
             </div>
 
             {/* Paper Sheet Mockup */}
-            <div className="w-full bg-white text-slate-900 shadow-xl border rounded-lg p-6 font-sans space-y-4 text-xs transition-all">
+            <div className="w-full bg-white shadow-xl border rounded-lg p-6 font-sans space-y-4 text-xs transition-all" style={{ color: fontColor }}>
               {/* Header Banner */}
               <div
                 className="p-4 rounded-lg text-white flex items-center justify-between shadow-sm"
@@ -367,7 +420,7 @@ export default function ExportPreviewModal({
                 <div className="p-3 bg-slate-50 border rounded-md grid grid-cols-3 gap-2 text-center text-[11px]">
                   <div>
                     <span className="text-slate-500 block text-[9px] uppercase">{isAr ? "إجمالي السجلات" : "Total Records"}</span>
-                    <span className="font-bold text-slate-900 text-sm">{data.length}</span>
+                    <span className="font-bold text-sm" style={{ color: fontColor }}>{data.length}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block text-[9px] uppercase">{isAr ? "الحالة الحساسة" : "Privacy Status"}</span>
@@ -377,7 +430,7 @@ export default function ExportPreviewModal({
                   </div>
                   <div>
                     <span className="text-slate-500 block text-[9px] uppercase">{isAr ? "التنسيق" : "Format"}</span>
-                    <span className="font-bold uppercase text-slate-800">{format}</span>
+                    <span className="font-bold uppercase" style={{ color: fontColor }}>{format}</span>
                   </div>
                 </div>
               )}
@@ -389,7 +442,7 @@ export default function ExportPreviewModal({
                     <thead>
                       <tr style={{ backgroundColor: `${headerColor}15` }} className="border-b">
                         {visibleColumns.map((col) => (
-                          <th key={col.id} className="p-2 font-bold text-slate-800 border-r last:border-0">
+                          <th key={col.id} className="p-2 font-bold border-r last:border-0" style={{ color: fontColor }}>
                             {isAr ? col.labelAr : col.labelEn}
                           </th>
                         ))}
@@ -404,7 +457,7 @@ export default function ExportPreviewModal({
                               val = "██████";
                             }
                             return (
-                              <td key={col.id} className="p-2 text-slate-700 border-r last:border-0 font-mono text-[10px]">
+                              <td key={col.id} className="p-2 border-r last:border-0 font-mono text-[10px]" style={{ color: fontColor }}>
                                 {String(val)}
                               </td>
                             );
@@ -425,11 +478,11 @@ export default function ExportPreviewModal({
               {selectedSections.includes("signoff") && (
                 <div className="pt-4 border-t-2 border-dashed border-slate-300 grid grid-cols-2 gap-4 text-center text-[10px] text-slate-600">
                   <div className="p-2 border rounded bg-slate-50">
-                    <p className="font-bold text-slate-800">{isAr ? "إعداد ومراجعة أخصائي السلامة" : "Prepared by HSE Officer"}</p>
+                    <p className="font-bold" style={{ color: fontColor }}>{isAr ? "إعداد ومراجعة أخصائي السلامة" : "Prepared by HSE Officer"}</p>
                     <p className="text-[9px] text-slate-400 mt-4">{isAr ? "التوقيع والاعتماد" : "Signature & Date"}</p>
                   </div>
                   <div className="p-2 border rounded bg-slate-50">
-                    <p className="font-bold text-slate-800">{isAr ? "اعتماد مدير الموقع" : "Approved by Site Director"}</p>
+                    <p className="font-bold" style={{ color: fontColor }}>{isAr ? "اعتماد مدير الموقع" : "Approved by Site Director"}</p>
                     <p className="text-[9px] text-slate-400 mt-4">{isAr ? "التوقيع والختم" : "Stamp & Signature"}</p>
                   </div>
                 </div>
