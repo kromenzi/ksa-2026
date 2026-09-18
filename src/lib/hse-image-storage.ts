@@ -3,7 +3,7 @@ import { apiRequest } from "@/lib/queryClient";
 export const MAX_HSE_IMAGES = 4;
 export const MAX_HSE_IMAGE_BYTES = 10 * 1024 * 1024;
 
-export type HseImageScope = "ncr" | "violation";
+export type HseImageScope = "ncr" | "violation" | "monthly-task";
 
 export interface HseStoredImage {
   path: string;

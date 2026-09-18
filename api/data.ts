@@ -1,5 +1,6 @@
 import { getAccessToken, getAuthUser, getProfile, json, supabaseFetchForRequest } from "./_lib/supabase.js";
 import { fallbackSupabaseUrl } from "./_lib/supabase-public-config.js";
+import { monthlyHsePlanHandler } from "./_lib/monthly-hse-plan.js";
 
 const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boolean; adminOnly?: boolean }> = {
   users: { table: "users", module: "users", adminOnly: true },
@@ -145,6 +146,7 @@ export default async function handler(req: any, res: any) {
     res.setHeader("Cache-Control", "no-store, max-age=0");
     const resource = String(req.query?.resource || "").trim();
     if (resource === "safety-reporting-public") return await proxySafetyReporting(req, res, String(req.query?.action || "channels"), false);
+    if (resource === "monthly-hse-plan") return await monthlyHsePlanHandler(req, res);
 
     const user = await getAuthUser(req);
     const profile = await getProfile(req);

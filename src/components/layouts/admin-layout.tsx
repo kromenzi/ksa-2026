@@ -58,6 +58,7 @@ import {
   
   Zap,
   Clock,
+  CalendarDays,
   Triangle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -149,6 +150,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         { label: isAr ? 'مخالفات السلامة للموظفين' : 'Employee Safety Violations', icon: ShieldAlert, href: "/admin/employee-violations", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
         { label: isAr ? 'تقارير ملاحظات السلامة (SOR)' : 'Safety Observation Reports (SOR)', icon: ShieldAlert, href: "/admin/reports", visible: hasPermission('reports', 'read'), color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
         { label: isAr ? 'بلاغات السلامة' : 'Safety Reporting', icon: ShieldAlert, href: "/admin/safety-reporting", visible: hasPermission('reports', 'read'), color: "text-teal-500", bgColor: "bg-teal-500/10" },
+        { label: isAr ? 'خطة مهام السلامة الشهرية' : 'Monthly HSE Work Plan', icon: CalendarDays, href: "/admin/monthly-hse-plan", visible: true, color: "text-cyan-600", bgColor: "bg-cyan-600/10" },
         { label: isAr ? 'الحوادث وشبه الحوادث وتحليل الأسباب الجذرية' : 'Incidents, Near Misses & RCA', icon: AlertTriangle, href: "/admin/incidents", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },
         { label: isAr ? 'تقييم المخاطر (5×5)' : 'Risk Assessment (5×5)', icon: Shield, href: "/admin/risk-assessment", visible: true, color: "text-orange-500", bgColor: "bg-orange-500/10" },
         { label: isAr ? 'تقارير عدم المطابقة (NCR)' : 'Non-Conformance Reports (NCR)', icon: ClipboardList, href: "/admin/ncr", visible: hasPermission('ncr', 'read'), color: "text-amber-500", bgColor: "bg-amber-500/10" },
