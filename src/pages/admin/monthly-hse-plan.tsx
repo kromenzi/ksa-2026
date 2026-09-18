@@ -31,6 +31,7 @@ type Task = {
 };
 type Evidence={id:string;taskId:string;filePath:string;fileName:string;mimeType:string;sizeBytes:number;note?:string|null;createdAt:string};
 type Template={id:string;slug:string;titleAr:string;titleEn:string;description?:string|null;category:string;priority:string;recurrence:string;defaultStartDay:number;defaultDueDay:number;evidenceRequired:boolean;linkedModule?:string|null;active:boolean};
+type Assignee={id:string;name:string;role:string;isActive:boolean};
 
 const statusOptions=["Not Started","In Progress","Completed","Blocked","Escalated","Cancelled"];
 const priorities=["Critical","High","Medium","Low"];
@@ -62,7 +63,7 @@ function statusClass(task:Task){
 }
 
 export default function MonthlyHsePlanPage(){
-  const {settings,currentUser,users}=useData();
+  const {settings,currentUser}=useData();
   const isAr=settings.language==="ar";
   const canManage=currentUser?.role==="admin"||currentUser?.role==="manager";
   const now=new Date();
@@ -70,6 +71,7 @@ export default function MonthlyHsePlanPage(){
   const [year,setYear]=useState(now.getFullYear());
   const [tasks,setTasks]=useState<Task[]>([]);
   const [templates,setTemplates]=useState<Template[]>([]);
+  const [assignees,setAssignees]=useState<Assignee[]>([]);
   const [loading,setLoading]=useState(true);
   const [view,setView]=useState<"my"|"team">("my");
   const [statusFilter,setStatusFilter]=useState("all");
@@ -97,6 +99,9 @@ export default function MonthlyHsePlanPage(){
       const response=await apiRequest("GET","/api/monthly-hse-plan?action=tasks&month="+month+"&year="+year);
       const payload=await response.json();
       setTasks(Array.isArray(payload)?payload:[]);
+      const ur=await apiRequest("GET","/api/monthly-hse-plan?action=assignees");
+      const up=await ur.json();
+      setAssignees(Array.isArray(up)?up:[]);
       if(canManage){
         const tr=await apiRequest("GET","/api/monthly-hse-plan?action=templates");
         const tp=await tr.json();
@@ -212,7 +217,7 @@ export default function MonthlyHsePlanPage(){
     }catch(err:any){toast.error(err?.message||"Verification failed");}
   };
 
-  const taskUser=(id?:string|null)=>users.find(u=>u.id===id);
+  const taskUser=(id?:string|null)=>assignees.find(u=>u.id===id)||(id===currentUser?.id?{id:currentUser.id,name:currentUser.name,role:currentUser.role,isActive:true}:undefined);
   const calendarDays=Array.from({length:new Date(year,month,0).getDate()},(_,i)=>i+1);
 
   return <div className="space-y-5" data-testid="monthly-hse-plan-page">
@@ -251,7 +256,7 @@ export default function MonthlyHsePlanPage(){
           {canManage&&<Button size="sm" variant={view==="team"?"default":"outline"} onClick={()=>setView("team")} className="gap-2"><UsersRound className="h-4 w-4"/>{isAr?"كل الفريق":"Team"}</Button>}
           <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="w-[165px]"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">{isAr?"كل الحالات":"All statuses"}</SelectItem><SelectItem value="overdue">{isAr?"متأخرة":"Overdue"}</SelectItem>{statusOptions.map(s=><SelectItem value={s} key={s}>{s}</SelectItem>)}</SelectContent></Select>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="w-[180px]"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">{isAr?"كل المجالات":"All categories"}</SelectItem>{categories.map(c=><SelectItem value={c} key={c}>{c}</SelectItem>)}</SelectContent></Select>
-          {canManage&&view==="team"&&<Select value={assigneeFilter} onValueChange={setAssigneeFilter}><SelectTrigger className="w-[190px]"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">{isAr?"كل الموظفين":"All employees"}</SelectItem>{users.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select>}
+          {canManage&&view==="team"&&<Select value={assigneeFilter} onValueChange={setAssigneeFilter}><SelectTrigger className="w-[190px]"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">{isAr?"كل الموظفين":"All employees"}</SelectItem>{assignees.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select>}
         </div>
 
         <Card><div className="overflow-x-auto"><Table><TableHeader><TableRow>
@@ -299,7 +304,7 @@ export default function MonthlyHsePlanPage(){
       <div className="space-y-2"><Label>{isAr?"ملاحظات التنفيذ":"Execution Notes"}</Label><Textarea rows={4} value={selected.notes||""} onChange={e=>setSelected({...selected,notes:e.target.value})}/></div>
       <div className="rounded-xl border p-4"><div className="mb-3 flex items-center justify-between"><div><p className="font-semibold">{isAr?"إثبات التنفيذ":"Completion Evidence"}</p><p className="text-xs text-muted-foreground">{selected.evidenceRequired?(isAr?"مطلوب قبل الإكمال":"Required before completion"):(isAr?"اختياري":"Optional")}</p></div><Badge variant={selected.evidenceRequired?"default":"outline"}>{evidence.length}</Badge></div>
         {evidenceUrls.length>0&&<div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">{evidenceUrls.map((src,i)=><a href={src} target="_blank" rel="noreferrer" key={src} className="overflow-hidden rounded-lg border"><img src={src} alt={"Evidence "+(i+1)} className="aspect-square h-full w-full object-cover"/></a>)}</div>}
-        <HseImagePicker files={evidenceFiles} onChange={setEvidenceFiles} isAr={isAr} disabled={savingEvidence} label={isAr?"إضافة صور إثبات":"Add Evidence Photos"}/>
+        <HseImagePicker files={evidenceFiles} onChange={files=>setEvidenceFiles(files.slice(0,Math.max(0,4-evidence.length)))} isAr={isAr} disabled={savingEvidence||evidence.length>=4} label={isAr?"إضافة صور إثبات":"Add Evidence Photos"}/>
         <Button className="mt-3 gap-2" variant="outline" disabled={!evidenceFiles.length||savingEvidence} onClick={()=>void uploadEvidence()}><ImagePlus className="h-4 w-4"/>{savingEvidence?(isAr?"جارٍ الرفع...":"Uploading..."):(isAr?"رفع الإثبات":"Upload Evidence")}</Button>
       </div>
       {selected.supervisorVerifiedAt&&<div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"><ShieldCheck className="h-4 w-4"/>{isAr?"تم اعتماد المهمة من المشرف":"Supervisor verified"}</div>}
@@ -311,8 +316,8 @@ export default function MonthlyHsePlanPage(){
         <div className="space-y-2"><Label>{isAr?"العنوان العربي":"Arabic title"}</Label><Input value={taskForm.titleAr} onChange={e=>setTaskForm({...taskForm,titleAr:e.target.value})}/></div>
         <div className="space-y-2"><Label>{isAr?"العنوان الإنجليزي":"English title"}</Label><Input value={taskForm.titleEn} onChange={e=>setTaskForm({...taskForm,titleEn:e.target.value})}/></div>
         <div className="space-y-2 sm:col-span-2"><Label>{isAr?"الوصف":"Description"}</Label><Textarea value={taskForm.description} onChange={e=>setTaskForm({...taskForm,description:e.target.value})}/></div>
-        <div className="space-y-2"><Label>{isAr?"المسؤول":"Assigned employee"}</Label><Select value={taskForm.assignedTo} onValueChange={v=>setTaskForm({...taskForm,assignedTo:v})}><SelectTrigger><SelectValue placeholder={isAr?"اختر الموظف":"Select employee"}/></SelectTrigger><SelectContent>{users.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
-        <div className="space-y-2"><Label>{isAr?"البديل":"Backup"}</Label><Select value={taskForm.backupUserId} onValueChange={v=>setTaskForm({...taskForm,backupUserId:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">{isAr?"بدون":"None"}</SelectItem>{users.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-2"><Label>{isAr?"المسؤول":"Assigned employee"}</Label><Select value={taskForm.assignedTo} onValueChange={v=>setTaskForm({...taskForm,assignedTo:v})}><SelectTrigger><SelectValue placeholder={isAr?"اختر الموظف":"Select employee"}/></SelectTrigger><SelectContent>{assignees.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-2"><Label>{isAr?"البديل":"Backup"}</Label><Select value={taskForm.backupUserId} onValueChange={v=>setTaskForm({...taskForm,backupUserId:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">{isAr?"بدون":"None"}</SelectItem>{assignees.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-2"><Label>{isAr?"المجال":"Category"}</Label><Select value={taskForm.category} onValueChange={v=>setTaskForm({...taskForm,category:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categories.map(c=><SelectItem value={c} key={c}>{c}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-2"><Label>{isAr?"الأولوية":"Priority"}</Label><Select value={taskForm.priority} onValueChange={v=>setTaskForm({...taskForm,priority:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{priorities.map(p=><SelectItem value={p} key={p}>{p}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-2"><Label>{isAr?"تاريخ البداية":"Start date"}</Label><Input type="date" value={taskForm.startDate} onChange={e=>setTaskForm({...taskForm,startDate:e.target.value})}/></div>
@@ -325,8 +330,8 @@ export default function MonthlyHsePlanPage(){
 
     <Dialog open={generateDialog} onOpenChange={setGenerateDialog}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>{isAr?"إنشاء خطة الشهر من القوالب":"Generate Monthly Plan from Templates"}</DialogTitle></DialogHeader>
       <div className="space-y-4"><div className="rounded-xl border bg-teal-500/5 p-3 text-sm"><p className="font-semibold">{monthLabel(month,isAr)} {year}</p><p className="text-xs text-muted-foreground">{isAr?"سيتم إنشاء المهام الشهرية والأسبوعية النشطة للموظف المختار.":"Active monthly and weekly templates will be expanded for the selected employee."}</p></div>
-        <div className="space-y-2"><Label>{isAr?"الموظف المسؤول":"Assigned employee"}</Label><Select value={generateForm.assignedTo} onValueChange={v=>setGenerateForm({...generateForm,assignedTo:v})}><SelectTrigger><SelectValue placeholder={isAr?"اختر الموظف":"Select employee"}/></SelectTrigger><SelectContent>{users.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
-        <div className="space-y-2"><Label>{isAr?"الموظف البديل":"Backup employee"}</Label><Select value={generateForm.backupUserId} onValueChange={v=>setGenerateForm({...generateForm,backupUserId:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">{isAr?"بدون":"None"}</SelectItem>{users.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-2"><Label>{isAr?"الموظف المسؤول":"Assigned employee"}</Label><Select value={generateForm.assignedTo} onValueChange={v=>setGenerateForm({...generateForm,assignedTo:v})}><SelectTrigger><SelectValue placeholder={isAr?"اختر الموظف":"Select employee"}/></SelectTrigger><SelectContent>{assignees.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-2"><Label>{isAr?"الموظف البديل":"Backup employee"}</Label><Select value={generateForm.backupUserId} onValueChange={v=>setGenerateForm({...generateForm,backupUserId:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">{isAr?"بدون":"None"}</SelectItem>{assignees.filter(u=>u.isActive).map(u=><SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
         <div className="grid gap-3 sm:grid-cols-2"><div className="space-y-2"><Label>{isAr?"المصنع":"Factory"}</Label><Input value={generateForm.factory} onChange={e=>setGenerateForm({...generateForm,factory:e.target.value})}/></div><div className="space-y-2"><Label>{isAr?"القسم":"Department"}</Label><Input value={generateForm.department} onChange={e=>setGenerateForm({...generateForm,department:e.target.value})}/></div></div>
       </div><DialogFooter><Button variant="outline" onClick={()=>setGenerateDialog(false)}>{isAr?"إلغاء":"Cancel"}</Button><Button onClick={()=>void generatePlan()} disabled={!generateForm.assignedTo}><Sparkles className="me-2 h-4 w-4"/>{isAr?"إنشاء الخطة":"Generate"}</Button></DialogFooter>
     </DialogContent></Dialog>
