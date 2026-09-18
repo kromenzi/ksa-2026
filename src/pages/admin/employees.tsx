@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useData } from "@/lib/data-context";
+import { apiRequest } from "@/lib/queryClient";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -40,74 +42,38 @@ export interface EmployeeProfile {
   status: "Active" | "On Leave" | "Terminated";
 }
 
-const SAMPLE_EMPLOYEES: EmployeeProfile[] = [
-  {
-    id: "EMP-001",
-    employeeId: "EMP-1001",
-    fullName: "Abdulkarem S. Alanzi",
-    department: "Production",
-    jobTitle: "Senior HSE Supervisor",
-    factory: "Main Factory 1",
-    section: "Assembly Line 4",
-    nationality: "Saudi Arabia",
-    joiningDate: "2021-03-15",
-    supervisor: "Engineering Director",
-    email: "abdulkareem.s.alanzi@gmail.com",
-    phone: "+966 50 123 4567",
-    medicalStatus: "Fit",
-    ppeIssued: ["Safety Helmet", "Safety Shoes (S3)", "High-Vis Vest", "Safety Glasses"],
-    incidentsCount: 0,
-    ncrCount: 1,
-    trainingsCompleted: 14,
-    status: "Active"
-  },
-  {
-    id: "EMP-002",
-    employeeId: "EMP-1002",
-    fullName: "Mohammad Hassan",
-    department: "Maintenance",
-    jobTitle: "Electrical Specialist",
-    factory: "Main Factory 1",
-    section: "HV Substation",
-    nationality: "Egypt",
-    joiningDate: "2022-01-10",
-    supervisor: "Abdulkarem S. Alanzi",
-    email: "mohammad.h@company.com",
-    phone: "+966 55 987 6543",
-    medicalStatus: "Fit",
-    ppeIssued: ["Arc Flash Suit", "Insulated Gloves", "Safety Helmet", "Safety Boots"],
-    incidentsCount: 1,
-    ncrCount: 0,
-    trainingsCompleted: 9,
-    status: "Active"
-  },
-  {
-    id: "EMP-003",
-    employeeId: "EMP-1003",
-    fullName: "Sarah Johnson",
-    department: "HSE",
-    jobTitle: "Safety Officer",
-    factory: "Factory 2 - Logistics",
-    section: "Warehouse A",
-    nationality: "Jordan",
-    joiningDate: "2023-06-01",
-    supervisor: "Abdulkarem S. Alanzi",
-    email: "sarah.j@company.com",
-    phone: "+966 54 321 0987",
-    medicalStatus: "Fit",
-    ppeIssued: ["Safety Helmet", "High-Vis Vest", "Safety Shoes"],
-    incidentsCount: 0,
-    ncrCount: 0,
-    trainingsCompleted: 18,
-    status: "Active"
-  }
-];
+function mapEmployeeRow(row: any): EmployeeProfile {
+  return {
+    id: String(row?.id || ""),
+    employeeId: String(row?.employeeId || ""),
+    fullName: String(row?.name || ""),
+    photoUrl: row?.photoUrl || undefined,
+    department: String(row?.department || ""),
+    jobTitle: String(row?.title || ""),
+    factory: String(row?.factory || ""),
+    section: String(row?.section || ""),
+    nationality: String(row?.nationality || ""),
+    joiningDate: String(row?.joiningDate || ""),
+    supervisor: String(row?.supervisor || ""),
+    email: String(row?.email || ""),
+    phone: String(row?.phone || ""),
+    medicalStatus: (row?.medicalStatus || "Fit") as EmployeeProfile["medicalStatus"],
+    ppeIssued: Array.isArray(row?.ppeIssued) ? row.ppeIssued : [],
+    digitalSignature: row?.digitalSignature || undefined,
+    qrCodeData: row?.qrCodeData || undefined,
+    incidentsCount: Number(row?.incidentsCount || 0),
+    ncrCount: Number(row?.ncrCount || 0),
+    trainingsCompleted: Number(row?.trainingsCompleted || 0),
+    status: (row?.status || "Active") as EmployeeProfile["status"],
+  };
+}
 
 export default function AdminEmployeesPage() {
   const { settings } = useData();
   const isAr = settings.language === "ar";
 
-  const [employees, setEmployees] = useState<EmployeeProfile[]>(SAMPLE_EMPLOYEES);
+  const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [selectedEmp, setSelectedEmp] = useState<EmployeeProfile | null>(null);
@@ -130,6 +96,25 @@ export default function AdminEmployeesPage() {
     ppeIssued: ["Safety Helmet", "Safety Shoes"]
   });
 
+  const loadEmployees = async () => {
+    setEmployeesLoading(true);
+    try {
+      const response = await apiRequest("GET", "/api/data?resource=employees");
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || "Unable to load employees");
+      setEmployees(Array.isArray(payload) ? payload.map(mapEmployeeRow) : []);
+    } catch (error: any) {
+      toast.error(error?.message || (isAr ? "تعذر تحميل الموظفين" : "Unable to load employees"));
+      setEmployees([]);
+    } finally {
+      setEmployeesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadEmployees();
+  }, []);
+
   const filteredEmployees = employees.filter((emp) => {
     const matchesSearch = 
       emp.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -139,31 +124,54 @@ export default function AdminEmployeesPage() {
     return matchesSearch && matchesDept;
   });
 
-  const handleAddEmployee = () => {
-    if (!formData.fullName || !formData.employeeId) return;
-    const newEmp: EmployeeProfile = {
-      id: `EMP-${Date.now()}`,
-      employeeId: formData.employeeId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
-      fullName: formData.fullName || "",
-      department: formData.department || "Production",
-      jobTitle: formData.jobTitle || "Technician",
-      factory: formData.factory || "Main Factory 1",
-      section: formData.section || "Section 1",
-      nationality: formData.nationality || "Saudi Arabia",
-      joiningDate: new Date().toISOString().split("T")[0],
-      supervisor: "HSE Manager",
-      email: formData.email || "",
-      phone: formData.phone || "",
-      medicalStatus: formData.medicalStatus as any || "Fit",
-      ppeIssued: formData.ppeIssued || ["Safety Helmet", "Safety Shoes"],
-      incidentsCount: 0,
-      ncrCount: 0,
-      trainingsCompleted: 0,
-      status: "Active"
-    };
+  const handleAddEmployee = async () => {
+    if (!formData.fullName || !formData.employeeId) {
+      toast.error(isAr ? "الاسم والرقم الوظيفي مطلوبان" : "Full name and employee ID are required");
+      return;
+    }
 
-    setEmployees([newEmp, ...employees]);
-    setIsAddDialogOpen(false);
+    try {
+      const response = await apiRequest("POST", "/api/data?resource=employees", {
+        name: formData.fullName,
+        employeeId: formData.employeeId,
+        department: formData.department || "",
+        title: formData.jobTitle || "",
+        factory: formData.factory || "",
+        section: formData.section || "",
+        nationality: formData.nationality || "",
+        joiningDate: formData.joiningDate || new Date().toISOString().split("T")[0],
+        supervisor: formData.supervisor || "",
+        email: formData.email || "",
+        phone: formData.phone || "",
+        medicalStatus: formData.medicalStatus || "Fit",
+        ppeIssued: formData.ppeIssued || [],
+        incidentsCount: 0,
+        ncrCount: 0,
+        trainingsCompleted: 0,
+        status: formData.status || "Active",
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || "Unable to save employee");
+      setEmployees(prev => [mapEmployeeRow(payload), ...prev.filter(item => item.id !== payload.id)]);
+      setIsAddDialogOpen(false);
+      setFormData({
+        fullName: "",
+        employeeId: "",
+        department: "Production",
+        jobTitle: "Operator",
+        factory: "Main Factory 1",
+        section: "General",
+        nationality: "Saudi Arabia",
+        email: "",
+        phone: "",
+        medicalStatus: "Fit",
+        status: "Active",
+        ppeIssued: ["Safety Helmet", "Safety Shoes"],
+      });
+      toast.success(isAr ? "تم حفظ الموظف وربطه بقاعدة البيانات" : "Employee saved to the database");
+    } catch (error: any) {
+      toast.error(error?.message || (isAr ? "تعذر حفظ الموظف" : "Unable to save employee"));
+    }
   };
 
   // Print State
@@ -309,6 +317,12 @@ export default function AdminEmployeesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {employeesLoading && (
+                <TableRow><TableCell colSpan={7} className="py-10 text-center text-muted-foreground">{isAr ? "جارٍ تحميل الموظفين..." : "Loading employees..."}</TableCell></TableRow>
+              )}
+              {!employeesLoading && filteredEmployees.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="py-10 text-center text-muted-foreground">{isAr ? "لا توجد سجلات موظفين. أضف أول موظف." : "No employee records yet. Add the first employee."}</TableCell></TableRow>
+              )}
               {filteredEmployees.map((emp) => (
                 <TableRow key={emp.id} className="hover:bg-muted/30">
                   <TableCell>
