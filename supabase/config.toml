@@ -7,3 +7,7 @@ verify_jwt = false
 
 [functions.local-safety-ai]
 verify_jwt = true
+
+[functions.safety-reporting]
+# Public intake uses internal rate limiting; identity reveal validates a user JWT in function code.
+verify_jwt = false
