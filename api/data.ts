@@ -48,7 +48,7 @@ const COLUMNS: Record<string, Set<string>> = {
   form_templates: new Set(["id", "title", "description", "fields", "created_at", "status"]),
   reports: new Set(["id", "title", "type", "generated_by", "created_at", "status", "data"]),
   activity_logs: new Set(["id", "action", "details", "performed_by", "performed_by_name", "timestamp", "module"]),
-  employees: new Set(["id", "name", "email", "title", "department_id", "is_primary", "employee_id", "department", "factory", "section", "nationality", "joining_date", "supervisor", "phone", "medical_status", "ppe_issued", "incidents_count", "ncr_count", "trainings_completed", "status", "photo_url", "digital_signature", "qr_code_data", "user_id", "created_at", "updated_at"]),
+  employees: new Set(["id", "name", "email", "title", "department_id", "is_primary", "employee_id", "department", "factory", "section", "nationality", "joining_date", "supervisor", "phone", "medical_status", "ppe_issued", "incidents_count", "ncr_count", "trainings_completed", "status", "photo_url", "digital_signature", "qr_code_data", "user_id", "employee_type", "hse_area", "shift", "violations_count", "created_at", "updated_at"]),
   routing_rules: new Set(["id", "department_id", "severity", "recipient_ids"]),
   permissions: new Set(["id", "role", "module", "actions"]),
   documents: new Set(["id", "doc_type", "ref_no", "title", "date", "vendor", "department", "status", "category", "description", "amount", "expiry_date", "metadata", "pdf_url", "extracted_data", "created_by", "created_at", "updated_at"]),
@@ -152,6 +152,30 @@ export default async function handler(req: any, res: any) {
     const profile = await getProfile(req);
     if (!user || !profile || !profile.is_active) return json(res, 401, { error: "Not authenticated" });
     if (resource === "safety-reporting-reveal") return await proxySafetyReporting(req, res, "reveal", true);
+
+    if (resource === "employee-directory") {
+      if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
+      const type = String(req.query?.type || "").trim().toLowerCase();
+      const pType = type === "hse" || type === "workforce" ? type : null;
+      const response = await supabaseFetchForRequest(req, "/rest/v1/rpc/employee_directory", {
+        method: "POST",
+        body: JSON.stringify({ p_employee_type: pType }),
+      });
+      const rows = await response.json().catch(() => []);
+      if (!response.ok) return json(res, response.status, { error: rows?.message || "Unable to load employee directory" });
+      return json(res, 200, (rows || []).map(mapClient));
+    }
+
+    if (resource === "violation-templates") {
+      if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
+      const response = await supabaseFetchForRequest(req, "/rest/v1/rpc/active_violation_templates", {
+        method: "POST",
+        body: "{}",
+      });
+      const rows = await response.json().catch(() => []);
+      if (!response.ok) return json(res, response.status, { error: rows?.message || "Unable to load violation templates" });
+      return json(res, 200, (rows || []).map(mapClient));
+    }
 
     const config = RESOURCE_MAP[resource];
     if (!config) return json(res, 404, { error: "Unknown API resource" });
