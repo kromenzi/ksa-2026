@@ -33,6 +33,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/monthly-hse-plan",
+      "destination": "/api/data?resource=monthly-hse-plan"
+    },
+    {
       "source": "/api/safety-reporting-public",
       "destination": "/api/data?resource=safety-reporting-public"
     },
