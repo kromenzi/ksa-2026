@@ -1,5 +1,5 @@
 
-import { getAuthUser, getProfile, json, supabaseFetch, supabaseFetchForRequest } from "./supabase.js";
+import { getAuthUser, getProfile, json, supabaseFetchForRequest } from "./supabase.js";
 
 const TASK_STATUSES = new Set(["Not Started","In Progress","Completed","Blocked","Escalated","Cancelled"]);
 const PRIORITIES = new Set(["Critical","High","Medium","Low"]);
@@ -46,10 +46,12 @@ export async function monthlyHsePlanHandler(req:any,res:any){
     const canManage=managerRole(String(profile.role||""));
 
     if(req.method==="GET"&&action==="assignees"){
-      if(!canManage) return json(res,200,[{id:profile.id,name:profile.name,role:profile.role,isActive:true}]);
-      const response=await supabaseFetch("/rest/v1/users?select=id,name,role,is_active&is_active=eq.true&order=name.asc");
+      const response=await supabaseFetchForRequest(req,"/rest/v1/rpc/monthly_hse_assignees",{
+        method:"POST",
+        body:"{}",
+      });
       const rows=await response.json().catch(()=>[]);
-      if(!response.ok) return json(res,response.status,{error:rows?.message||"Unable to load assignees"});
+      if(!response.ok) return json(res,response.status,{error:rows?.message||rows?.error||"Unable to load assignees"});
       return json(res,200,(rows||[]).map(mapRow));
     }
 
