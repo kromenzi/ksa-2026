@@ -9,7 +9,7 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   forms: { table: "form_templates", module: "content" },
   reports: { table: "reports", module: "reports" },
   "activity-logs": { table: "activity_logs", module: "activity" },
-  employees: { table: "employees", module: "users" },
+  employees: { table: "employees", module: "employees" },
   "routing-rules": { table: "routing_rules", module: "settings" },
   permissions: { table: "permissions", module: "settings", adminOnly: true },
   documents: { table: "documents", module: "documents" },
@@ -48,7 +48,7 @@ const COLUMNS: Record<string, Set<string>> = {
   form_templates: new Set(["id", "title", "description", "fields", "created_at", "status"]),
   reports: new Set(["id", "title", "type", "generated_by", "created_at", "status", "data"]),
   activity_logs: new Set(["id", "action", "details", "performed_by", "performed_by_name", "timestamp", "module"]),
-  employees: new Set(["id", "name", "email", "title", "department_id", "is_primary"]),
+  employees: new Set(["id", "name", "email", "title", "department_id", "is_primary", "employee_id", "department", "factory", "section", "nationality", "joining_date", "supervisor", "phone", "medical_status", "ppe_issued", "incidents_count", "ncr_count", "trainings_completed", "status", "photo_url", "digital_signature", "qr_code_data", "user_id", "created_at", "updated_at"]),
   routing_rules: new Set(["id", "department_id", "severity", "recipient_ids"]),
   permissions: new Set(["id", "role", "module", "actions"]),
   documents: new Set(["id", "doc_type", "ref_no", "title", "date", "vendor", "department", "status", "category", "description", "amount", "expiry_date", "metadata", "pdf_url", "extracted_data", "created_by", "created_at", "updated_at"]),
@@ -125,8 +125,8 @@ function canWrite(profile: any, module: string, action: string) {
   if (!profile?.is_active) return false;
   if (module === "activity" && action === "create") return true;
   if (profile.role === "admin") return true;
-  if (profile.role === "manager" && ["documents", "content", "settings", "reports"].includes(module)) return action !== "delete" || module === "reports";
-  if (profile.role === "editor" && ["content", "reports", "documents"].includes(module)) return action !== "delete";
+  if (profile.role === "manager" && ["documents", "content", "settings", "reports", "employees"].includes(module)) return action !== "delete" || ["reports", "employees"].includes(module);
+  if (profile.role === "editor" && ["content", "reports", "documents", "employees"].includes(module)) return action !== "delete";
   return false;
 }
 
@@ -166,6 +166,7 @@ export default async function handler(req: any, res: any) {
       let url = `${base}?select=*`;
       if (rawId) url += table === "section_config" ? `&section_type=eq.${encodeURIComponent(rawId)}` : `&id=eq.${encodeURIComponent(rawId)}`;
       if (table === "users") url = `${base}?select=id,name,email,role,is_active,avatar,joined_at,auth_user_id${rawId ? `&id=eq.${encodeURIComponent(rawId)}` : ""}`;
+      if (table === "employees") url += "&order=name.asc";
       if (table === "section_config") url += "&order=section_type.asc";
       if (GENERIC_TABLES.has(table)) url += "&order=updated_at.desc";
       if (table === "safety_reporting_messages") {
@@ -273,7 +274,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
