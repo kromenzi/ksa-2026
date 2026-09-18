@@ -224,6 +224,16 @@ function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, s
       margin: 12mm; 
     }
     
+    #export-document-root,
+    #export-document-root * {
+      color: ${fontColor} !important;
+    }
+
+    #export-document-root .export-preserve-contrast,
+    #export-document-root .export-preserve-contrast * {
+      color: #ffffff !important;
+    }
+
     @media print { 
       body { 
         padding: 0; 
@@ -237,9 +247,9 @@ function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, s
   </style>
 </head>
 <body>
-  <div style="max-width: 794px; margin: 0 auto; background: #fff; border: 1px solid ${isNcr ? "#111111" : "#e2e8f0"}; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 20px rgba(15,23,42,.06);">
+  <div id="export-document-root" style="max-width: 794px; margin: 0 auto; background: #fff; border: 1px solid ${isNcr ? "#111111" : "#e2e8f0"}; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 20px rgba(15,23,42,.06);">
     <!-- Header -->
-    <div style="background: ${isNcr ? '#ffffff' : 'linear-gradient(135deg, ' + accent + ' 0%, #1e293b 100%)'}; color: ${isNcr ? '#111111' : '#fff'}; padding: 16px 18px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-direction: ${isAr ? 'row-reverse' : 'row'}; border-bottom: 2px solid ${isNcr ? '#111111' : 'transparent'};">
+    <div class="${isNcr ? '' : 'export-preserve-contrast'}" style="background: ${isNcr ? '#ffffff' : 'linear-gradient(135deg, ' + accent + ' 0%, #1e293b 100%)'}; color: ${isNcr ? '#111111' : '#fff'}; padding: 16px 18px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-direction: ${isAr ? 'row-reverse' : 'row'}; border-bottom: 2px solid ${isNcr ? '#111111' : 'transparent'};">
       ${branding.logoPosition === 'right' ? '<div style="flex: 1"></div>' : ''}
       <div style="text-align: ${branding.logoPosition === 'center' ? 'center' : (isAr ? 'right' : 'left')}; display: flex; flex-direction: column; align-items: ${branding.logoPosition === 'center' ? 'center' : (isAr ? 'flex-end' : 'flex-start')}; gap: 8px;">
         ${branding.companyLogo ? `<img src="${branding.companyLogo}" alt="${escapeHtml(branding.companyName)}" style="height: 64px; width: 96px; object-fit: contain; object-position: center;"/>` : ''}
@@ -327,7 +337,7 @@ function PrintView({ item, siteName, isAr, settings, fontColor }: { item: PrintS
   
   return (
     <div 
-      className="print-content bg-white p-5 text-gray-900" 
+      className="print-content print-share-font-scope bg-white p-5 text-gray-900" 
       style={{ 
         fontFamily: isAr ? "'Noto Sans Arabic', 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif" : "Arial, sans-serif", 
         direction: dir, 
@@ -338,6 +348,12 @@ function PrintView({ item, siteName, isAr, settings, fontColor }: { item: PrintS
         margin: "0 auto"
       }}
     >
+      <style>{`
+        .print-share-font-scope,
+        .print-share-font-scope * {
+          color: ${fontColor} !important;
+        }
+      `}</style>
       {/* Load fonts for preview */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -728,7 +744,13 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
       </Dialog>
       
       {customContent && open && (
-        <div className="hidden print:block w-full h-full bg-white print:absolute print:inset-0 print:z-[9999]" style={{ color: fontColor }}>
+        <div className="custom-export-font-scope hidden print:block w-full h-full bg-white print:absolute print:inset-0 print:z-[9999]" style={{ color: fontColor }}>
+          <style>{`
+            .custom-export-font-scope,
+            .custom-export-font-scope * {
+              color: ${fontColor} !important;
+            }
+          `}</style>
           {customContent}
         </div>
       )}
