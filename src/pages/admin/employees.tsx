@@ -40,6 +40,8 @@ export interface EmployeeProfile {
   ncrCount: number;
   trainingsCompleted: number;
   status: "Active" | "On Leave" | "Terminated";
+  employeeType: "hse" | "workforce";
+  violationsCount: number;
 }
 
 function mapEmployeeRow(row: any): EmployeeProfile {
@@ -65,6 +67,8 @@ function mapEmployeeRow(row: any): EmployeeProfile {
     ncrCount: Number(row?.ncrCount || 0),
     trainingsCompleted: Number(row?.trainingsCompleted || 0),
     status: (row?.status || "Active") as EmployeeProfile["status"],
+    employeeType: (row?.employeeType || "workforce") as EmployeeProfile["employeeType"],
+    violationsCount: Number(row?.violationsCount || 0),
   };
 }
 
@@ -99,7 +103,7 @@ export default function AdminEmployeesPage() {
   const loadEmployees = async () => {
     setEmployeesLoading(true);
     try {
-      const response = await apiRequest("GET", "/api/data?resource=employees");
+      const response = await apiRequest("GET", "/api/data?resource=employee-directory&type=workforce");
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error || "Unable to load employees");
       setEmployees(Array.isArray(payload) ? payload.map(mapEmployeeRow) : []);
@@ -149,6 +153,7 @@ export default function AdminEmployeesPage() {
         ncrCount: 0,
         trainingsCompleted: 0,
         status: formData.status || "Active",
+        employeeType: "workforce",
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error || "Unable to save employee");
@@ -213,10 +218,10 @@ export default function AdminEmployeesPage() {
           </div>
           <div>
             <h2 className="text-[28px] font-bold tracking-tight">
-              {isAr ? "سجل الموظفين والسلامة" : "Employee & Safety Records"}
+              {isAr ? "سجل موظفي الأقسام" : "Department Workforce Records"}
             </h2>
             <p className="text-[12px] text-muted-foreground">
-              {isAr ? "إدارة الموظفين، الكفاءات، مصفوفة التدريب وسجلات السلامة" : "Manage employees, competencies, training history & safety passports"}
+              {isAr ? "موظفو الإنتاج والصيانة والمستودعات والأقسام التشغيلية — منفصلون عن فريق HSE" : "Production, maintenance, warehouse and department employees — separate from the HSE team"}
             </p>
           </div>
         </div>
@@ -298,7 +303,7 @@ export default function AdminEmployeesPage() {
               <SelectItem value="all">{isAr ? "كل الأقسام" : "All Departments"}</SelectItem>
               <SelectItem value="Production">{isAr ? "الإنتاج" : "Production"}</SelectItem>
               <SelectItem value="Maintenance">{isAr ? "الصيانة" : "Maintenance"}</SelectItem>
-              <SelectItem value="HSE">{isAr ? "السلامة والصحة المهنية" : "HSE"}</SelectItem>
+              
             </SelectContent>
           </Select>
         </div>
@@ -364,7 +369,12 @@ export default function AdminEmployeesPage() {
                           {emp.ncrCount} NCR
                         </Badge>
                       )}
-                      {emp.incidentsCount === 0 && emp.ncrCount === 0 && (
+                      {emp.violationsCount > 0 && (
+                        <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20">
+                          {emp.violationsCount} {isAr ? "مخالفة" : "Violations"}
+                        </Badge>
+                      )}
+                      {emp.incidentsCount === 0 && emp.ncrCount === 0 && emp.violationsCount === 0 && (
                         <span className="text-muted-foreground text-xs">{isAr ? "سجل نظيف" : "Clean Record"}</span>
                       )}
                     </div>
