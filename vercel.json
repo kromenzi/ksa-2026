@@ -4,93 +4,377 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=()" },
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(), geolocation=()"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests"
+        }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/api/users", "destination": "/api/system-health?resource=users" },
-    { "source": "/api/users/:id", "destination": "/api/system-health?resource=users&id=:id" },
-    { "source": "/api/posts", "destination": "/api/system-health?resource=posts" },
-    { "source": "/api/posts/:id", "destination": "/api/system-health?resource=posts&id=:id" },
-    { "source": "/api/sections", "destination": "/api/system-health?resource=sections" },
-    { "source": "/api/sections/:id", "destination": "/api/system-health?resource=sections&id=:id" },
-    { "source": "/api/forms", "destination": "/api/system-health?resource=forms" },
-    { "source": "/api/forms/:id", "destination": "/api/system-health?resource=forms&id=:id" },
-    { "source": "/api/reports", "destination": "/api/system-health?resource=reports" },
-    { "source": "/api/reports/:id", "destination": "/api/system-health?resource=reports&id=:id" },
-    { "source": "/api/activity-logs", "destination": "/api/data?resource=activity-logs" },
-    { "source": "/api/activity-logs/:id", "destination": "/api/data?resource=activity-logs&id=:id" },
-    { "source": "/api/employees", "destination": "/api/system-health?resource=employees" },
-    { "source": "/api/employees/:id", "destination": "/api/system-health?resource=employees&id=:id" },
-    { "source": "/api/employee-violations", "destination": "/api/system-health?resource=employee-violations" },
-    { "source": "/api/employee-violations/:id", "destination": "/api/system-health?resource=employee-violations&id=:id" },
-    { "source": "/api/routing-rules", "destination": "/api/system-health?resource=routing-rules" },
-    { "source": "/api/routing-rules/:id", "destination": "/api/system-health?resource=routing-rules&id=:id" },
-    { "source": "/api/permissions", "destination": "/api/system-health?resource=permissions" },
-    { "source": "/api/documents", "destination": "/api/system-health?resource=documents" },
-    { "source": "/api/documents/:id", "destination": "/api/system-health?resource=documents&id=:id" },
-    { "source": "/api/section-config", "destination": "/api/system-health?resource=section-config" },
-    { "source": "/api/section-config/:id", "destination": "/api/system-health?resource=section-config&id=:id" },
-    { "source": "/api/email-settings", "destination": "/api/system-health?resource=email-settings" },
-    { "source": "/api/report-settings", "destination": "/api/system-health?resource=report-settings" },
-    { "source": "/api/site-settings", "destination": "/api/system-health?resource=site-settings" },
-    { "source": "/api/environmental-measurements", "destination": "/api/system-health?resource=environmental-measurements" },
-    { "source": "/api/environmental-measurements/:id", "destination": "/api/system-health?resource=environmental-measurements&id=:id" },
-    { "source": "/api/assets", "destination": "/api/system-health?resource=assets" },
-    { "source": "/api/assets/:id", "destination": "/api/system-health?resource=assets&id=:id" },
-    { "source": "/api/visitors", "destination": "/api/system-health?resource=visitors" },
-    { "source": "/api/visitors/:id", "destination": "/api/system-health?resource=visitors&id=:id" },
-    { "source": "/api/emergency", "destination": "/api/system-health?resource=emergency" },
-    { "source": "/api/emergency/:id", "destination": "/api/system-health?resource=emergency&id=:id" },
-    { "source": "/api/fire-equipment", "destination": "/api/system-health?resource=fire-equipment" },
-    { "source": "/api/fire-equipment/:id", "destination": "/api/system-health?resource=fire-equipment&id=:id" },
-    { "source": "/api/fire-inspections", "destination": "/api/system-health?resource=fire-inspections" },
-    { "source": "/api/fire-inspections/:id", "destination": "/api/system-health?resource=fire-inspections&id=:id" },
-    { "source": "/api/fire-pump-tests", "destination": "/api/system-health?resource=fire-pump-tests" },
-    { "source": "/api/fire-pump-tests/:id", "destination": "/api/system-health?resource=fire-pump-tests&id=:id" },
-    { "source": "/api/fire-alarm-zones", "destination": "/api/system-health?resource=fire-alarm-zones" },
-    { "source": "/api/fire-alarm-zones/:id", "destination": "/api/system-health?resource=fire-alarm-zones&id=:id" },
-    { "source": "/api/fire-maintenance-orders", "destination": "/api/system-health?resource=fire-maintenance-orders" },
-    { "source": "/api/fire-maintenance-orders/:id", "destination": "/api/system-health?resource=fire-maintenance-orders&id=:id" },
-    { "source": "/api/fire-alerts", "destination": "/api/system-health?resource=fire-alerts" },
-    { "source": "/api/fire-alerts/:id", "destination": "/api/system-health?resource=fire-alerts&id=:id" },
-    { "source": "/api/licenses", "destination": "/api/data?resource=licenses" },
-    { "source": "/api/licenses/:id", "destination": "/api/data?resource=licenses&id=:id" },
-    { "source": "/api/equipment-auth", "destination": "/api/data?resource=equipment-auth" },
-    { "source": "/api/equipment-auth/:id", "destination": "/api/data?resource=equipment-auth&id=:id" },
-    { "source": "/api/trainings", "destination": "/api/data?resource=trainings" },
-    { "source": "/api/trainings/:id", "destination": "/api/data?resource=trainings&id=:id" },
-    { "source": "/api/training-matrix", "destination": "/api/data?resource=training-matrix" },
-    { "source": "/api/training-matrix/:id", "destination": "/api/data?resource=training-matrix&id=:id" },
-    { "source": "/api/competency", "destination": "/api/data?resource=competency" },
-    { "source": "/api/competency/:id", "destination": "/api/data?resource=competency&id=:id" },
-    { "source": "/api/inspections", "destination": "/api/data?resource=inspections" },
-    { "source": "/api/inspections/:id", "destination": "/api/data?resource=inspections&id=:id" },
-    { "source": "/api/incidents", "destination": "/api/data?resource=incidents" },
-    { "source": "/api/incidents/:id", "destination": "/api/data?resource=incidents&id=:id" },
-    { "source": "/api/audits", "destination": "/api/data?resource=audits" },
-    { "source": "/api/audits/:id", "destination": "/api/data?resource=audits&id=:id" },
-    { "source": "/api/compliance", "destination": "/api/data?resource=compliance" },
-    { "source": "/api/compliance/:id", "destination": "/api/data?resource=compliance&id=:id" },
-    { "source": "/api/loto", "destination": "/api/data?resource=loto" },
-    { "source": "/api/loto/:id", "destination": "/api/data?resource=loto&id=:id" },
-    { "source": "/api/permits", "destination": "/api/data?resource=permits" },
-    { "source": "/api/permits/:id", "destination": "/api/data?resource=permits&id=:id" },
-    { "source": "/api/escalation-matrix", "destination": "/api/data?resource=escalation-matrix" },
-    { "source": "/api/escalation-matrix/:id", "destination": "/api/data?resource=escalation-matrix&id=:id" },
-    { "source": "/api/departments", "destination": "/api/ncr?resource=departments" },
-    { "source": "/api/departments/:id", "destination": "/api/ncr?resource=departments&id=:id" },
-    { "source": "/api/safety-signs", "destination": "/api/ncr?resource=safety-signs" },
-    { "source": "/api/safety-signs/:id", "destination": "/api/ncr?resource=safety-signs&id=:id" },
-    { "source": "/api/safety-signs/:id/:action", "destination": "/api/ncr?resource=safety-signs&id=:id&action=:action" },
-    { "source": "/api/safety-reports", "destination": "/api/safety-reports" },
-    { "source": "/api/safety-reports/:id", "destination": "/api/safety-reports?id=:id" },
-    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
+    {
+      "source": "/api/safety-reporting-public",
+      "destination": "/api/data?resource=safety-reporting-public"
+    },
+    {
+      "source": "/api/safety-reporting-reveal",
+      "destination": "/api/data?resource=safety-reporting-reveal"
+    },
+    {
+      "source": "/api/safety-reporting",
+      "destination": "/api/data?resource=safety-reporting"
+    },
+    {
+      "source": "/api/safety-reporting/:id",
+      "destination": "/api/data?resource=safety-reporting&id=:id"
+    },
+    {
+      "source": "/api/safety-reporting-messages",
+      "destination": "/api/data?resource=safety-reporting-messages"
+    },
+    {
+      "source": "/api/safety-reporting-messages/:id",
+      "destination": "/api/data?resource=safety-reporting-messages&id=:id"
+    },
+    {
+      "source": "/api/safety-reporting-channels",
+      "destination": "/api/data?resource=safety-reporting-channels"
+    },
+    {
+      "source": "/api/safety-reporting-channels/:id",
+      "destination": "/api/data?resource=safety-reporting-channels&id=:id"
+    },
+    {
+      "source": "/api/users",
+      "destination": "/api/system-health?resource=users"
+    },
+    {
+      "source": "/api/users/:id",
+      "destination": "/api/system-health?resource=users&id=:id"
+    },
+    {
+      "source": "/api/posts",
+      "destination": "/api/system-health?resource=posts"
+    },
+    {
+      "source": "/api/posts/:id",
+      "destination": "/api/system-health?resource=posts&id=:id"
+    },
+    {
+      "source": "/api/sections",
+      "destination": "/api/system-health?resource=sections"
+    },
+    {
+      "source": "/api/sections/:id",
+      "destination": "/api/system-health?resource=sections&id=:id"
+    },
+    {
+      "source": "/api/forms",
+      "destination": "/api/system-health?resource=forms"
+    },
+    {
+      "source": "/api/forms/:id",
+      "destination": "/api/system-health?resource=forms&id=:id"
+    },
+    {
+      "source": "/api/reports",
+      "destination": "/api/system-health?resource=reports"
+    },
+    {
+      "source": "/api/reports/:id",
+      "destination": "/api/system-health?resource=reports&id=:id"
+    },
+    {
+      "source": "/api/activity-logs",
+      "destination": "/api/data?resource=activity-logs"
+    },
+    {
+      "source": "/api/activity-logs/:id",
+      "destination": "/api/data?resource=activity-logs&id=:id"
+    },
+    {
+      "source": "/api/employees",
+      "destination": "/api/system-health?resource=employees"
+    },
+    {
+      "source": "/api/employees/:id",
+      "destination": "/api/system-health?resource=employees&id=:id"
+    },
+    {
+      "source": "/api/employee-violations",
+      "destination": "/api/system-health?resource=employee-violations"
+    },
+    {
+      "source": "/api/employee-violations/:id",
+      "destination": "/api/system-health?resource=employee-violations&id=:id"
+    },
+    {
+      "source": "/api/routing-rules",
+      "destination": "/api/system-health?resource=routing-rules"
+    },
+    {
+      "source": "/api/routing-rules/:id",
+      "destination": "/api/system-health?resource=routing-rules&id=:id"
+    },
+    {
+      "source": "/api/permissions",
+      "destination": "/api/system-health?resource=permissions"
+    },
+    {
+      "source": "/api/documents",
+      "destination": "/api/system-health?resource=documents"
+    },
+    {
+      "source": "/api/documents/:id",
+      "destination": "/api/system-health?resource=documents&id=:id"
+    },
+    {
+      "source": "/api/section-config",
+      "destination": "/api/system-health?resource=section-config"
+    },
+    {
+      "source": "/api/section-config/:id",
+      "destination": "/api/system-health?resource=section-config&id=:id"
+    },
+    {
+      "source": "/api/email-settings",
+      "destination": "/api/system-health?resource=email-settings"
+    },
+    {
+      "source": "/api/report-settings",
+      "destination": "/api/system-health?resource=report-settings"
+    },
+    {
+      "source": "/api/site-settings",
+      "destination": "/api/system-health?resource=site-settings"
+    },
+    {
+      "source": "/api/environmental-measurements",
+      "destination": "/api/system-health?resource=environmental-measurements"
+    },
+    {
+      "source": "/api/environmental-measurements/:id",
+      "destination": "/api/system-health?resource=environmental-measurements&id=:id"
+    },
+    {
+      "source": "/api/assets",
+      "destination": "/api/system-health?resource=assets"
+    },
+    {
+      "source": "/api/assets/:id",
+      "destination": "/api/system-health?resource=assets&id=:id"
+    },
+    {
+      "source": "/api/visitors",
+      "destination": "/api/system-health?resource=visitors"
+    },
+    {
+      "source": "/api/visitors/:id",
+      "destination": "/api/system-health?resource=visitors&id=:id"
+    },
+    {
+      "source": "/api/emergency",
+      "destination": "/api/system-health?resource=emergency"
+    },
+    {
+      "source": "/api/emergency/:id",
+      "destination": "/api/system-health?resource=emergency&id=:id"
+    },
+    {
+      "source": "/api/fire-equipment",
+      "destination": "/api/system-health?resource=fire-equipment"
+    },
+    {
+      "source": "/api/fire-equipment/:id",
+      "destination": "/api/system-health?resource=fire-equipment&id=:id"
+    },
+    {
+      "source": "/api/fire-inspections",
+      "destination": "/api/system-health?resource=fire-inspections"
+    },
+    {
+      "source": "/api/fire-inspections/:id",
+      "destination": "/api/system-health?resource=fire-inspections&id=:id"
+    },
+    {
+      "source": "/api/fire-pump-tests",
+      "destination": "/api/system-health?resource=fire-pump-tests"
+    },
+    {
+      "source": "/api/fire-pump-tests/:id",
+      "destination": "/api/system-health?resource=fire-pump-tests&id=:id"
+    },
+    {
+      "source": "/api/fire-alarm-zones",
+      "destination": "/api/system-health?resource=fire-alarm-zones"
+    },
+    {
+      "source": "/api/fire-alarm-zones/:id",
+      "destination": "/api/system-health?resource=fire-alarm-zones&id=:id"
+    },
+    {
+      "source": "/api/fire-maintenance-orders",
+      "destination": "/api/system-health?resource=fire-maintenance-orders"
+    },
+    {
+      "source": "/api/fire-maintenance-orders/:id",
+      "destination": "/api/system-health?resource=fire-maintenance-orders&id=:id"
+    },
+    {
+      "source": "/api/fire-alerts",
+      "destination": "/api/system-health?resource=fire-alerts"
+    },
+    {
+      "source": "/api/fire-alerts/:id",
+      "destination": "/api/system-health?resource=fire-alerts&id=:id"
+    },
+    {
+      "source": "/api/licenses",
+      "destination": "/api/data?resource=licenses"
+    },
+    {
+      "source": "/api/licenses/:id",
+      "destination": "/api/data?resource=licenses&id=:id"
+    },
+    {
+      "source": "/api/equipment-auth",
+      "destination": "/api/data?resource=equipment-auth"
+    },
+    {
+      "source": "/api/equipment-auth/:id",
+      "destination": "/api/data?resource=equipment-auth&id=:id"
+    },
+    {
+      "source": "/api/trainings",
+      "destination": "/api/data?resource=trainings"
+    },
+    {
+      "source": "/api/trainings/:id",
+      "destination": "/api/data?resource=trainings&id=:id"
+    },
+    {
+      "source": "/api/training-matrix",
+      "destination": "/api/data?resource=training-matrix"
+    },
+    {
+      "source": "/api/training-matrix/:id",
+      "destination": "/api/data?resource=training-matrix&id=:id"
+    },
+    {
+      "source": "/api/competency",
+      "destination": "/api/data?resource=competency"
+    },
+    {
+      "source": "/api/competency/:id",
+      "destination": "/api/data?resource=competency&id=:id"
+    },
+    {
+      "source": "/api/inspections",
+      "destination": "/api/data?resource=inspections"
+    },
+    {
+      "source": "/api/inspections/:id",
+      "destination": "/api/data?resource=inspections&id=:id"
+    },
+    {
+      "source": "/api/incidents",
+      "destination": "/api/data?resource=incidents"
+    },
+    {
+      "source": "/api/incidents/:id",
+      "destination": "/api/data?resource=incidents&id=:id"
+    },
+    {
+      "source": "/api/audits",
+      "destination": "/api/data?resource=audits"
+    },
+    {
+      "source": "/api/audits/:id",
+      "destination": "/api/data?resource=audits&id=:id"
+    },
+    {
+      "source": "/api/compliance",
+      "destination": "/api/data?resource=compliance"
+    },
+    {
+      "source": "/api/compliance/:id",
+      "destination": "/api/data?resource=compliance&id=:id"
+    },
+    {
+      "source": "/api/loto",
+      "destination": "/api/data?resource=loto"
+    },
+    {
+      "source": "/api/loto/:id",
+      "destination": "/api/data?resource=loto&id=:id"
+    },
+    {
+      "source": "/api/permits",
+      "destination": "/api/data?resource=permits"
+    },
+    {
+      "source": "/api/permits/:id",
+      "destination": "/api/data?resource=permits&id=:id"
+    },
+    {
+      "source": "/api/escalation-matrix",
+      "destination": "/api/data?resource=escalation-matrix"
+    },
+    {
+      "source": "/api/escalation-matrix/:id",
+      "destination": "/api/data?resource=escalation-matrix&id=:id"
+    },
+    {
+      "source": "/api/departments",
+      "destination": "/api/ncr?resource=departments"
+    },
+    {
+      "source": "/api/departments/:id",
+      "destination": "/api/ncr?resource=departments&id=:id"
+    },
+    {
+      "source": "/api/safety-signs",
+      "destination": "/api/ncr?resource=safety-signs"
+    },
+    {
+      "source": "/api/safety-signs/:id",
+      "destination": "/api/ncr?resource=safety-signs&id=:id"
+    },
+    {
+      "source": "/api/safety-signs/:id/:action",
+      "destination": "/api/ncr?resource=safety-signs&id=:id&action=:action"
+    },
+    {
+      "source": "/api/safety-reports",
+      "destination": "/api/safety-reports"
+    },
+    {
+      "source": "/api/safety-reports/:id",
+      "destination": "/api/safety-reports?id=:id"
+    },
+    {
+      "source": "/((?!api(?:/|$)).*)",
+      "destination": "/index.html"
+    }
   ]
 }
