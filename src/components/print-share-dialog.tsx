@@ -728,7 +728,7 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
       </Dialog>
       
       {customContent && open && (
-        <div className="hidden print:block w-full h-full bg-white text-black print:absolute print:inset-0 print:z-[9999]">
+        <div className="hidden print:block w-full h-full bg-white print:absolute print:inset-0 print:z-[9999]" style={{ color: fontColor }}>
           {customContent}
         </div>
       )}
