@@ -35,6 +35,24 @@ async function rest(req:any,path:string,init:RequestInit={}){
   return body;
 }
 
+async function resolveEmployee(req:any,value:any){
+  const id=clean(value,80);
+  if(!id) return null;
+  const rows=await rest(req,"/rest/v1/employees?select=id,user_id,name,employee_id,status&id=eq."+encodeURIComponent(id)+"&limit=1");
+  const employee=rows?.[0]||null;
+  if(!employee){
+    const error:any=new Error("Assigned employee was not found");
+    error.statusCode=422;
+    throw error;
+  }
+  if(employee.status && employee.status!=="Active"){
+    const error:any=new Error("Assigned employee is not active");
+    error.statusCode=422;
+    throw error;
+  }
+  return employee;
+}
+
 export async function monthlyHsePlanHandler(req:any,res:any){
   try{
     res.setHeader("Cache-Control","no-store, max-age=0");
@@ -81,7 +99,9 @@ export async function monthlyHsePlanHandler(req:any,res:any){
       const month=Number(b.month),year=Number(b.year);
       if(!month||month<1||month>12||!year) return json(res,422,{error:"Valid month and year are required"});
       if(!clean(b.titleAr,300)||!clean(b.titleEn,300)) return json(res,422,{error:"Arabic and English titles are required"});
-      if(!clean(b.assignedTo,80)) return json(res,422,{error:"Assigned employee is required"});
+      const assignedEmployee=await resolveEmployee(req,b.assignedEmployeeId||b.assignedTo);
+      if(!assignedEmployee) return json(res,422,{error:"Assigned employee is required"});
+      const backupEmployee=await resolveEmployee(req,b.backupEmployeeId||b.backupUserId);
       const row={
         title_ar:clean(b.titleAr,300),
         title_en:clean(b.titleEn,300),
@@ -89,8 +109,10 @@ export async function monthlyHsePlanHandler(req:any,res:any){
         category:clean(b.category,120)||"General",
         factory:clean(b.factory,180)||null,
         department:clean(b.department,180)||null,
-        assigned_to:clean(b.assignedTo,80),
-        backup_user_id:clean(b.backupUserId,80)||null,
+        assigned_employee_id:assignedEmployee.id,
+        assigned_to:assignedEmployee.user_id||null,
+        backup_employee_id:backupEmployee?.id||null,
+        backup_user_id:backupEmployee?.user_id||null,
         month,year,
         priority:PRIORITIES.has(b.priority)?b.priority:"Medium",
         start_date:clean(b.startDate,20)||dateFor(year,month,1),
@@ -114,8 +136,9 @@ export async function monthlyHsePlanHandler(req:any,res:any){
       if(!canManage) return json(res,403,{error:"Manager permission required"});
       const b=req.body||{};
       const month=Number(b.month),year=Number(b.year);
-      const assignedTo=clean(b.assignedTo,80);
-      if(!assignedTo||month<1||month>12||!year) return json(res,422,{error:"Employee, month and year are required"});
+      const assignedEmployee=await resolveEmployee(req,b.assignedEmployeeId||b.assignedTo);
+      if(!assignedEmployee||month<1||month>12||!year) return json(res,422,{error:"Employee, month and year are required"});
+      const backupEmployee=await resolveEmployee(req,b.backupEmployeeId||b.backupUserId);
       const templates=await rest(req,"/rest/v1/monthly_hse_task_templates?select=*&active=eq.true&order=category.asc");
       const rows:any[]=[];
       for(const t of templates||[]){
@@ -134,8 +157,10 @@ export async function monthlyHsePlanHandler(req:any,res:any){
             category:t.category,
             factory:clean(b.factory,180)||null,
             department:clean(b.department,180)||null,
-            assigned_to:assignedTo,
-            backup_user_id:clean(b.backupUserId,80)||null,
+            assigned_employee_id:assignedEmployee.id,
+            assigned_to:assignedEmployee.user_id||null,
+            backup_employee_id:backupEmployee?.id||null,
+            backup_user_id:backupEmployee?.user_id||null,
             month,year,
             priority:t.priority,
             start_date:start,
@@ -216,8 +241,16 @@ export async function monthlyHsePlanHandler(req:any,res:any){
         if(b.category!==undefined) patch.category=clean(b.category,120)||"General";
         if(b.factory!==undefined) patch.factory=clean(b.factory,180)||null;
         if(b.department!==undefined) patch.department=clean(b.department,180)||null;
-        if(b.assignedTo!==undefined) patch.assigned_to=clean(b.assignedTo,80)||null;
-        if(b.backupUserId!==undefined) patch.backup_user_id=clean(b.backupUserId,80)||null;
+        if(b.assignedEmployeeId!==undefined||b.assignedTo!==undefined){
+          const employee=await resolveEmployee(req,b.assignedEmployeeId||b.assignedTo);
+          patch.assigned_employee_id=employee?.id||null;
+          patch.assigned_to=employee?.user_id||null;
+        }
+        if(b.backupEmployeeId!==undefined||b.backupUserId!==undefined){
+          const employee=await resolveEmployee(req,b.backupEmployeeId||b.backupUserId);
+          patch.backup_employee_id=employee?.id||null;
+          patch.backup_user_id=employee?.user_id||null;
+        }
         if(PRIORITIES.has(b.priority)) patch.priority=b.priority;
         if(b.startDate!==undefined) patch.start_date=clean(b.startDate,20);
         if(b.dueDate!==undefined) patch.due_date=clean(b.dueDate,20);
