@@ -501,19 +501,10 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
       const templateElement = source.querySelector<HTMLElement>(".official-hse-template");
       const bounds = templateElement?.getBoundingClientRect();
       const orientation = bounds && bounds.height > bounds.width ? "portrait" : "landscape";
-      const aspectRatio = bounds && bounds.height > 0
-        ? bounds.width / bounds.height
-        : (orientation === "portrait" ? 0.69 : 1.414);
-      // A4 minus a compact 4 mm CSS page margin on each side.
-      // Fit by both width and height and keep a 2 mm safety margin for
-      // Chrome/Windows printer rounding. This fills the sheet without
-      // allowing the footer to spill onto a second page.
-      const printableWidthMm = orientation === "portrait" ? 202 : 289;
-      const printableHeightMm = orientation === "portrait" ? 289 : 202;
-      const fittedWidthMm = Math.max(
-        40,
-        Math.min(printableWidthMm, printableHeightMm * aspectRatio) - 2,
-      );
+      const sourceWidthPx = Math.max(1, Math.round(bounds?.width || (orientation === "portrait" ? 520 : 1120)));
+      const sourceHeightPx = Math.max(1, Math.round(bounds?.height || (orientation === "portrait" ? 754 : 792)));
+      const pageWidthMm = orientation === "portrait" ? 210 : 297;
+      const pageHeightMm = orientation === "portrait" ? 297 : 210;
       const inheritedStyles = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style'))
         .map(node => node.outerHTML)
         .join("\n");
@@ -547,75 +538,99 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 ${inheritedStyles}
 <style>
-  @page { size: A4 ${orientation}; margin: 4mm; }
-  html, body {
+  @page {
+    size: A4 ${orientation};
+    margin: 0 !important;
+  }
+
+  html,
+  body {
     margin: 0 !important;
     padding: 0 !important;
-    width: 100% !important;
-    min-height: 100% !important;
+    width: ${pageWidthMm}mm !important;
+    min-width: ${pageWidthMm}mm !important;
+    max-width: ${pageWidthMm}mm !important;
+    height: ${pageHeightMm}mm !important;
+    min-height: ${pageHeightMm}mm !important;
+    max-height: ${pageHeightMm}mm !important;
     background: #ffffff !important;
     color: #0f2742 !important;
     color-scheme: light !important;
-  }
-  body {
-    display: flex !important;
-    align-items: flex-start !important;
-    justify-content: center !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  #print-custom-root {
-    width: 100% !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    display: flex !important;
-    justify-content: center !important;
-    background: #ffffff !important;
-    overflow: visible !important;
+
+  body {
+    position: relative !important;
   }
-  #print-custom-root > * { width: 100% !important; }
-  #print-custom-root .official-hse-template {
-    margin: 0 auto !important;
-    width: ${fittedWidthMm.toFixed(2)}mm !important;
-    max-width: ${fittedWidthMm.toFixed(2)}mm !important;
-    height: auto !important;
+
+  #print-custom-root {
+    position: relative !important;
+    width: ${pageWidthMm}mm !important;
+    height: ${pageHeightMm}mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+  }
+
+  #print-custom-stage {
+    position: absolute !important;
+    inset: 4mm !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+  }
+
+  #print-custom-stage .official-hse-template {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: ${sourceWidthPx}px !important;
+    min-width: ${sourceWidthPx}px !important;
+    max-width: none !important;
+    height: ${sourceHeightPx}px !important;
+    min-height: ${sourceHeightPx}px !important;
     max-height: none !important;
+    margin: 0 !important;
     box-shadow: none !important;
+    transform-origin: center center !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
+    break-after: avoid-page !important;
+    page-break-after: avoid !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-scheme: light !important;
   }
-  #print-custom-root .official-hse-template,
-  #print-custom-root .official-hse-template * {
+
+  #print-custom-stage .official-hse-template,
+  #print-custom-stage .official-hse-template * {
     visibility: visible !important;
-    opacity: 1;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  #print-custom-root .official-hse-template [aria-hidden="true"] {
+
+  #print-custom-stage .official-hse-template [aria-hidden="true"] {
     display: block !important;
   }
+
   @media print {
-    html, body, #print-custom-root {
-      background: #ffffff !important;
+    html,
+    body,
+    #print-custom-root,
+    #print-custom-stage {
       overflow: hidden !important;
-    }
-    #print-custom-root {
-      min-height: 0 !important;
-      height: auto !important;
-    }
-    #print-custom-root .official-hse-template {
-      box-shadow: none !important;
-      break-after: avoid-page !important;
-      page-break-after: avoid !important;
+      background: #ffffff !important;
     }
   }
 </style>
 </head>
-<body><div id="print-custom-root">${source.innerHTML}</div></body>
+<body>
+  <div id="print-custom-root">
+    <div id="print-custom-stage">${source.innerHTML}</div>
+  </div>
+</body>
 </html>`);
       doc.close();
 
@@ -623,6 +638,7 @@ ${inheritedStyles}
         try {
           const fontSet = (doc as Document & { fonts?: { ready: Promise<unknown> } }).fonts;
           if (fontSet) await fontSet.ready;
+
           const stylesheetLinks = Array.from(doc.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'));
           await Promise.all(stylesheetLinks.map(link => {
             if (link.sheet) return Promise.resolve();
@@ -633,6 +649,7 @@ ${inheritedStyles}
               setTimeout(done, 1200);
             });
           }));
+
           const images = Array.from(doc.images);
           await Promise.all(images.map(image => image.complete
             ? Promise.resolve()
@@ -642,13 +659,34 @@ ${inheritedStyles}
                 image.addEventListener("error", done, { once: true });
               })));
         } catch {
-          // Printing should still proceed with browser fallbacks if an asset fails.
+          // Continue with browser fallbacks if a font or image cannot be loaded.
         }
+
+        const stage = doc.getElementById("print-custom-stage");
+        const printTemplate = stage?.querySelector<HTMLElement>(".official-hse-template");
+        if (!stage || !printTemplate) {
+          iframe.remove();
+          toast.error(isAr ? "تعذر تجهيز القالب للطباعة" : "Unable to prepare the print template");
+          return;
+        }
+
+        // Scale from the template's actual on-screen size into the exact A4 safe area.
+        // Absolute positioning means the unscaled layout size can never create page 2.
+        const fitScale = Math.min(
+          stage.clientWidth / sourceWidthPx,
+          stage.clientHeight / sourceHeightPx,
+        ) * 0.995;
+
+        printTemplate.style.transform = `translate(-50%, -50%) scale(${fitScale})`;
+
+        // Force layout before opening the system print preview.
+        void printTemplate.getBoundingClientRect();
 
         const cleanup = () => iframe.remove();
         printWindow.addEventListener("afterprint", cleanup, { once: true });
         printWindow.focus();
         printWindow.print();
+
         setTimeout(() => {
           if (document.body.contains(iframe)) iframe.remove();
         }, 60000);
