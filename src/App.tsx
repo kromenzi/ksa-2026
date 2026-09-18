@@ -73,6 +73,7 @@ const PublicReport = lazy(() => import("@/pages/public-report"));
 const PublicSafetyReport = lazy(() => import("@/pages/safety-report"));
 const PublicSafetyReportStatus = lazy(() => import("@/pages/safety-report-status"));
 const AdminSafetyReporting = lazy(() => import("@/pages/admin/safety-reporting"));
+const AdminMonthlyHsePlan = lazy(() => import("@/pages/admin/monthly-hse-plan"));
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useData();
@@ -116,6 +117,7 @@ function Router() {
       <Route path="/admin/forms"><ProtectedRoute component={AdminForms} /></Route>
       <Route path="/admin/reports"><ProtectedRoute component={AdminReports} /></Route>
       <Route path="/admin/safety-reporting"><ProtectedRoute component={AdminSafetyReporting} /></Route>
+      <Route path="/admin/monthly-hse-plan"><ProtectedRoute component={AdminMonthlyHsePlan} /></Route>
       <Route path="/admin/ncr"><ProtectedRoute component={AdminNCR} /></Route>
       <Route path="/admin/ncr/new"><ProtectedRoute component={AdminNCRNewFixed} /></Route>
       <Route path="/admin/ncr/:id"><ProtectedRoute component={AdminNCRForm} /></Route>
