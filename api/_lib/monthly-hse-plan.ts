@@ -38,10 +38,10 @@ async function rest(req:any,path:string,init:RequestInit={}){
 async function resolveEmployee(req:any,value:any){
   const id=clean(value,80);
   if(!id) return null;
-  const rows=await rest(req,"/rest/v1/employees?select=id,user_id,name,employee_id,status&id=eq."+encodeURIComponent(id)+"&limit=1");
+  const rows=await rest(req,"/rest/v1/employees?select=id,user_id,name,employee_id,status,employee_type&id=eq."+encodeURIComponent(id)+"&employee_type=eq.hse&limit=1");
   const employee=rows?.[0]||null;
   if(!employee){
-    const error:any=new Error("Assigned employee was not found");
+    const error:any=new Error("HSE employee was not found");
     error.statusCode=422;
     throw error;
   }
