@@ -1,5 +1,5 @@
-import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { getAuthUser, getProfile, json, supabaseFetch, supabaseFetchForRequest } from "./_lib/supabase.js";
+import { getAccessToken, getAuthUser, getProfile, json, supabaseFetchForRequest } from "./_lib/supabase.js";
+import { fallbackSupabaseUrl } from "./_lib/supabase-public-config.js";
 
 const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boolean; adminOnly?: boolean }> = {
   users: { table: "users", module: "users", adminOnly: true },
@@ -92,283 +92,35 @@ function sanitizeBody(table: string, body: any, mode: "insert" | "update") {
 
 
 const REPORTING_KEY_NAMES = {
-  encryption: "safety_reporting_encryption_key_v1",
-  lookup: "safety_reporting_lookup_key_v1",
-  tracking: "safety_reporting_tracking_key_v1",
-} as const;
+  econst REPORTING_EDGE_URL = `${(process.env.SUPABASE_URL || fallbackSupabaseUrl).replace(/\\/$/, "")}/functions/v1/safety-reporting`;
 
-function cleanReporting(value: unknown, max = 4000) {
-  return String(value ?? "").replace(/\0/g, "").trim().slice(0, max);
-}
-
-function getClientIp(req: any) {
+function reportingClientIp(req: any) {
   const forwarded = String(req?.headers?.["x-forwarded-for"] || "").split(",")[0]?.trim();
   return forwarded || String(req?.headers?.["x-real-ip"] || req?.socket?.remoteAddress || "unknown");
 }
 
-async function getReportingCryptoMaterial() {
-  const response = await supabaseFetch("/rest/v1/rpc/safety_reporting_crypto_material", {
-    method: "POST",
-    body: JSON.stringify({}),
-  });
-  const payload = await response.json();
-  if (!response.ok || !payload || typeof payload !== "object") throw new Error("Safety reporting crypto material unavailable");
-  const encryption = String(payload[REPORTING_KEY_NAMES.encryption] || "");
-  const lookup = String(payload[REPORTING_KEY_NAMES.lookup] || "");
-  const tracking = String(payload[REPORTING_KEY_NAMES.tracking] || "");
-  if (!encryption || !lookup || !tracking) throw new Error("Safety reporting crypto material incomplete");
-  return { encryption, lookup, tracking };
-}
-
-function reportingHmac(value: string, keyB64: string) {
-  return createHmac("sha256", Buffer.from(keyB64, "base64"))
-    .update(value.trim().toLowerCase(), "utf8")
-    .digest("base64");
-}
-
-function safeEqualB64(a: string, b: string) {
-  try {
-    const left = Buffer.from(a, "base64");
-    const right = Buffer.from(b, "base64");
-    return left.length === right.length && timingSafeEqual(left, right);
-  } catch {
-    return false;
-  }
-}
-
-function encryptReporterIdentity(payload: Record<string, string>, keyB64: string) {
-  const key = Buffer.from(keyB64, "base64");
-  if (key.length !== 32) throw new Error("Invalid reporter encryption key");
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const encrypted = Buffer.concat([cipher.update(JSON.stringify(payload), "utf8"), cipher.final()]);
-  return {
-    encryptedPayload: encrypted.toString("base64"),
-    iv: iv.toString("base64"),
-    authTag: cipher.getAuthTag().toString("base64"),
+async function proxySafetyReporting(req: any, res: any, action: string, requireUser = false) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-reporting-client-ip": reportingClientIp(req),
   };
-}
-
-function decryptReporterIdentity(ciphertext: string, ivB64: string, authTagB64: string, keyB64: string) {
-  const key = Buffer.from(keyB64, "base64");
-  if (key.length !== 32) throw new Error("Invalid reporter encryption key");
-  const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivB64, "base64"));
-  decipher.setAuthTag(Buffer.from(authTagB64, "base64"));
-  const plain = Buffer.concat([decipher.update(Buffer.from(ciphertext, "base64")), decipher.final()]);
-  return JSON.parse(plain.toString("utf8"));
-}
-
-function createTrackingCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = randomBytes(16);
-  return Array.from(bytes, b => alphabet[b % alphabet.length]).join("");
-}
-
-async function consumeReportingRateLimit(req: any, action: string, limit: number, windowSeconds: number, lookupKey: string) {
-  const ipKey = reportingHmac(`ip:${getClientIp(req)}`, lookupKey);
-  const response = await supabaseFetch("/rest/v1/rpc/consume_safety_reporting_rate_limit", {
-    method: "POST",
-    body: JSON.stringify({
-      p_key_hash: ipKey,
-      p_action: action,
-      p_limit: limit,
-      p_window_seconds: windowSeconds,
-    }),
-  });
-  const payload = await response.json();
-  if (!response.ok) throw new Error("Unable to enforce reporting rate limit");
-  const row = Array.isArray(payload) ? payload[0] : payload;
-  return { allowed: Boolean(row?.allowed), resetAt: row?.reset_at || null };
-}
-
-async function serviceRows(path: string, init: RequestInit = {}) {
-  const response = await supabaseFetch(path, init);
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(payload?.message || payload?.error || "Safety reporting backend request failed");
-  return payload;
-}
-
-async function handlePublicSafetyReporting(req: any, res: any) {
-  const action = String(req.query?.action || "channels").trim().toLowerCase();
-
-  if (action === "channels" && req.method === "GET") {
-    const rows = await serviceRows("/rest/v1/safety_reporting_channels?select=channel,is_enabled,public_label_ar,public_label_en,destination&is_enabled=eq.true&order=channel.asc");
-    return json(res, 200, { channels: Array.isArray(rows) ? rows.map(mapClient) : [] });
+  if (requireUser) {
+    const token = getAccessToken(req);
+    if (!token) return json(res, 401, { error: "Not authenticated" });
+    headers.Authorization = `Bearer ${token}`;
   }
 
-  if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
-
-  const keys = await getReportingCryptoMaterial();
-  const limits: Record<string, [number, number]> = {
-    intake: [8, 3600],
-    status: [30, 3600],
-    message: [20, 3600],
-  };
-  const config = limits[action];
-  if (!config) return json(res, 404, { error: "Unsupported reporting action" });
-  const rate = await consumeReportingRateLimit(req, action, config[0], config[1], keys.lookup);
-  if (!rate.allowed) return json(res, 429, { error: "Too many requests", resetAt: rate.resetAt });
-
-  const body = req.body || {};
-  if (cleanReporting(body.website, 200)) return json(res, 400, { error: "Invalid submission" });
-
-  if (action === "intake") {
-    const mode = ["anonymous", "confidential", "identified"].includes(body.identityMode) ? body.identityMode : "anonymous";
-    const description = cleanReporting(body.description, 6000);
-    if (description.length < 10) return json(res, 422, { error: "A clear report description is required" });
-
-    const reporter = {
-      name: cleanReporting(body.reporter?.name, 160),
-      email: cleanReporting(body.reporter?.email, 254),
-      phone: cleanReporting(body.reporter?.phone, 60),
-      employeeId: cleanReporting(body.reporter?.employeeId, 100),
-    };
-    if (mode === "confidential" && !reporter.email && !reporter.phone) {
-      return json(res, 422, { error: "Confidential reports require an email address or phone number for follow-up" });
-    }
-    if (mode === "identified" && (!reporter.name || (!reporter.email && !reporter.phone))) {
-      return json(res, 422, { error: "Identified reports require a name and at least one contact method" });
-    }
-
-    const category = cleanReporting(body.category, 80) || "other";
-    const immediate = Boolean(body.immediateLifeThreat);
-    const severity = immediate ? "Critical" : ["Low", "Medium", "High", "Critical"].includes(body.severity) ? body.severity : "Medium";
-    const code = createTrackingCode();
-    const tokenHmac = reportingHmac(code, keys.tracking);
-    const now = new Date().toISOString();
-
-    const cases = await serviceRows("/rest/v1/safety_reporting_cases?select=id,ref_no,status,created_at", {
-      method: "POST",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({
-        title: cleanReporting(body.title, 180) || `${category.replaceAll("_", " ")} report`,
-        status: immediate ? "Triage" : "New",
-        department: cleanReporting(body.department, 200) || null,
-        date: now.slice(0, 10),
-        created_by: "Public Safety Reporting Portal",
-        data: {
-          category,
-          description,
-          location: cleanReporting(body.location, 300),
-          severity,
-          immediateLifeThreat: immediate,
-          identityMode: mode,
-          sourceChannel: "WEB",
-          linkedModule: null,
-          linkedRecordId: null,
-        },
-      }),
-    });
-    const row = Array.isArray(cases) ? cases[0] : null;
-    if (!row?.id) throw new Error("Unable to create safety report");
-
-    try {
-      await serviceRows("/rest/v1/safety_reporting_tracking", {
-        method: "POST",
-        body: JSON.stringify({ case_id: row.id, token_hmac: tokenHmac }),
-      });
-
-      if (mode !== "anonymous") {
-        const encrypted = encryptReporterIdentity(reporter, keys.encryption);
-        await serviceRows("/rest/v1/safety_reporting_identity", {
-          method: "POST",
-          body: JSON.stringify({
-            case_id: row.id,
-            encrypted_payload: encrypted.encryptedPayload,
-            iv: encrypted.iv,
-            auth_tag: encrypted.authTag,
-            key_version: "v1",
-            email_hmac: reporter.email ? reportingHmac(reporter.email, keys.lookup) : null,
-            phone_hmac: reporter.phone ? reportingHmac(reporter.phone, keys.lookup) : null,
-          }),
-        });
-      }
-    } catch (error) {
-      await supabaseFetch(`/rest/v1/safety_reporting_cases?id=eq.${encodeURIComponent(row.id)}`, { method: "DELETE" }).catch(() => null);
-      throw error;
-    }
-
-    return json(res, 201, {
-      ok: true,
-      refNo: row.ref_no,
-      trackingCode: code,
-      status: row.status,
-      createdAt: row.created_at,
-      privacyMode: mode,
-    });
-  }
-
-  const refNo = cleanReporting(body.refNo, 40).toUpperCase();
-  const trackingCode = cleanReporting(body.trackingCode, 80).toUpperCase();
-  if (!refNo || !trackingCode) return json(res, 422, { error: "Report reference and tracking code are required" });
-
-  const cases = await serviceRows(`/rest/v1/safety_reporting_cases?select=id,ref_no,title,status,date,data,created_at,updated_at&ref_no=eq.${encodeURIComponent(refNo)}&limit=1`);
-  const row = Array.isArray(cases) ? cases[0] : null;
-  if (!row?.id) return json(res, 404, { error: "Report not found" });
-
-  const trackingRows = await serviceRows(`/rest/v1/safety_reporting_tracking?select=token_hmac&case_id=eq.${encodeURIComponent(row.id)}&limit=1`);
-  const storedHmac = Array.isArray(trackingRows) ? String(trackingRows[0]?.token_hmac || "") : "";
-  const submittedHmac = reportingHmac(trackingCode, keys.tracking);
-  if (!storedHmac || !safeEqualB64(storedHmac, submittedHmac)) return json(res, 404, { error: "Report not found" });
-
-  if (action === "status") {
-    const messages = await serviceRows(`/rest/v1/safety_reporting_messages?select=id,sender_type,message,created_at&case_id=eq.${encodeURIComponent(row.id)}&order=created_at.asc`);
-    return json(res, 200, {
-      report: {
-        refNo: row.ref_no,
-        title: row.title,
-        status: row.status,
-        date: row.date,
-        category: row.data?.category,
-        severity: row.data?.severity,
-        immediateLifeThreat: Boolean(row.data?.immediateLifeThreat),
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-      },
-      messages: Array.isArray(messages) ? messages.map(mapClient) : [],
-    });
-  }
-
-  const message = cleanReporting(body.message, 4000);
-  if (!message) return json(res, 422, { error: "Message is required" });
-  await serviceRows("/rest/v1/safety_reporting_messages", {
-    method: "POST",
-    body: JSON.stringify({
-      case_id: row.id,
-      sender_type: "reporter",
-      message,
-      created_by: "Reporter",
-    }),
+  const response = await fetch(`${REPORTING_EDGE_URL}?action=${encodeURIComponent(action)}`, {
+    method: req.method,
+    headers,
+    body: req.method === "GET" || req.method === "HEAD" ? undefined : JSON.stringify(req.body || {}),
+    cache: "no-store",
   });
-  return json(res, 201, { ok: true });
+  const payload = await response.json().catch(() => ({ error: "Safety reporting service returned an invalid response" }));
+  return json(res, response.status, payload);
 }
 
-async function handleReporterIdentityReveal(req: any, res: any, profile: any, user: any) {
-  if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
-  if (!["admin", "manager"].includes(profile?.role)) return json(res, 403, { error: "Insufficient permission" });
-  const caseId = cleanReporting(req.body?.caseId, 80);
-  const reason = cleanReporting(req.body?.reason, 500);
-  if (!caseId || reason.length < 8) return json(res, 422, { error: "Case and a reveal reason of at least 8 characters are required" });
-
-  const rows = await serviceRows(`/rest/v1/safety_reporting_identity?select=encrypted_payload,iv,auth_tag,key_version&case_id=eq.${encodeURIComponent(caseId)}&limit=1`);
-  const identity = Array.isArray(rows) ? rows[0] : null;
-  if (!identity) return json(res, 200, { identity: null, message: "No stored reporter identity" });
-
-  const keys = await getReportingCryptoMaterial();
-  const value = decryptReporterIdentity(identity.encrypted_payload, identity.iv, identity.auth_tag, keys.encryption);
-  await serviceRows("/rest/v1/safety_reporting_identity_audit", {
-    method: "POST",
-    body: JSON.stringify({
-      case_id: caseId,
-      actor_auth_user_id: user.id,
-      actor_role: profile.role,
-      reason,
-    }),
-  });
-  return json(res, 200, { identity: value, keyVersion: identity.key_version });
-}
-
-function canWrite(profile: any, module: string, action: string) {
+odule: string, action: string) {
   if (!profile?.is_active) return false;
   if (module === "activity" && action === "create") return true;
   if (profile.role === "admin") return true;
@@ -392,12 +144,12 @@ export default async function handler(req: any, res: any) {
   try {
     res.setHeader("Cache-Control", "no-store, max-age=0");
     const resource = String(req.query?.resource || "").trim();
-    if (resource === "safety-reporting-public") return await handlePublicSafetyReporting(req, res);
+    if (resource === "safety-reporting-public") return await proxySafetyReporting(req, res, String(req.query?.action || "channels"), false);
 
     const user = await getAuthUser(req);
     const profile = await getProfile(req);
     if (!user || !profile || !profile.is_active) return json(res, 401, { error: "Not authenticated" });
-    if (resource === "safety-reporting-reveal") return await handleReporterIdentityReveal(req, res, profile, user);
+    if (resource === "safety-reporting-reveal") return await proxySafetyReporting(req, res, "reveal", true);
 
     const config = RESOURCE_MAP[resource];
     if (!config) return json(res, 404, { error: "Unknown API resource" });
