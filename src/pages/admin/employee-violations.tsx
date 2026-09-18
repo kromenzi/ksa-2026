@@ -33,8 +33,13 @@ interface ViolationRecord {
   date: string;
   employeeName: string;
   employeeId: string;
+  employeeRecordId?: string | null;
   department: string;
   occupation: string;
+  factory?: string | null;
+  section?: string | null;
+  referenceTo?: string | null;
+  supervisorName?: string | null;
   violation: string;
   notes: string;
   severity: "low" | "medium" | "high" | "critical" | string;
@@ -50,6 +55,31 @@ interface ViolationRecord {
   images?: HseStoredImage[];
 }
 
+interface EmployeeOption {
+  id: string;
+  name: string;
+  employeeId?: string | null;
+  department?: string | null;
+  title?: string | null;
+  factory?: string | null;
+  section?: string | null;
+  supervisor?: string | null;
+  status?: string | null;
+}
+
+interface ViolationTemplate {
+  id: string;
+  name: string;
+  nameAr?: string | null;
+  description?: string | null;
+  fields?: {
+    severity?: string;
+    referenceTo?: string;
+    recommendedAction?: string;
+    hrInvestigation?: boolean;
+  };
+}
+
 interface OffenderSummary {
   employeeId: string;
   employeeName: string;
@@ -62,11 +92,19 @@ interface OffenderSummary {
 }
 
 const initialForm = () => ({
+  employeeRecordId: "",
   employeeName: "",
   employeeId: "",
   department: "",
   occupation: "",
+  factory: "",
+  section: "",
+  supervisorName: "",
+  violationTemplateId: "",
   violation: "",
+  referenceTo: "",
+  recommendedAction: "",
+  hrInvestigation: false,
   notes: "",
   severity: "medium",
   date: new Date().toISOString().slice(0, 10),
@@ -95,11 +133,69 @@ export default function AdminEmployeeViolations() {
   const [search, setSearch] = useState("");
   const [repeatOnly, setRepeatOnly] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
   const [form, setForm] = useState(initialForm);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const canDelete = currentUser?.role === "admin" || currentUser?.role === "manager";
 
   const t = (ar: string, en: string) => (isAr ? ar : en);
+
+  const { data: workforce = [] } = useQuery<EmployeeOption[]>({
+    queryKey: ["/api/data", "employee-directory", "workforce"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/data?resource=employee-directory&type=workforce");
+      const rows = await response.json();
+      if (!response.ok) throw new Error(rows?.error || "Unable to load workforce employees");
+      return Array.isArray(rows) ? rows : [];
+    },
+  });
+
+  const { data: templates = [] } = useQuery<ViolationTemplate[]>({
+    queryKey: ["/api/data", "violation-templates"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/data?resource=violation-templates");
+      const rows = await response.json();
+      if (!response.ok) throw new Error(rows?.error || "Unable to load violation templates");
+      return Array.isArray(rows) ? rows : [];
+    },
+  });
+
+  const selectEmployee = (id: string) => {
+    const employee = workforce.find(item => item.id === id);
+    if (!employee) return;
+    setForm(prev => ({
+      ...prev,
+      employeeRecordId: employee.id,
+      employeeName: employee.name || "",
+      employeeId: employee.employeeId || "",
+      department: employee.department || "",
+      occupation: employee.title || "",
+      factory: employee.factory || "",
+      section: employee.section || "",
+      supervisorName: employee.supervisor || "",
+    }));
+  };
+
+  const selectTemplate = (id: string) => {
+    const template = templates.find(item => item.id === id);
+    if (!template) return;
+    setForm(prev => ({
+      ...prev,
+      violationTemplateId: template.id,
+      violation: template.description || (isAr ? template.nameAr || template.name : template.name),
+      severity: template.fields?.severity || prev.severity,
+      referenceTo: template.fields?.referenceTo || "",
+      recommendedAction: template.fields?.recommendedAction || "",
+      hrInvestigation: Boolean(template.fields?.hrInvestigation),
+    }));
+  };
+
+  const filteredWorkforce = workforce.filter(employee => {
+    const q = employeeSearch.trim().toLowerCase();
+    if (!q) return true;
+    return [employee.name, employee.employeeId, employee.department, employee.title]
+      .some(value => String(value || "").toLowerCase().includes(q));
+  });
 
   const { data: violations = [], isLoading, isError } = useQuery<ViolationRecord[]>({
     queryKey: ["/api/employee-violations"],
@@ -109,7 +205,7 @@ export default function AdminEmployeeViolations() {
       const rows = (await response.json()) as any[];
       const employeeCounts = new Map<string, number>();
       const sameViolationCounts = new Map<string, number>();
-      const employeeKey = (item: any) => String(item.employeeId || item.employeeName || "").trim().toLocaleLowerCase();
+      const employeeKey = (item: any) => String(item.employeeRecordId || item.employeeId || item.employeeName || "").trim().toLocaleLowerCase();
       const violationText = (item: any) => String(item.violation || item.violationDescription || "").trim();
 
       for (const item of rows) {
@@ -150,11 +246,20 @@ export default function AdminEmployeeViolations() {
         uploaded = await uploadHseImages(photoFiles, "violation");
         const response = await apiRequest("POST", "/api/employee-violations", {
           ...form,
+          employeeRecordId: form.employeeRecordId,
           refNo: `VIO-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`,
           status: "open",
           data: {
+            employeeRecordId: form.employeeRecordId,
             department: form.department,
             occupation: form.occupation,
+            factory: form.factory,
+            section: form.section,
+            supervisor: form.supervisorName,
+            violationTemplateId: form.violationTemplateId,
+            referenceTo: form.referenceTo,
+            recommendedAction: form.recommendedAction,
+            hrInvestigation: form.hrInvestigation,
             notes: form.notes,
             severity: form.severity,
             images: uploaded,
@@ -169,6 +274,7 @@ export default function AdminEmployeeViolations() {
     onSuccess: async () => {
       toast.success(t("تم تسجيل مخالفة السلامة", "Safety violation recorded"));
       setForm(initialForm());
+      setEmployeeSearch("");
       setPhotoFiles([]);
       setIsCreateOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["/api/employee-violations"] });
@@ -344,11 +450,35 @@ export default function AdminEmployeeViolations() {
               <DialogDescription>{t("أدخل بيانات الموظف والمخالفة ثم احفظ السجل.", "Enter employee and violation details, then save the record.")}</DialogDescription>
             </DialogHeader>
             <form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); createMutation.mutate(); }}>
-              <div className="space-y-2"><Label htmlFor="employeeName">{t("اسم الموظف", "Employee Name")}</Label><Input id="employeeName" value={form.employeeName} onChange={(e) => setForm({ ...form, employeeName: e.target.value })} required /></div>
-              <div className="space-y-2"><Label htmlFor="employeeId">{t("الرقم الوظيفي", "Employee ID")}</Label><Input id="employeeId" value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} required /></div>
-              <div className="space-y-2"><Label htmlFor="department">{t("القسم", "Department")}</Label><Input id="department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} required /></div>
-              <div className="space-y-2"><Label htmlFor="occupation">{t("المهنة", "Occupation")}</Label><Input id="occupation" value={form.occupation} onChange={(e) => setForm({ ...form, occupation: e.target.value })} required /></div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>{t("اختيار الموظف من سجل الأقسام", "Select Department Employee")}</Label>
+                <div className="grid gap-2 sm:grid-cols-[1fr_1.2fr]">
+                  <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="ps-9" value={employeeSearch} onChange={(e) => setEmployeeSearch(e.target.value)} placeholder={t("بحث بالاسم أو الرقم أو القسم...", "Search name, ID or department...")} /></div>
+                  <Select value={form.employeeRecordId || undefined} onValueChange={selectEmployee}>
+                    <SelectTrigger><SelectValue placeholder={t("اختر الموظف", "Select employee")} /></SelectTrigger>
+                    <SelectContent>{filteredWorkforce.map(employee => <SelectItem key={employee.id} value={employee.id}>{employee.name} · {employee.employeeId || "—"} · {employee.department || "—"}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                {!workforce.length && <p className="text-xs text-amber-600">{t("لا يوجد موظفو أقسام في السجل. أضف الموظفين من سجل موظفي الأقسام أولاً.", "No workforce employees found. Add them in Department Workforce Records first.")}</p>}
+              </div>
+
+              <div className="space-y-2"><Label>{t("اسم الموظف", "Employee Name")}</Label><Input value={form.employeeName} disabled /></div>
+              <div className="space-y-2"><Label>{t("الرقم الوظيفي", "Employee ID")}</Label><Input value={form.employeeId} disabled /></div>
+              <div className="space-y-2"><Label>{t("القسم", "Department")}</Label><Input value={form.department} disabled /></div>
+              <div className="space-y-2"><Label>{t("المهنة", "Occupation")}</Label><Input value={form.occupation} disabled /></div>
+              <div className="space-y-2"><Label>{t("المصنع", "Factory")}</Label><Input value={form.factory} disabled /></div>
+              <div className="space-y-2"><Label>{t("القسم الفرعي", "Section")}</Label><Input value={form.section} disabled /></div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label>{t("قالب المخالفة", "Violation Template")}</Label>
+                <Select value={form.violationTemplateId || undefined} onValueChange={selectTemplate}>
+                  <SelectTrigger><SelectValue placeholder={t("اختر نوع المخالفة", "Select violation type")} /></SelectTrigger>
+                  <SelectContent>{templates.map(template => <SelectItem key={template.id} value={template.id}>{isAr ? template.nameAr || template.name : template.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2 sm:col-span-2"><Label htmlFor="violation">{t("المخالفة", "Violation")}</Label><Textarea id="violation" value={form.violation} onChange={(e) => setForm({ ...form, violation: e.target.value })} rows={3} required /></div>
+              <div className="space-y-2"><Label>{t("المرجع", "Reference")}</Label><Input value={form.referenceTo} onChange={e=>setForm({...form,referenceTo:e.target.value})} /></div>
+              <div className="space-y-2"><Label>{t("الإجراء المقترح", "Recommended Action")}</Label><Input value={form.recommendedAction} onChange={e=>setForm({...form,recommendedAction:e.target.value})} /></div>
               <div className="space-y-2 sm:col-span-2"><Label htmlFor="notes">{t("ملاحظة", "Notes")}</Label><Textarea id="notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
               <div className="space-y-2">
                 <Label>{t("درجة المخالفة", "Severity")}</Label>
@@ -368,7 +498,7 @@ export default function AdminEmployeeViolations() {
               </div>
               <div className="flex justify-end gap-2 sm:col-span-2">
                 <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>{t("إلغاء", "Cancel")}</Button>
-                <Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? t("جارٍ الحفظ...", "Saving...") : t("حفظ المخالفة", "Save Violation")}</Button>
+                <Button type="submit" disabled={createMutation.isPending || !form.employeeRecordId || !form.violation.trim()}>{createMutation.isPending ? t("جارٍ الحفظ...", "Saving...") : t("حفظ المخالفة", "Save Violation")}</Button>
               </div>
             </form>
           </DialogContent>
