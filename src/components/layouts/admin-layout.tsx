@@ -88,7 +88,7 @@ interface NavItem {
 }
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { logout, currentUser, settings, toggleLanguage, toggleTheme, setColorTheme, hasPermission } = useData();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -96,6 +96,16 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [collapsedGroups, setCollapsedGroups] = useState<Record<number, boolean>>({});
   const [collapsedItems, setCollapsedItems] = useState<Record<string, boolean>>({});
   const isAr = settings.language === 'ar';
+
+  const navigateSidebar = (href: string, mobile = false) => {
+    if (href && href !== location) {
+      setLocation(href);
+    }
+    if (mobile) {
+      window.requestAnimationFrame(() => setIsMobileOpen(false));
+    }
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+  };
 
   const toggleItem = (key: string) => {
     setCollapsedItems(prev => ({ ...prev, [key]: !(prev[key] ?? true) }));
@@ -107,6 +117,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       [index]: !(prev[index] ?? true)
     }));
   };
+
+  useEffect(() => {
+    if (isMobileOpen) setIsMobileOpen(false);
+  }, [location]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -391,35 +405,37 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                       {!isItemCollapsed && (item.children || []).filter(child => child.visible).map((child, ci) => {
                         const ChildIcon = child.icon;
                         const childActive = location === child.href || location.startsWith(`${child.href}/`);
-                        return <Link key={`${child.href}-${ci}`} href={child.href}>
-                          <div className={cn(
-                            "flex items-center gap-2 px-2 py-1.5 rounded-lg text-[10.5px] transition-all mx-3 mb-0.5 border border-transparent",
-                            childActive ? "bg-primary/15 text-white ring-1 ring-primary/20" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
-                          )} onClick={() => setIsMobileOpen(false)}>
-                            <div className={cn("h-5 w-5 rounded-md flex items-center justify-center", childActive ? child.bgColor : "bg-white/[0.03]")}><ChildIcon className={cn("h-3 w-3", childActive ? child.color : "text-white/50")} /></div>
-                            <span className="truncate">{child.label}</span>
-                          </div>
-                        </Link>;
+                        const childClass = cn(
+                          "flex w-[calc(100%-1.5rem)] items-center gap-2 px-2 py-1.5 rounded-lg text-[10.5px] transition-all mx-3 mb-0.5 border border-transparent text-start",
+                          childActive ? "bg-primary/15 text-white ring-1 ring-primary/20" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                        );
+                        const childContent = <>
+                          <div className={cn("h-5 w-5 rounded-md flex items-center justify-center", childActive ? child.bgColor : "bg-white/[0.03]")}><ChildIcon className={cn("h-3 w-3", childActive ? child.color : "text-white/50")} /></div>
+                          <span className="truncate">{child.label}</span>
+                        </>;
+                        return mobile
+                          ? <button key={`${child.href}-${ci}`} type="button" className={childClass} onClick={() => navigateSidebar(child.href, true)}>{childContent}</button>
+                          : <Link key={`${child.href}-${ci}`} href={child.href}><div className={childClass}>{childContent}</div></Link>;
                       })}
                     </div>
                   );
                 }
 
-                return (
-                  <Link key={uniqueKey} href={item.href}>
-                    <div className={cn(
-                      "flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-medium transition-all duration-150 cursor-pointer group relative mx-1 mb-0.5",
-                      isActive ? "bg-primary/15 text-white shadow-sm ring-1 ring-primary/30 font-semibold" : "text-white/70 hover:bg-white/[0.05] hover:text-white"
-                    )} onClick={() => setIsMobileOpen(false)}>
-                      {isActive && <div className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-primary shadow-[0_0_8px_rgba(59,130,246,0.6)]" />}
-                      <div className={cn("h-6 w-6 rounded-md flex items-center justify-center transition-all duration-150 shrink-0", isActive ? item.bgColor : "bg-white/[0.03] group-hover:bg-white/[0.07]")}>
-                        <ItemIcon className={cn("h-3.5 w-3.5 transition-all duration-150", isActive ? item.color : "text-white/50 group-hover:text-white")} />
-                      </div>
-                      <span className="truncate leading-none">{item.label}</span>
-                      {isActive && <ChevronRight className="h-3 w-3 ms-auto text-primary/70 rtl:rotate-180 shrink-0" />}
-                    </div>
-                  </Link>
+                const itemClass = cn(
+                  "flex w-[calc(100%-0.5rem)] items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-medium transition-all duration-150 cursor-pointer group relative mx-1 mb-0.5 text-start",
+                  isActive ? "bg-primary/15 text-white shadow-sm ring-1 ring-primary/30 font-semibold" : "text-white/70 hover:bg-white/[0.05] hover:text-white"
                 );
+                const itemContent = <>
+                  {isActive && <div className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-primary shadow-[0_0_8px_rgba(59,130,246,0.6)]" />}
+                  <div className={cn("h-6 w-6 rounded-md flex items-center justify-center transition-all duration-150 shrink-0", isActive ? item.bgColor : "bg-white/[0.03] group-hover:bg-white/[0.07]")}>
+                    <ItemIcon className={cn("h-3.5 w-3.5 transition-all duration-150", isActive ? item.color : "text-white/50 group-hover:text-white")} />
+                  </div>
+                  <span className="truncate leading-none">{item.label}</span>
+                  {isActive && <ChevronRight className="h-3 w-3 ms-auto text-primary/70 rtl:rotate-180 shrink-0" />}
+                </>;
+                return mobile
+                  ? <button key={uniqueKey} type="button" className={itemClass} onClick={() => navigateSidebar(item.href, true)}>{itemContent}</button>
+                  : <Link key={uniqueKey} href={item.href}><div className={itemClass}>{itemContent}</div></Link>;
               })}
             </div>
           );
@@ -512,7 +528,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   <Menu className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side={isAr ? 'right' : 'left'} className="p-0 border-0 overflow-y-auto">
+              <SheetContent side={isAr ? 'right' : 'left'} className="w-[88vw] max-w-[340px] p-0 border-0 overflow-hidden">
                 <SheetTitle className="sr-only">{isAr ? 'القائمة' : 'Menu'}</SheetTitle>
                 {renderSidebarContent(true)}
               </SheetContent>
