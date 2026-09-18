@@ -14,7 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreditCard, Plus, Search, Trash2, RefreshCw, Printer, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import PrintShareDialog from "@/components/print-share-dialog";\nimport { OfficialHseTemplate } from "@/components/official-templates";
+import PrintShareDialog from "@/components/print-share-dialog";
+import { OfficialHseTemplate } from "@/components/official-templates";
 
 const LICENSE_TYPES = [
   { value: "driving", en: "Driving License", ar: "رخصة قيادة" },
