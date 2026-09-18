@@ -22,6 +22,19 @@ const json = (body: unknown, status = 200) =>
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+const REPORTING_IMAGE_BUCKET = "board-uploads";
+const REPORTING_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+const REPORTING_IMAGE_MAX_COUNT = 4;
+const REPORTING_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
+
+function encodeStoragePath(value: string) {
+  return value.split("/").filter(Boolean).map(part => encodeURIComponent(part)).join("/");
+}
+
+function isReportingImagePath(value: string) {
+  return /^hse-images\/reporting\/[A-Za-z0-9_-]+\/[0-9]{4}-[0-9]{2}-[0-9]{2}\/[A-Za-z0-9._-]+$/.test(value);
+}
+
 function clean(value: unknown, max = 4000) {
   return String(value ?? "").replace(/\0/g, "").trim().slice(0, max);
 }
@@ -96,6 +109,10 @@ async function decryptIdentity(ciphertextB64: string, ivB64: string, tagB64: str
   sealed.set(tag, ciphertext.length);
   const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: base64ToBytes(ivB64), tagLength: 128 }, key, sealed);
   return JSON.parse(decoder.decode(plain));
+}
+
+function nowIsoForAttachment() {
+  return new Date().toISOString();
 }
 
 function createTrackingCode() {
@@ -184,7 +201,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-    if (!["intake", "status", "message"].includes(action)) return json({ error: "Unsupported reporting action" }, 404);
+    if (!["intake", "status", "message", "upload-url"].includes(action)) return json({ error: "Unsupported reporting action" }, 404);
 
     const body = await req.json().catch(() => ({}));
     if (clean(body.website, 200)) return json({ error: "Invalid submission" }, 400);
@@ -194,10 +211,57 @@ Deno.serve(async (req: Request) => {
       intake: [8, 3600],
       status: [30, 3600],
       message: [20, 3600],
+      "upload-url": [20, 3600],
     };
     const [limit, windowSeconds] = limits[action];
     const rate = await rateLimit(req, action, limit, windowSeconds, keys.lookup);
     if (!rate.allowed) return json({ error: "Too many requests", resetAt: rate.resetAt }, 429);
+
+    if (action === "upload-url") {
+      const fileName = clean(body.fileName, 220);
+      const fileType = clean(body.fileType, 100).toLowerCase();
+      const fileSize = Number(body.fileSize || 0);
+      if (!fileName) return json({ error: "File name is required" }, 422);
+      if (!REPORTING_IMAGE_TYPES.has(fileType)) return json({ error: "Only JPEG, PNG, WebP, HEIC, or HEIF images are allowed" }, 415);
+      if (!Number.isFinite(fileSize) || fileSize <= 0) return json({ error: "Valid image size is required" }, 422);
+      if (fileSize > REPORTING_IMAGE_MAX_BYTES) return json({ error: "Image exceeds the 10MB upload limit" }, 413);
+
+      const extensionByType: Record<string, string> = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+        "image/heic": "heic",
+        "image/heif": "heif",
+      };
+      const publicOwner = `public-${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
+      const objectPath = `hse-images/reporting/${publicOwner}/${new Date().toISOString().slice(0, 10)}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extensionByType[fileType]}`;
+      const signResponse = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/upload/sign/${REPORTING_IMAGE_BUCKET}/${encodeStoragePath(objectPath)}`,
+        {
+          method: "POST",
+          headers: {
+            apikey: SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+            "x-upsert": "false",
+          },
+          body: "{}",
+        },
+      );
+      const signPayload = await signResponse.json().catch(() => ({}));
+      if (!signResponse.ok) throw new Error(String(signPayload?.message || signPayload?.error || "Unable to create signed upload URL"));
+      const relativeUrl = String(signPayload?.url || "");
+      if (!relativeUrl) throw new Error("Storage did not return a signed upload URL");
+      const signedUrl = relativeUrl.startsWith("http")
+        ? relativeUrl
+        : `${SUPABASE_URL}/storage/v1${relativeUrl.startsWith("/") ? relativeUrl : `/${relativeUrl}`}`;
+
+      return json({
+        path: objectPath,
+        signedUrl,
+        maxFileSize: REPORTING_IMAGE_MAX_BYTES,
+      });
+    }
 
     if (action === "intake") {
       const mode = ["anonymous", "confidential", "identified"].includes(body.identityMode) ? body.identityMode : "anonymous";
@@ -215,6 +279,21 @@ Deno.serve(async (req: Request) => {
       }
       if (mode === "identified" && (!reporter.name || (!reporter.email && !reporter.phone))) {
         return json({ error: "Identified reports require a name and contact method" }, 422);
+      }
+
+      const rawAttachments = Array.isArray(body.attachments) ? body.attachments : [];
+      if (rawAttachments.length > REPORTING_IMAGE_MAX_COUNT) return json({ error: "Maximum 4 report images are allowed" }, 422);
+      const attachments = rawAttachments.map((item: any) => ({
+        path: clean(item?.path, 500),
+        name: clean(item?.name, 220),
+        mimeType: clean(item?.mimeType, 100).toLowerCase(),
+        size: Number(item?.size || 0),
+        uploadedAt: nowIsoForAttachment(),
+      }));
+      for (const item of attachments) {
+        if (!isReportingImagePath(item.path)) return json({ error: "Invalid report image path" }, 422);
+        if (!REPORTING_IMAGE_TYPES.has(item.mimeType)) return json({ error: "Invalid report image type" }, 422);
+        if (!Number.isFinite(item.size) || item.size <= 0 || item.size > REPORTING_IMAGE_MAX_BYTES) return json({ error: "Invalid report image size" }, 422);
       }
 
       const category = clean(body.category, 80) || "other";
@@ -239,6 +318,7 @@ Deno.serve(async (req: Request) => {
             severity,
             immediateLifeThreat: immediate,
             identityMode: mode,
+            attachments,
             sourceChannel: "WEB",
             linkedModule: null,
             linkedRecordId: null,

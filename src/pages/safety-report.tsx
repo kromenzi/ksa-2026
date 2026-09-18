@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { HseImagePicker } from "@/components/hse-image-picker";
+import type { HseStoredImage } from "@/lib/hse-image-storage";
 
 type Language = "ar" | "en";
 type IdentityMode = "anonymous" | "confidential" | "identified";
@@ -51,6 +53,7 @@ export default function PublicSafetyReportPage() {
   const [location, setLocation] = useState("");
   const [department, setDepartment] = useState("");
   const [description, setDescription] = useState("");
+  const [photos, setPhotos] = useState<File[]>([]);
   const [reporter, setReporter] = useState({ name: "", email: "", phone: "", employeeId: "" });
   const [website, setWebsite] = useState("");
   const [saving, setSaving] = useState(false);
@@ -79,6 +82,50 @@ export default function PublicSafetyReportPage() {
     return destination;
   };
 
+  const uploadPhotos = async (): Promise<HseStoredImage[]> => {
+    const uploaded: HseStoredImage[] = [];
+    for (const file of photos) {
+      const signResponse = await fetch("/api/safety-reporting-public?action=upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          website,
+        }),
+      });
+      const signPayload = await signResponse.json().catch(() => ({}));
+      if (!signResponse.ok) throw new Error(signPayload?.error || (isAr ? "تعذر تجهيز رفع الصورة." : "Unable to prepare image upload."));
+
+      const path = String(signPayload?.path || "");
+      const signedUrl = String(signPayload?.signedUrl || "");
+      if (!path || !signedUrl) throw new Error(isAr ? "لم يتم إنشاء رابط رفع صالح." : "A valid upload URL was not created.");
+
+      const uploadBody = new FormData();
+      uploadBody.append("cacheControl", "3600");
+      uploadBody.append("", file);
+      const uploadResponse = await fetch(signedUrl, {
+        method: "PUT",
+        headers: { "x-upsert": "false" },
+        body: uploadBody,
+      });
+      if (!uploadResponse.ok) {
+        const message = await uploadResponse.text().catch(() => "");
+        throw new Error(message || (isAr ? `تعذر رفع الصورة ${file.name}.` : `Unable to upload ${file.name}.`));
+      }
+
+      uploaded.push({
+        path,
+        name: file.name,
+        mimeType: file.type || "image/jpeg",
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+      });
+    }
+    return uploaded;
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
@@ -88,6 +135,7 @@ export default function PublicSafetyReportPage() {
     }
     setSaving(true);
     try {
+      const attachments = photos.length ? await uploadPhotos() : [];
       const response = await fetch("/api/safety-reporting-public?action=intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -100,6 +148,7 @@ export default function PublicSafetyReportPage() {
           location,
           department,
           description,
+          attachments,
           reporter: identityMode === "anonymous" ? {} : reporter,
           website,
         }),
@@ -107,6 +156,7 @@ export default function PublicSafetyReportPage() {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload?.error || "Unable to submit report");
       setResult({ refNo: payload.refNo, trackingCode: payload.trackingCode });
+      setPhotos([]);
     } catch (err: any) {
       setError(err?.message || (isAr ? "تعذر إرسال البلاغ." : "Unable to submit the report."));
     } finally {
@@ -139,7 +189,7 @@ export default function PublicSafetyReportPage() {
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Link href="/report/status" className="flex-1"><Button className="w-full">{isAr ? "متابعة البلاغ" : "Track report"}</Button></Link>
-                <Button variant="outline" className="flex-1" onClick={() => { setResult(null); setDescription(""); setTitle(""); }}>
+                <Button variant="outline" className="flex-1" onClick={() => { setResult(null); setDescription(""); setTitle(""); setPhotos([]); }}>
                   {isAr ? "إرسال بلاغ آخر" : "Submit another report"}
                 </Button>
               </div>
@@ -228,6 +278,18 @@ export default function PublicSafetyReportPage() {
                 <div className="space-y-2"><Label>{isAr ? "القسم (اختياري)" : "Department (optional)"}</Label><Input value={department} onChange={e => setDepartment(e.target.value)} maxLength={200} /></div>
               </div>
               <div className="space-y-2"><Label>{isAr ? "وصف الحالة أو الخطر" : "Describe the concern or hazard"}</Label><Textarea value={description} onChange={e => setDescription(e.target.value)} rows={6} maxLength={6000} required /></div>
+              <div className="rounded-xl border bg-muted/20 p-4">
+                <HseImagePicker
+                  files={photos}
+                  onChange={setPhotos}
+                  isAr={isAr}
+                  disabled={saving}
+                  label={isAr ? "صور البلاغ (اختياري)" : "Report photos (optional)"}
+                />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {isAr ? "يمكن اختيار الصور من الجوال أو التقاط صورة حسب خيارات جهازك. الصور تُحفظ بشكل خاص ولا تظهر للعامة." : "Choose photos from your phone or camera depending on your device. Photos are stored privately and are not public."}
+                </p>
+              </div>
               <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-red-200 p-4">
                 <input type="checkbox" className="mt-1 h-4 w-4" checked={immediateLifeThreat} onChange={e => { setImmediateLifeThreat(e.target.checked); if (e.target.checked) setSeverity("Critical"); }} />
                 <span><strong>{isAr ? "هل يوجد خطر فوري على الحياة أو احتمال حادث جسيم؟" : "Is there an immediate threat to life or a major-incident potential?"}</strong><span className="mt-1 block text-xs text-muted-foreground">{isAr ? "سيتم تصنيف البلاغ كحالة حرجة للمراجعة الفورية." : "The report will be classified as critical for immediate review."}</span></span>

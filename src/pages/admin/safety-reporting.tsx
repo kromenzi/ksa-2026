@@ -3,6 +3,7 @@ import { AlertTriangle, Eye, LockKeyhole, MessageSquare, RefreshCw, Search, Send
 import { useData } from "@/lib/data-context";
 import { apiRequest } from "@/lib/queryClient";
 import { canDeleteManagedRecord, useGenericRecords, type GenericRecord } from "@/lib/generic-records";
+import { resolveHseImageUrls, type HseStoredImage } from "@/lib/hse-image-storage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ type ReportData = {
   sourceChannel?: string;
   linkedModule?: string | null;
   linkedRecordId?: string | null;
+  attachments?: HseStoredImage[];
 };
 
 type Message = { id: string; caseId: string; senderType: "reporter" | "hse"; message: string; createdAt: string };
@@ -46,6 +48,8 @@ export default function AdminSafetyReportingPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [message, setMessage] = useState("");
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [imagesLoading, setImagesLoading] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [revealReason, setRevealReason] = useState("");
   const [revealed, setRevealed] = useState<Record<string, string> | null>(null);
@@ -81,6 +85,17 @@ export default function AdminSafetyReportingPage() {
     setSelected(item);
     setRevealed(null);
     setRevealReason("");
+    setSelectedImages([]);
+    const attachments = Array.isArray(item.data?.attachments) ? item.data.attachments : [];
+    if (attachments.length) {
+      setImagesLoading(true);
+      void resolveHseImageUrls(attachments)
+        .then(setSelectedImages)
+        .catch(() => setSelectedImages([]))
+        .finally(() => setImagesLoading(false));
+    } else {
+      setImagesLoading(false);
+    }
     void loadMessages(item.id);
   };
 
@@ -242,6 +257,28 @@ export default function AdminSafetyReportingPage() {
             <div><span className="text-muted-foreground">{isAr ? "الخصوصية:" : "Privacy:"}</span> <strong>{selected.data?.identityMode || "anonymous"}</strong></div>
           </div>
           <div className="rounded-xl border p-4"><p className="mb-1 text-xs font-bold text-muted-foreground">{isAr ? "وصف البلاغ" : "Report description"}</p><p className="whitespace-pre-wrap text-sm">{selected.data?.description || "—"}</p></div>
+
+          {Array.isArray(selected.data?.attachments) && selected.data.attachments.length > 0 && (
+            <div className="rounded-xl border p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-xs font-bold text-muted-foreground">{isAr ? "صور البلاغ" : "Report photos"}</p>
+                <Badge variant="outline">{selected.data.attachments.length}</Badge>
+              </div>
+              {imagesLoading ? (
+                <p className="text-xs text-muted-foreground">{isAr ? "جارٍ تحميل الصور..." : "Loading photos..."}</p>
+              ) : selectedImages.length ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {selectedImages.map((src, index) => (
+                    <a key={src} href={src} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-lg border bg-muted/30">
+                      <img src={src} alt={isAr ? `صورة البلاغ ${index + 1}` : `Report photo ${index + 1}`} className="aspect-square h-full w-full object-cover transition group-hover:scale-[1.02]" />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">{isAr ? "تعذر تحميل الصور أو انتهت صلاحية الرابط المؤقت." : "Unable to load photos or the temporary link expired."}</p>
+              )}
+            </div>
+          )}
 
           {selected.data?.identityMode !== "anonymous" && <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 dark:bg-amber-950/10">
             <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><LockKeyhole className="h-4 w-4" /><strong>{isAr ? "هوية المبلّغ مشفّرة" : "Reporter identity is encrypted"}</strong></div>{canReveal && <Button variant="outline" size="sm" onClick={() => { setRevealReason(""); setRevealOpen(true); }}>{isAr ? "كشف الهوية" : "Reveal identity"}</Button>}</div>

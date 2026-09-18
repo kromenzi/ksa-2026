@@ -49,7 +49,7 @@ const encodeStoragePath=(value:string)=>value.split("/").filter(Boolean).map(par
 const isDocumentStoragePath=(value:string)=>/^documents\/[A-Za-z0-9_-]+\/[0-9]{4}-[0-9]{2}-[0-9]{2}\/[A-Za-z0-9._-]+$/.test(value);
 const HSE_IMAGE_MAX_BYTES=10*1024*1024;
 const HSE_IMAGE_SCOPES=new Set(["ncr","violation"]);
-const isHseImageStoragePath=(value:string)=>/^hse-images\/(ncr|violation)\/[A-Za-z0-9_-]+\/[0-9]{4}-[0-9]{2}-[0-9]{2}\/[A-Za-z0-9._-]+$/.test(value);
+const isHseImageStoragePath=(value:string)=>/^hse-images\/(ncr|violation|reporting)\/[A-Za-z0-9_-]+\/[0-9]{4}-[0-9]{2}-[0-9]{2}\/[A-Za-z0-9._-]+$/.test(value);
 const isReadableStoragePath=(value:string)=>isDocumentStoragePath(value)||isHseImageStoragePath(value);
 
 async function documentStorageHandler(req:any,res:any){
