@@ -1,5 +1,5 @@
 
-import { getAuthUser, getProfile, json, supabaseFetchForRequest } from "./supabase.js";
+import { getAuthUser, getProfile, json, supabaseFetch, supabaseFetchForRequest } from "./supabase.js";
 
 const TASK_STATUSES = new Set(["Not Started","In Progress","Completed","Blocked","Escalated","Cancelled"]);
 const PRIORITIES = new Set(["Critical","High","Medium","Low"]);
@@ -44,6 +44,14 @@ export async function monthlyHsePlanHandler(req:any,res:any){
 
     const action=clean(req.query?.action||"tasks",40).toLowerCase();
     const canManage=managerRole(String(profile.role||""));
+
+    if(req.method==="GET"&&action==="assignees"){
+      if(!canManage) return json(res,200,[{id:profile.id,name:profile.name,role:profile.role,isActive:true}]);
+      const response=await supabaseFetch("/rest/v1/users?select=id,name,role,is_active&is_active=eq.true&order=name.asc");
+      const rows=await response.json().catch(()=>[]);
+      if(!response.ok) return json(res,response.status,{error:rows?.message||"Unable to load assignees"});
+      return json(res,200,(rows||[]).map(mapRow));
+    }
 
     if(req.method==="GET"&&action==="tasks"){
       const month=Math.max(1,Math.min(12,Number(req.query?.month)||new Date().getMonth()+1));
@@ -174,6 +182,8 @@ export async function monthlyHsePlanHandler(req:any,res:any){
       const taskId=clean(b.taskId,80);
       const images=Array.isArray(b.images)?b.images.slice(0,4):[];
       if(!taskId||!images.length) return json(res,422,{error:"taskId and images are required"});
+      const existingEvidence=await rest(req,"/rest/v1/monthly_hse_task_evidence?select=id&task_id=eq."+encodeURIComponent(taskId));
+      if((existingEvidence?.length||0)+images.length>4) return json(res,422,{error:"Maximum 4 evidence images are allowed per task"});
       const rows=images.map((img:any)=>({
         task_id:taskId,
         file_path:clean(img.path,500),
