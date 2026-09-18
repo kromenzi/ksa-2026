@@ -336,16 +336,16 @@ export default function AdminReports() {
           <meta charset='utf-8'>
           <title>${title}</title>
           <style>
-            body { font-family: sans-serif; direction: ${dir}; text-align: ${isAr ? 'right' : 'left'}; margin: 20px; }
+            body { font-family: sans-serif; direction: ${dir}; text-align: ${isAr ? 'right' : 'left'}; margin: 20px; color: ${opts.fontColor}; }
             h1 { color: ${opts.headerColor}; border-bottom: 2px solid ${opts.headerColor}; padding-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; color: ${opts.fontColor}; }
             th { background-color: ${opts.headerColor}; color: white; padding: 10px; text-align: ${isAr ? 'right' : 'left'}; }
-            td { padding: 8px; border-bottom: 1px solid #cbd5e1; }
+            td { padding: 8px; border-bottom: 1px solid #cbd5e1; color: ${opts.fontColor}; }
           </style>
         </head>
         <body>
           <h1>${title}</h1>
-          ${opts.showMetadata ? `<div style="font-size: 11px; color: #64748b;">${isAr ? 'تاريخ التصدير' : 'Export Date'}: ${new Date().toLocaleString(isAr ? 'ar-SA' : 'en-US')}</div>` : ''}
+          ${opts.showMetadata ? `<div style="font-size: 11px; color: ${opts.fontColor}; opacity: .72;">${isAr ? 'تاريخ التصدير' : 'Export Date'}: ${new Date().toLocaleString(isAr ? 'ar-SA' : 'en-US')}</div>` : ''}
           <table>
             <thead>
               <tr>

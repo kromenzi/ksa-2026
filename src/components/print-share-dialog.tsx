@@ -20,7 +20,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Printer, Mail, MessageSquare, Send, Plus, X, CheckCircle2, XCircle, Loader2, Copy } from "lucide-react";
+import { Printer, Mail, MessageSquare, Send, Plus, X, CheckCircle2, XCircle, Loader2, Copy, Palette, RotateCcw } from "lucide-react";
 import type { Module } from "@/lib/data-context";
 import { resolveHseImageUrls } from "@/lib/hse-image-storage";
 
@@ -88,7 +88,7 @@ function getSectionValue(item: PrintShareItem, patterns: string[]): string {
 }
 
 // Build print HTML with embedded Arabic fonts
-function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, settings?: any): string {
+function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, settings?: any, fontColor = "#1f2937"): string {
   const branding = settings?.branding || { companyName: siteName, companyLogo: '', logoPosition: 'left', confidentialLabel: isAr ? 'سري' : 'Confidential', documentFooter: '', departmentName: '', safetyDepartmentName: '' };
   siteName = branding.companyName || siteName;
   const dir = isAr ? 'rtl' : 'ltr';
@@ -117,8 +117,8 @@ function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, s
   
   const sectionsHtml = item.sections.map(s =>
     `<div style="border:1px solid #e5e7eb;background:#fff;border-${isAr ? 'right' : 'left'}:5px solid ${accent};padding:16px 18px;border-radius:8px;margin-bottom:14px;text-align:${align};page-break-inside:avoid;">
-      <h3 style="font-size:15px;margin:0 0 8px 0;color:#334155;font-weight:700;">${escapeHtml(s.label)}</h3>
-      <p style="margin:0;color:#0f172a;white-space:pre-wrap;line-height:1.9;font-size:14px;">${escapeHtml(s.value) || (isAr ? "غير متوفر" : "N/A")}</p>
+      <h3 style="font-size:15px;margin:0 0 8px 0;color:${fontColor};font-weight:700;">${escapeHtml(s.label)}</h3>
+      <p style="margin:0;color:${fontColor};white-space:pre-wrap;line-height:1.9;font-size:14px;">${escapeHtml(s.value) || (isAr ? "غير متوفر" : "N/A")}</p>
     </div>`
   ).join("");
 
@@ -133,47 +133,47 @@ function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, s
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;page-break-inside:avoid;">
       <div style="border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;background:#fff;">
         <div style="font-size:12px;color:#64748b;font-weight:700;margin-bottom:4px;">${isAr ? "رقم المرجع" : "Reference No."}</div>
-        <div style="font-size:14px;color:#0f172a;font-weight:700;">${escapeHtml(item.refNo || "-")}</div>
+        <div style="font-size:14px;color:${fontColor};font-weight:700;">${escapeHtml(item.refNo || "-")}</div>
       </div>
       <div style="border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;background:#fff;">
         <div style="font-size:12px;color:#64748b;font-weight:700;margin-bottom:4px;">${isAr ? "التاريخ" : "Date"}</div>
-        <div style="font-size:14px;color:#0f172a;font-weight:700;">${escapeHtml(item.date || "-")}</div>
+        <div style="font-size:14px;color:${fontColor};font-weight:700;">${escapeHtml(item.date || "-")}</div>
       </div>
     </div>
 
     <div style="border:1px solid #d1d5db;background:#fff;border-${isAr ? 'right' : 'left'}:4px solid ${accent};padding:12px 14px;border-radius:6px;margin-bottom:12px;text-align:${align};page-break-inside:avoid;">
-      <h3 style="font-size:14px;margin:0 0 6px 0;color:#334155;font-weight:700;">${isAr ? "وصف عدم المطابقة" : "Description of Non-Conformance"}</h3>
-      <p style="margin:0;color:#0f172a;white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrDescription) || (isAr ? "غير متوفر" : "N/A")}</p>
+      <h3 style="font-size:14px;margin:0 0 6px 0;color:${fontColor};font-weight:700;">${isAr ? "وصف عدم المطابقة" : "Description of Non-Conformance"}</h3>
+      <p style="margin:0;color:${fontColor};white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrDescription) || (isAr ? "غير متوفر" : "N/A")}</p>
     </div>
 
     <div style="border:1px solid #d1d5db;background:#fff;border-${isAr ? 'right' : 'left'}:4px solid ${accent};padding:12px 14px;border-radius:6px;margin-bottom:12px;text-align:${align};page-break-inside:avoid;">
-      <h3 style="font-size:14px;margin:0 0 6px 0;color:#334155;font-weight:700;">${isAr ? "الإجراء الفوري" : "Immediate Action"}</h3>
-      <p style="margin:0;color:#0f172a;white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrImmediateAction) || (isAr ? "غير متوفر" : "N/A")}</p>
+      <h3 style="font-size:14px;margin:0 0 6px 0;color:${fontColor};font-weight:700;">${isAr ? "الإجراء الفوري" : "Immediate Action"}</h3>
+      <p style="margin:0;color:${fontColor};white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrImmediateAction) || (isAr ? "غير متوفر" : "N/A")}</p>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;page-break-inside:avoid;">
       <div style="border:1px solid #d1d5db;background:#fff;border-${isAr ? 'right' : 'left'}:4px solid ${accent};padding:12px 14px;border-radius:6px;text-align:${align};min-height:100px;">
-        <h3 style="font-size:14px;margin:0 0 6px 0;color:#334155;font-weight:700;">${isAr ? "السبب الجذري" : "Root Cause"}</h3>
-        <p style="margin:0;color:#0f172a;white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrRootCause) || (isAr ? "غير متوفر" : "N/A")}</p>
+        <h3 style="font-size:14px;margin:0 0 6px 0;color:${fontColor};font-weight:700;">${isAr ? "السبب الجذري" : "Root Cause"}</h3>
+        <p style="margin:0;color:${fontColor};white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrRootCause) || (isAr ? "غير متوفر" : "N/A")}</p>
       </div>
       <div style="border:1px solid #d1d5db;background:#fff;border-${isAr ? 'right' : 'left'}:4px solid ${accent};padding:12px 14px;border-radius:6px;text-align:${align};min-height:100px;">
-        <h3 style="font-size:14px;margin:0 0 6px 0;color:#334155;font-weight:700;">${isAr ? "الإجراء التصحيحي" : "Corrective Action"}</h3>
-        <p style="margin:0;color:#0f172a;white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrCorrectiveAction) || (isAr ? "غير متوفر" : "N/A")}</p>
+        <h3 style="font-size:14px;margin:0 0 6px 0;color:${fontColor};font-weight:700;">${isAr ? "الإجراء التصحيحي" : "Corrective Action"}</h3>
+        <p style="margin:0;color:${fontColor};white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrCorrectiveAction) || (isAr ? "غير متوفر" : "N/A")}</p>
       </div>
     </div>
 
     <div style="border:1px solid #d1d5db;background:#fff;border-${isAr ? 'right' : 'left'}:4px solid ${accent};padding:12px 14px;border-radius:6px;margin-bottom:12px;text-align:${align};page-break-inside:avoid;">
-      <h3 style="font-size:14px;margin:0 0 6px 0;color:#334155;font-weight:700;">${isAr ? "جدول الإجراءات التصحيحية" : "Corrective Actions Table"}</h3>
-      <p style="margin:0;color:#0f172a;white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrActionsTable) || (isAr ? "غير متوفر" : "N/A")}</p>
+      <h3 style="font-size:14px;margin:0 0 6px 0;color:${fontColor};font-weight:700;">${isAr ? "جدول الإجراءات التصحيحية" : "Corrective Actions Table"}</h3>
+      <p style="margin:0;color:${fontColor};white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrActionsTable) || (isAr ? "غير متوفر" : "N/A")}</p>
     </div>
 
     <div style="border:1px solid #d1d5db;background:#fff;border-${isAr ? 'right' : 'left'}:4px solid ${accent};padding:12px 14px;border-radius:6px;margin-bottom:12px;text-align:${align};page-break-inside:avoid;">
-      <h3 style="font-size:14px;margin:0 0 6px 0;color:#334155;font-weight:700;">${isAr ? "ملاحظات التحقق والإغلاق" : "Verification / Closure Notes"}</h3>
-      <p style="margin:0;color:#0f172a;white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrVerification) || (isAr ? "غير متوفر" : "N/A")}</p>
+      <h3 style="font-size:14px;margin:0 0 6px 0;color:${fontColor};font-weight:700;">${isAr ? "ملاحظات التحقق والإغلاق" : "Verification / Closure Notes"}</h3>
+      <p style="margin:0;color:${fontColor};white-space:pre-wrap;line-height:1.7;font-size:13px;">${escapeHtml(ncrVerification) || (isAr ? "غير متوفر" : "N/A")}</p>
     </div>
     ${ncrImages.length > 0 ? `
       <div style="border:1px solid #d1d5db;background:#fff;border-${isAr ? 'right' : 'left'}:4px solid ${accent};padding:12px 14px;border-radius:6px;margin-bottom:12px;text-align:${align};page-break-inside:avoid;">
-        <h3 style="font-size:14px;margin:0 0 8px 0;color:#334155;font-weight:700;">${isAr ? "الصور المرفقة" : "Attached Images"}</h3>
+        <h3 style="font-size:14px;margin:0 0 8px 0;color:${fontColor};font-weight:700;">${isAr ? "الصور المرفقة" : "Attached Images"}</h3>
         <div style="display:grid;grid-template-columns:${ncrImages.length === 1 ? "1fr" : "1fr 1fr"};gap:8px;">
           ${ncrImages.map((src, idx) => `
             <div style="border:1px solid #d1d5db;border-radius:6px;height:${ncrImages.length === 1 ? "240px" : "150px"};${ncrImages.length === 3 && idx === 2 ? "grid-column:1/-1;" : ""}background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;page-break-inside:avoid;">
@@ -206,7 +206,7 @@ function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, s
     body {
       font-family: ${isAr ? "'Noto Sans Arabic', 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif" : "Arial, sans-serif"}; 
       padding: 12px;
-      color: #1f2937; 
+      color: ${fontColor}; 
       direction: ${dir}; 
       text-align: ${align}; 
       line-height: 1.8;
@@ -258,7 +258,7 @@ function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, s
         <!-- Title & Meta -->
     <div style="padding: 12px 18px; background: ${accentSoft}; border-bottom: 1px solid #e2e8f0; text-align: ${align};">
       <h2 style="font-size: 18px; margin: 0 0 6px 0; font-weight: 700; color: #0f172a;">${escapeHtml(displayTitle)}</h2>
-      <div style="font-size: 12px; color: #334155; line-height: 1.6;">${metaItems}</div>
+      <div style="font-size: 12px; color: ${fontColor}; line-height: 1.6;">${metaItems}</div>
     </div>
     
     <!-- Sections -->
@@ -272,7 +272,7 @@ function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, s
     ` : ""}
     
     <!-- Footer -->
-    <div style="padding: 10px 18px; background: #f8fafc; border-top: 1px solid #e5e7eb; font-size: 10px; color: #64748b; display: flex; justify-content: space-between; flex-direction: ${isAr ? 'row-reverse' : 'row'}; align-items: center;">
+    <div style="padding: 10px 18px; background: #f8fafc; border-top: 1px solid #e5e7eb; font-size: 10px; color: ${fontColor}; display: flex; justify-content: space-between; flex-direction: ${isAr ? 'row-reverse' : 'row'}; align-items: center;">
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
         <span>${isAr ? 'تم الإنشاء' : 'Generated'}: ${new Date().toLocaleString(isAr ? 'ar-SA' : 'en-US')}</span>
         ${branding.companyWebsite ? `<span>|</span><span>${escapeHtml(branding.companyWebsite)}</span>` : ''}
@@ -280,7 +280,7 @@ function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, s
         ${branding.companyEmail ? `<span>|</span><span>${escapeHtml(branding.companyEmail)}</span>` : ''}
       </div>
       <div style="text-align: ${isAr ? 'left' : 'right'};">
-        <div style="font-weight: 600; color: #1e293b;">${escapeHtml(branding.confidentialLabel || (isAr ? 'سري' : 'Confidential'))}</div>
+        <div style="font-weight: 600; color: ${fontColor};">${escapeHtml(branding.confidentialLabel || (isAr ? 'سري' : 'Confidential'))}</div>
         ${branding.documentFooter ? `<div style="margin-top: 2px;">${escapeHtml(branding.documentFooter)}</div>` : ''}
       </div>
     </div>
@@ -299,7 +299,7 @@ function escapeHtml(text: string | undefined): string {
 }
 
 // Print View Component for preview
-function PrintView({ item, siteName, isAr, settings }: { item: PrintShareItem; siteName: string; isAr: boolean; settings?: any }) {
+function PrintView({ item, siteName, isAr, settings, fontColor }: { item: PrintShareItem; siteName: string; isAr: boolean; settings?: any; fontColor: string }) {
   const branding = settings?.branding || { companyName: siteName, companyLogo: '', logoPosition: 'left', confidentialLabel: isAr ? 'سري' : 'Confidential', documentFooter: '', departmentName: '', safetyDepartmentName: '' };
   siteName = branding.companyName || siteName;
   const dir = isAr ? 'rtl' : 'ltr';
@@ -333,6 +333,7 @@ function PrintView({ item, siteName, isAr, settings }: { item: PrintShareItem; s
         direction: dir, 
         textAlign: align,
         lineHeight: 1.7,
+        color: fontColor,
         maxWidth: "794px",
         margin: "0 auto"
       }}
@@ -348,7 +349,7 @@ function PrintView({ item, siteName, isAr, settings }: { item: PrintShareItem; s
           <div style={{ textAlign: branding.logoPosition === 'center' ? 'center' : (isAr ? 'right' : 'left') }} className={`flex flex-col gap-2 ${branding.logoPosition === 'center' ? 'items-center' : (isAr ? 'items-end' : 'items-start')}`}>
             {branding.companyLogo && <img src={branding.companyLogo} alt={branding.companyName} className="h-16 w-24 brand-logo-full" />}
             <div>
-              <h1 className="text-[22px] font-bold text-gray-900" style={{ fontFamily: isAr ? "'Cairo', 'Noto Sans Arabic', sans-serif" : "Arial, sans-serif" }}>{siteName}</h1>
+              <h1 className="text-[22px] font-bold" style={{ fontFamily: isAr ? "'Cairo', 'Noto Sans Arabic', sans-serif" : "Arial, sans-serif", color: fontColor }} >{siteName}</h1>
               <p className="mt-1 text-xs text-gray-500">{docTypeLabel}</p>
               {branding.departmentName && <p className="mt-0.5 text-[10px] text-gray-500">{branding.departmentName}</p>}
               {branding.safetyDepartmentName && <p className="mt-0 text-[10px] text-gray-500">{branding.safetyDepartmentName}</p>}
@@ -369,7 +370,7 @@ function PrintView({ item, siteName, isAr, settings }: { item: PrintShareItem; s
       </div>
       
       <div className="mb-4" style={{ textAlign: align }}>
-        <h2 className="mb-2 text-xl font-bold text-gray-900">{displayTitle}</h2>
+        <h2 className="mb-2 text-xl font-bold" style={{ color: fontColor }}>{displayTitle}</h2>
         <div className={`flex flex-wrap gap-x-4 gap-y-2 text-[13px] text-gray-600 ${isAr ? 'flex-row-reverse justify-end' : ''}`}>
           {item.type && <span className={`capitalize rounded-full px-2.5 py-1 font-semibold ${badgeClass}`}>{isAr ? 'النوع' : 'Type'}: <strong>{item.type.toUpperCase()}</strong></span>}
           {item.department && <span>{isAr ? 'القسم' : 'Department'}: <strong>{item.department}</strong></span>}
@@ -381,15 +382,15 @@ function PrintView({ item, siteName, isAr, settings }: { item: PrintShareItem; s
       {isNcr ? (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2.5">
-            <NcrBlock title={isAr ? "وصف عدم المطابقة" : "Description of Non-Conformance"} value={ncrDescription} isAr={isAr} accentClass={accentClass} />
-            <NcrBlock title={isAr ? "الإجراء الفوري" : "Immediate Action"} value={ncrImmediateAction} isAr={isAr} accentClass={accentClass} />
+            <NcrBlock title={isAr ? "وصف عدم المطابقة" : "Description of Non-Conformance"} value={ncrDescription} isAr={isAr} accentClass={accentClass} fontColor={fontColor} />
+            <NcrBlock title={isAr ? "الإجراء الفوري" : "Immediate Action"} value={ncrImmediateAction} isAr={isAr} accentClass={accentClass} fontColor={fontColor} />
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            <NcrBlock title={isAr ? "السبب الجذري" : "Root Cause"} value={ncrRootCause} isAr={isAr} accentClass={accentClass} />
-            <NcrBlock title={isAr ? "الإجراء التصحيحي" : "Corrective Action"} value={ncrCorrectiveAction} isAr={isAr} accentClass={accentClass} />
+            <NcrBlock title={isAr ? "السبب الجذري" : "Root Cause"} value={ncrRootCause} isAr={isAr} accentClass={accentClass} fontColor={fontColor} />
+            <NcrBlock title={isAr ? "الإجراء التصحيحي" : "Corrective Action"} value={ncrCorrectiveAction} isAr={isAr} accentClass={accentClass} fontColor={fontColor} />
           </div>
-          <NcrBlock title={isAr ? "جدول الإجراءات التصحيحية" : "Corrective Actions Table"} value={ncrActionsTable} isAr={isAr} accentClass={accentClass} />
-          <NcrBlock title={isAr ? "ملاحظات التحقق والإغلاق" : "Verification / Closure Notes"} value={ncrVerification} isAr={isAr} accentClass={accentClass} />
+          <NcrBlock title={isAr ? "جدول الإجراءات التصحيحية" : "Corrective Actions Table"} value={ncrActionsTable} isAr={isAr} accentClass={accentClass} fontColor={fontColor} />
+          <NcrBlock title={isAr ? "ملاحظات التحقق والإغلاق" : "Verification / Closure Notes"} value={ncrVerification} isAr={isAr} accentClass={accentClass} fontColor={fontColor} />
           {ncrImages.length > 0 && (
             <div className={`${isAr ? "border-r-4 pr-3" : "border-l-4 pl-3"} ${accentClass} rounded-sm bg-slate-50/70 py-1.5`}>
               <h3 className="mb-2 text-sm font-semibold text-gray-700">{isAr ? "الصور المرفقة" : "Attached Images"}</h3>
@@ -407,8 +408,8 @@ function PrintView({ item, siteName, isAr, settings }: { item: PrintShareItem; s
         <div className="space-y-3">
           {item.sections.map((section, idx) => (
             <div key={idx} className={`${isAr ? 'border-r-4 pr-3' : 'border-l-4 pl-3'} ${accentClass} rounded-sm bg-slate-50/70 py-1.5`} style={{ textAlign: align }}>
-              <h3 className="mb-1.5 text-sm font-semibold text-gray-700">{section.label}</h3>
-              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-gray-700">{section.value || (isAr ? "غير متوفر" : "N/A")}</p>
+              <h3 className="mb-1.5 text-sm font-semibold" style={{ color: fontColor }}>{section.label}</h3>
+              <p className="whitespace-pre-wrap text-[13px] leading-relaxed" style={{ color: fontColor }}>{section.value || (isAr ? "غير متوفر" : "N/A")}</p>
             </div>
           ))}
         </div>
@@ -422,11 +423,11 @@ function PrintView({ item, siteName, isAr, settings }: { item: PrintShareItem; s
   );
 }
 
-function NcrBlock({ title, value, isAr, accentClass }: { title: string; value: string; isAr: boolean; accentClass: string }) {
+function NcrBlock({ title, value, isAr, accentClass, fontColor }: { title: string; value: string; isAr: boolean; accentClass: string; fontColor: string }) {
   return (
     <div className={`${isAr ? "border-r-4 pr-3" : "border-l-4 pl-3"} ${accentClass} rounded-sm bg-slate-50/70 py-1.5`}>
-      <h3 className="mb-1.5 text-sm font-semibold text-gray-700">{title}</h3>
-      <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-gray-700">{value || (isAr ? "غير متوفر" : "N/A")}</p>
+      <h3 className="mb-1.5 text-sm font-semibold" style={{ color: fontColor }}>{title}</h3>
+      <p className="whitespace-pre-wrap text-[13px] leading-relaxed" style={{ color: fontColor }}>{value || (isAr ? "غير متوفر" : "N/A")}</p>
     </div>
   );
 }
@@ -441,6 +442,7 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
   const [customSubject, setCustomSubject] = useState("");
   const [customBody, setCustomBody] = useState("");
   const [resolvedImages, setResolvedImages] = useState<string[]>([]);
+  const [fontColor, setFontColor] = useState("#1f2937");
 
   useEffect(() => {
     let active = true;
@@ -467,7 +469,7 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
       return;
     }
 
-    const html = buildPrintHtml(renderItem, settings.siteName, isAr, settings);
+    const html = buildPrintHtml(renderItem, settings.siteName, isAr, settings, fontColor);
     
     // Remove existing print iframe if any to prevent memory leaks
     const existingIframe = document.getElementById('print-share-iframe');
@@ -507,7 +509,7 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
         }
       }, 1000);
     }
-  }, [renderItem, isAr, settings, customContent]);
+  }, [renderItem, isAr, settings, customContent, fontColor]);
 
   const addRecipient = () => {
     const val = newRecipient.trim();
@@ -603,8 +605,42 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
           </TabsList>
 
           <TabsContent value="print" className="space-y-4">
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <Label className="flex items-center gap-2 text-xs font-semibold">
+                  <Palette className="h-4 w-4" />
+                  {isAr ? "لون الخط في التصدير" : "Export Font Color"}
+                </Label>
+                <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setFontColor("#1f2937")}>
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  {isAr ? "افتراضي" : "Reset"}
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {["#1f2937","#0f172a","#1e3a8a","#0f766e","#166534","#991b1b"].map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    aria-label={color}
+                    onClick={() => setFontColor(color)}
+                    className="h-8 w-8 rounded-full border border-border transition-transform"
+                    style={{ backgroundColor: color, transform: fontColor === color ? "scale(1.12)" : undefined, boxShadow: fontColor === color ? "0 0 0 2px hsl(var(--primary)), 0 0 0 4px hsl(var(--background))" : undefined }}
+                  />
+                ))}
+                <Input type="color" value={fontColor} onChange={e => setFontColor(e.target.value)} className="h-8 w-12 cursor-pointer p-1" />
+                <Input
+                  value={fontColor}
+                  onChange={e => /^#[0-9A-Fa-f]{0,6}$/.test(e.target.value) && setFontColor(e.target.value)}
+                  onBlur={() => { if (!/^#[0-9A-Fa-f]{6}$/.test(fontColor)) setFontColor("#1f2937"); }}
+                  className="h-8 w-24 font-mono text-xs"
+                />
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                {isAr ? "يطبق اللون على النص الرئيسي في المعاينة وPDF/الطباعة لجميع الأقسام التي تستخدم قالب الطباعة الموحد." : "Applies to main document text in preview and PDF/print for all sections using the shared print template."}
+              </p>
+            </div>
             <div className="border rounded-lg overflow-hidden bg-white">
-              <PrintView item={renderItem} siteName={settings.siteName} isAr={isAr} settings={settings} />
+              <PrintView item={renderItem} siteName={settings.siteName} isAr={isAr} settings={settings} fontColor={fontColor} />
             </div>
             <Button onClick={handlePrint} className="w-full">
               <Printer className="h-4 w-4 mr-2" />
@@ -692,7 +728,7 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
       </Dialog>
       
       {customContent && open && (
-        <div className="hidden print:block w-full h-full bg-white text-black print:absolute print:inset-0 print:z-[9999]">
+        <div className="hidden print:block w-full h-full bg-white print:absolute print:inset-0 print:z-[9999]" style={{ color: fontColor }}>
           {customContent}
         </div>
       )}
