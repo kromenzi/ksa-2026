@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreditCard, Plus, Search, Trash2, RefreshCw, Printer, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import PrintShareDialog from "@/components/print-share-dialog";
+import { OfficialHseTemplate } from "@/components/official-templates";
 
 const LICENSE_TYPES = [
   { value: "driving", en: "Driving License", ar: "رخصة قيادة" },
@@ -168,6 +169,19 @@ export default function AdminLicensesPage() {
       status: record.status,
       date: record.expiryDate || record.issueDate,
       createdAt: record.issueDate,
+      templateKind: "professional-license",
+      templateData: {
+        reference: record.refNo,
+        employeeName: record.employeeName,
+        employeeId: record.employeeId,
+        jobTitle: record.jobTitle,
+        department: record.department || "HSE",
+        qualification: typeLabel(record.licenseType, isAr),
+        licenseType: typeLabel(record.licenseType, isAr),
+        issueDate: record.issueDate,
+        expiryDate: record.expiryDate,
+        approver: record.issuingAuthority || "HSE Manager",
+      },
       sections: [
         { label: isAr ? "رقم الترخيص" : "License Number", value: record.refNo },
         { label: isAr ? "الموظف" : "Employee", value: `${record.employeeName} (${record.employeeId})` },
@@ -257,7 +271,22 @@ export default function AdminLicensesPage() {
         </div><DialogFooter><Button variant="outline" onClick={() => setIsAddOpen(false)}>{isAr ? "إلغاء" : "Cancel"}</Button><Button onClick={() => void handleSave()} disabled={saving}>{saving ? (isAr ? "جاري الحفظ..." : "Saving...") : (isAr ? "حفظ" : "Save")}</Button></DialogFooter></DialogContent>
       </Dialog>
 
-      {printItem && <PrintShareDialog open={!!printItem} onOpenChange={open => !open && setPrintItem(null)} item={printItem} />}
+      {printItem && (
+        <PrintShareDialog
+          open={!!printItem}
+          onOpenChange={open => !open && setPrintItem(null)}
+          item={printItem}
+          preserveCustomColors
+          customContent={
+            <OfficialHseTemplate
+              kind="professional-license"
+              data={printItem.templateData}
+              branding={settings.branding}
+              qrValue={printItem.refNo}
+            />
+          }
+        />
+      )}
     </div>
   );
 }

@@ -12,10 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Plus, Search, Trash2, RefreshCw, Printer, BookOpen, Users, Clock, CheckCircle2 } from "lucide-react";
+import { GraduationCap, Plus, Search, Trash2, RefreshCw, Printer, BookOpen, Users, Clock, CheckCircle2, Award } from "lucide-react";
 import { toast } from "sonner";
 import PrintShareDialog from "@/components/print-share-dialog";
 import CompetencyMatrix from "@/components/training/CompetencyMatrix";
+import { OfficialHseTemplate } from "@/components/official-templates";
 
 type AttendanceRow = { employeeId: string; employeeName: string; status: "present" | "absent" | "excused" };
 type TrainingData = {
@@ -62,6 +63,8 @@ export default function AdminTrainingsPage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [printItem, setPrintItem] = useState<any>(null);
+  const [certificateTraining, setCertificateTraining] = useState<any | null>(null);
+  const [certificateParticipant, setCertificateParticipant] = useState("");
 
   const trainings = useMemo(() => items.map(row => ({
     ...row.data,
@@ -144,6 +147,56 @@ export default function AdminTrainingsPage() {
     });
   };
 
+  const openCertificate = (record: any) => {
+    const present = (record.attendance || []).filter((person: AttendanceRow) => person.status === "present");
+    setCertificateTraining(record);
+    setCertificateParticipant(present[0]?.employeeId || "");
+  };
+
+  const createTrainingCertificate = () => {
+    if (!certificateTraining) return;
+    const attendees: AttendanceRow[] = certificateTraining.attendance || [];
+    const selected = attendees.find(person => person.employeeId === certificateParticipant)
+      || attendees.find(person => person.status === "present");
+    const participantName = selected?.employeeName || certificateParticipant.trim();
+    if (!participantName) {
+      toast.error(isAr ? "اختر المتدرب أو اكتب اسمه لإصدار الشهادة" : "Select or enter a participant before issuing the certificate");
+      return;
+    }
+    const participantId = selected?.employeeId || "MANUAL";
+    const certificateNo = certificateTraining.refNo + "-" + participantId;
+    setPrintItem({
+      id: certificateTraining.id,
+      type: "certificate" as const,
+      refNo: certificateNo,
+      title: isAr ? "شهادة حضور تدريب سلامة" : "Safety Training Certificate",
+      department: certificateTraining.department || "HSE",
+      status: "Completed",
+      date: certificateTraining.date,
+      templateKind: "safety-training",
+      templateData: {
+        reference: certificateNo,
+        certificateNo,
+        participantName,
+        employeeId: selected?.employeeId || "",
+        courseTitle: certificateTraining.title,
+        trainingHours: certificateTraining.duration,
+        date: certificateTraining.date,
+        trainer: certificateTraining.trainer,
+        department: certificateTraining.department,
+        location: [certificateTraining.factory, certificateTraining.location].filter(Boolean).join(" - "),
+        factory: certificateTraining.factory,
+        approver: "HSE Manager",
+      },
+      sections: [
+        { label: isAr ? "المتدرب" : "Participant", value: participantName },
+        { label: isAr ? "الدورة" : "Course", value: certificateTraining.title },
+        { label: isAr ? "رقم الشهادة" : "Certificate No.", value: certificateNo },
+      ],
+    });
+    setCertificateTraining(null);
+  };
+
   return (
     <div className="space-y-6" data-testid="admin-trainings-page">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -169,7 +222,7 @@ export default function AdminTrainingsPage() {
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="overflow-x-auto rounded-lg border"><Table><TableHeader><TableRow><TableHead>{isAr ? "المرجع" : "Ref"}</TableHead><TableHead>{isAr ? "التدريب" : "Training"}</TableHead><TableHead>{isAr ? "المدرب" : "Trainer"}</TableHead><TableHead>{isAr ? "القسم" : "Department"}</TableHead><TableHead>{isAr ? "التاريخ" : "Date"}</TableHead><TableHead>{isAr ? "الحالة" : "Status"}</TableHead><TableHead className="text-right">{isAr ? "الإجراءات" : "Actions"}</TableHead></TableRow></TableHeader><TableBody>
               {!loading && filtered.length === 0 && <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">{isAr ? "لا توجد تدريبات مسجلة. تم حذف جميع بيانات التدريب التجريبية." : "No training records. All demo training data has been removed."}</TableCell></TableRow>}
-              {filtered.map(record => <TableRow key={record.id}><TableCell className="font-mono text-xs">{record.refNo}</TableCell><TableCell><p className="font-medium">{record.title}</p><p className="text-xs text-muted-foreground">{record.category || "-"}</p></TableCell><TableCell className="text-xs">{record.trainer || "-"}</TableCell><TableCell className="text-xs">{record.department || "-"}</TableCell><TableCell className="text-xs">{record.date || "-"}</TableCell><TableCell><Badge variant="outline">{record.status}</Badge></TableCell><TableCell className="text-right"><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" onClick={() => handlePrint(record)}><Printer className="h-4 w-4" /></Button>{canDelete && <Button size="icon" variant="ghost" className="text-red-600 hover:bg-red-50" disabled={deletingId === record.id} onClick={() => void handleDelete(record.id, record.refNo)}><Trash2 className="h-4 w-4" /></Button>}</div></TableCell></TableRow>)}
+              {filtered.map(record => <TableRow key={record.id}><TableCell className="font-mono text-xs">{record.refNo}</TableCell><TableCell><p className="font-medium">{record.title}</p><p className="text-xs text-muted-foreground">{record.category || "-"}</p></TableCell><TableCell className="text-xs">{record.trainer || "-"}</TableCell><TableCell className="text-xs">{record.department || "-"}</TableCell><TableCell className="text-xs">{record.date || "-"}</TableCell><TableCell><Badge variant="outline">{record.status}</Badge></TableCell><TableCell className="text-right"><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" onClick={() => handlePrint(record)} title={isAr ? "طباعة سجل التدريب" : "Print training record"}><Printer className="h-4 w-4" /></Button>{record.status === "Completed" && <Button size="icon" variant="ghost" className="text-indigo-600" onClick={() => openCertificate(record)} title={isAr ? "إصدار شهادة تدريب" : "Issue training certificate"}><Award className="h-4 w-4" /></Button>}{canDelete && <Button size="icon" variant="ghost" className="text-red-600 hover:bg-red-50" disabled={deletingId === record.id} onClick={() => void handleDelete(record.id, record.refNo)}><Trash2 className="h-4 w-4" /></Button>}</div></TableCell></TableRow>)}
             </TableBody></Table></div>
           </CardContent></Card>
         </TabsContent>
@@ -192,7 +245,57 @@ export default function AdminTrainingsPage() {
         <div className="md:col-span-2"><Label>{isAr ? "الأهداف" : "Objectives"}</Label><Input value={form.objectives} onChange={e => setForm({ ...form, objectives: e.target.value })} /></div>
       </div><DialogFooter><Button variant="outline" onClick={() => setIsAddOpen(false)}>{isAr ? "إلغاء" : "Cancel"}</Button><Button onClick={() => void handleSave()} disabled={saving}>{saving ? (isAr ? "جاري الحفظ..." : "Saving...") : (isAr ? "حفظ" : "Save")}</Button></DialogFooter></DialogContent></Dialog>
 
-      {printItem && <PrintShareDialog open={!!printItem} onOpenChange={open => !open && setPrintItem(null)} item={printItem} />}
+      <Dialog open={!!certificateTraining} onOpenChange={open => !open && setCertificateTraining(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{isAr ? "إصدار شهادة تدريب سلامة" : "Issue Safety Training Certificate"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+              <strong>{certificateTraining?.title || "—"}</strong>
+              <div className="mt-1 text-xs text-muted-foreground">{certificateTraining?.refNo} • {certificateTraining?.date}</div>
+            </div>
+            {(certificateTraining?.attendance || []).length > 0 ? (
+              <div className="space-y-2">
+                <Label>{isAr ? "المتدرب" : "Participant"}</Label>
+                <Select value={certificateParticipant} onValueChange={setCertificateParticipant}>
+                  <SelectTrigger><SelectValue placeholder={isAr ? "اختر المتدرب" : "Select participant"} /></SelectTrigger>
+                  <SelectContent>
+                    {(certificateTraining?.attendance || []).filter((person: AttendanceRow) => person.status === "present").map((person: AttendanceRow) => (
+                      <SelectItem key={person.employeeId} value={person.employeeId}>{person.employeeName} ({person.employeeId})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>{isAr ? "اسم المتدرب" : "Participant Name"}</Label>
+                <Input value={certificateParticipant} onChange={event => setCertificateParticipant(event.target.value)} placeholder={isAr ? "اكتب اسم المتدرب" : "Enter participant name"} />
+                <p className="text-xs text-muted-foreground">{isAr ? "لا يوجد حضور مسجل لهذا التدريب، لذلك يمكن إدخال الاسم يدويًا." : "No attendance is recorded for this training, so the participant can be entered manually."}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCertificateTraining(null)}>{isAr ? "إلغاء" : "Cancel"}</Button>
+            <Button onClick={createTrainingCertificate} className="gap-2"><Award className="h-4 w-4" />{isAr ? "معاينة الشهادة" : "Preview Certificate"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {printItem && (
+        <PrintShareDialog
+          open={!!printItem}
+          onOpenChange={open => !open && setPrintItem(null)}
+          item={printItem}
+          preserveCustomColors={Boolean(printItem.templateKind)}
+          customContent={printItem.templateKind === "safety-training" ? (
+            <OfficialHseTemplate
+              kind="safety-training"
+              data={printItem.templateData}
+              branding={settings.branding}
+              qrValue={printItem.refNo}
+            />
+          ) : undefined}
+        />
+      )}
     </div>
   );
 }

@@ -200,6 +200,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         },
         { label: isAr ? 'التراخيص والتفويضات قاربت الانتهاء' : 'Expiring Licenses & Authorizations', icon: Clock, href: "/admin/licenses", visible: true, color: "text-amber-500", bgColor: "bg-amber-500/10" },
         { label: isAr ? 'مصفوفة الكفاءة' : 'Competency Matrix', icon: Grid, href: "/admin/training-matrix", visible: true, color: "text-teal-500", bgColor: "bg-teal-500/10" },
+        { label: isAr ? 'القوالب الرسمية للبطاقات والشهادات' : 'Official License & Certificate Templates', icon: Award, href: "/admin/official-templates", visible: true, color: "text-cyan-500", bgColor: "bg-cyan-500/10" },
         { label: isAr ? 'تقارير التفويض' : 'Authorization Reports', icon: ScrollText, href: "/admin/enterprise-reports", visible: true, color: "text-slate-400", bgColor: "bg-slate-500/10" },
       ]
     },
