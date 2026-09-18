@@ -217,7 +217,12 @@ export default function MonthlyHsePlanPage(){
     }catch(err:any){toast.error(err?.message||"Verification failed");}
   };
 
-  const taskUser=(id?:string|null)=>assignees.find(u=>u.id===id)||(id===currentUser?.id?{id:currentUser.id,name:currentUser.name,role:currentUser.role,isActive:true}:undefined);
+  const taskUser=(id?:string|null)=>{
+    const found=assignees.find(u=>u.id===id);
+    if(found) return found;
+    if(currentUser&&id===currentUser.id) return {id:currentUser.id,name:currentUser.name,role:currentUser.role,isActive:true};
+    return undefined;
+  };
   const calendarDays=Array.from({length:new Date(year,month,0).getDate()},(_,i)=>i+1);
 
   return <div className="space-y-5" data-testid="monthly-hse-plan-page">
