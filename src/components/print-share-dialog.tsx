@@ -32,12 +32,14 @@ const itemTypeToModule: Record<string, Module> = {
   permit: "documents",
   invoice: "documents",
   document: "documents",
+  license: "documents",
+  certificate: "reports",
 };
 
 interface PrintShareItem {
   id?: string;
   url?: string;
-  type: "ncr" | "report" | "form" | "contract" | "permit" | "invoice" | "document";
+  type: "ncr" | "report" | "form" | "contract" | "permit" | "invoice" | "document" | "license" | "certificate";
   refNo?: string;
   title: string;
   department?: string;
@@ -54,6 +56,7 @@ interface PrintShareDialogProps {
   onOpenChange: (open: boolean) => void;
   item: PrintShareItem;
   customContent?: React.ReactNode;
+  preserveCustomColors?: boolean;
 }
 
 function getItemTypeLabel(type: PrintShareItem["type"], isAr: boolean): string {
@@ -65,6 +68,8 @@ function getItemTypeLabel(type: PrintShareItem["type"], isAr: boolean): string {
     permit: "تصريح",
     invoice: "فاتورة",
     document: "مستند",
+    license: "بطاقة ترخيص",
+    certificate: "شهادة",
   };
   const mapEn: Record<PrintShareItem["type"], string> = {
     ncr: "Non-Conformance Report",
@@ -74,6 +79,8 @@ function getItemTypeLabel(type: PrintShareItem["type"], isAr: boolean): string {
     permit: "Permit",
     invoice: "Invoice",
     document: "Document",
+    license: "License Card",
+    certificate: "Certificate",
   };
   return isAr ? mapAr[type] : mapEn[type];
 }
@@ -448,7 +455,7 @@ function NcrBlock({ title, value, isAr, accentClass, fontColor }: { title: strin
   );
 }
 
-export default function PrintShareDialog({ open, onOpenChange, item, customContent }: PrintShareDialogProps) {
+export default function PrintShareDialog({ open, onOpenChange, item, customContent, preserveCustomColors = false }: PrintShareDialogProps) {
   const { settings, hasPermission, logActivity } = useData();
   const [activeTab, setActiveTab] = useState("print");
   const [extraRecipients, setExtraRecipients] = useState<string[]>([]);
@@ -621,42 +628,49 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
           </TabsList>
 
           <TabsContent value="print" className="space-y-4">
-            <div className="rounded-lg border bg-muted/20 p-3">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <Label className="flex items-center gap-2 text-xs font-semibold">
-                  <Palette className="h-4 w-4" />
-                  {isAr ? "لون الخط في التصدير" : "Export Font Color"}
-                </Label>
-                <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setFontColor("#1f2937")}>
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  {isAr ? "افتراضي" : "Reset"}
-                </Button>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {["#1f2937","#0f172a","#1e3a8a","#0f766e","#166534","#991b1b"].map(color => (
-                  <button
-                    key={color}
-                    type="button"
-                    aria-label={color}
-                    onClick={() => setFontColor(color)}
-                    className="h-8 w-8 rounded-full border border-border transition-transform"
-                    style={{ backgroundColor: color, transform: fontColor === color ? "scale(1.12)" : undefined, boxShadow: fontColor === color ? "0 0 0 2px hsl(var(--primary)), 0 0 0 4px hsl(var(--background))" : undefined }}
+            {!preserveCustomColors && (
+              <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <Label className="flex items-center gap-2 text-xs font-semibold">
+                    <Palette className="h-4 w-4" />
+                    {isAr ? "لون الخط في التصدير" : "Export Font Color"}
+                  </Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setFontColor("#1f2937")}>
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    {isAr ? "افتراضي" : "Reset"}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {["#1f2937","#0f172a","#1e3a8a","#0f766e","#166534","#991b1b"].map(color => (
+                    <button
+                      key={color}
+                      type="button"
+                      aria-label={color}
+                      onClick={() => setFontColor(color)}
+                      className="h-8 w-8 rounded-full border border-border transition-transform"
+                      style={{ backgroundColor: color, transform: fontColor === color ? "scale(1.12)" : undefined, boxShadow: fontColor === color ? "0 0 0 2px hsl(var(--primary)), 0 0 0 4px hsl(var(--background))" : undefined }}
+                    />
+                  ))}
+                  <Input type="color" value={fontColor} onChange={e => setFontColor(e.target.value)} className="h-8 w-12 cursor-pointer p-1" />
+                  <Input
+                    value={fontColor}
+                    onChange={e => /^#[0-9A-Fa-f]{0,6}$/.test(e.target.value) && setFontColor(e.target.value)}
+                    onBlur={() => { if (!/^#[0-9A-Fa-f]{6}$/.test(fontColor)) setFontColor("#1f2937"); }}
+                    className="h-8 w-24 font-mono text-xs"
                   />
-                ))}
-                <Input type="color" value={fontColor} onChange={e => setFontColor(e.target.value)} className="h-8 w-12 cursor-pointer p-1" />
-                <Input
-                  value={fontColor}
-                  onChange={e => /^#[0-9A-Fa-f]{0,6}$/.test(e.target.value) && setFontColor(e.target.value)}
-                  onBlur={() => { if (!/^#[0-9A-Fa-f]{6}$/.test(fontColor)) setFontColor("#1f2937"); }}
-                  className="h-8 w-24 font-mono text-xs"
-                />
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  {isAr ? "يطبق اللون على النص الرئيسي في المعاينة وPDF/الطباعة لجميع الأقسام التي تستخدم قالب الطباعة الموحد." : "Applies to main document text in preview and PDF/print for all sections using the shared print template."}
+                </p>
               </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                {isAr ? "يطبق اللون على النص الرئيسي في المعاينة وPDF/الطباعة لجميع الأقسام التي تستخدم قالب الطباعة الموحد." : "Applies to main document text in preview and PDF/print for all sections using the shared print template."}
-              </p>
-            </div>
-            <div className="border rounded-lg overflow-hidden bg-white">
-              <PrintView item={renderItem} siteName={settings.siteName} isAr={isAr} settings={settings} fontColor={fontColor} />
+            )}
+            {preserveCustomColors && (
+              <div className="rounded-lg border border-teal-500/20 bg-teal-500/5 p-3 text-xs text-muted-foreground">
+                {isAr ? "القالب الرسمي يستخدم ألوان الهوية المعتمدة ويحافظ عليها أثناء الطباعة وPDF." : "This official template preserves its approved identity colors in print and PDF."}
+              </div>
+            )}
+            <div className="overflow-auto rounded-lg border bg-slate-100 p-3">
+              {customContent ? customContent : <PrintView item={renderItem} siteName={settings.siteName} isAr={isAr} settings={settings} fontColor={fontColor} />}
             </div>
             <Button onClick={handlePrint} className="w-full">
               <Printer className="h-4 w-4 mr-2" />
@@ -744,11 +758,19 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
       </Dialog>
       
       {customContent && open && (
-        <div className="custom-export-font-scope hidden print:block w-full h-full bg-white print:absolute print:inset-0 print:z-[9999]" style={{ color: fontColor }}>
+        <div className="custom-export-font-scope hidden print:block w-full h-full bg-white print:absolute print:inset-0 print:z-[9999]" style={{ color: preserveCustomColors ? undefined : fontColor }}>
+          {!preserveCustomColors && (
+            <style>{`
+              .custom-export-font-scope,
+              .custom-export-font-scope * {
+                color: ${fontColor} !important;
+              }
+            `}</style>
+          )}
           <style>{`
-            .custom-export-font-scope,
-            .custom-export-font-scope * {
-              color: ${fontColor} !important;
+            @media print {
+              @page { margin: 0.3in; }
+              .official-hse-template { box-shadow: none !important; margin: 0 auto !important; }
             }
           `}</style>
           {customContent}
