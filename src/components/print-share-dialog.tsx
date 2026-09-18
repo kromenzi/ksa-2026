@@ -501,6 +501,18 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
       const templateElement = source.querySelector<HTMLElement>(".official-hse-template");
       const bounds = templateElement?.getBoundingClientRect();
       const orientation = bounds && bounds.height > bounds.width ? "portrait" : "landscape";
+      const aspectRatio = bounds && bounds.height > 0
+        ? bounds.width / bounds.height
+        : (orientation === "portrait" ? 0.69 : 1.414);
+      // A4 minus the 8 mm CSS page margin on each side.
+      // Fit by both width and height, then keep a small safety margin for
+      // Chrome/Windows printer rounding so no footer spills onto page 2.
+      const printableWidthMm = orientation === "portrait" ? 194 : 281;
+      const printableHeightMm = orientation === "portrait" ? 281 : 194;
+      const fittedWidthMm = Math.max(
+        40,
+        Math.min(printableWidthMm, printableHeightMm * aspectRatio) - 6,
+      );
       const inheritedStyles = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style'))
         .map(node => node.outerHTML)
         .join("\n");
@@ -564,7 +576,10 @@ ${inheritedStyles}
   #print-custom-root > * { width: 100% !important; }
   #print-custom-root .official-hse-template {
     margin: 0 auto !important;
-    max-width: 100% !important;
+    width: ${fittedWidthMm.toFixed(2)}mm !important;
+    max-width: ${fittedWidthMm.toFixed(2)}mm !important;
+    height: auto !important;
+    max-height: none !important;
     box-shadow: none !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
@@ -583,8 +598,19 @@ ${inheritedStyles}
     display: block !important;
   }
   @media print {
-    html, body, #print-custom-root { background: #ffffff !important; }
-    #print-custom-root .official-hse-template { box-shadow: none !important; }
+    html, body, #print-custom-root {
+      background: #ffffff !important;
+      overflow: hidden !important;
+    }
+    #print-custom-root {
+      min-height: 0 !important;
+      height: auto !important;
+    }
+    #print-custom-root .official-hse-template {
+      box-shadow: none !important;
+      break-after: avoid-page !important;
+      page-break-after: avoid !important;
+    }
   }
 </style>
 </head>

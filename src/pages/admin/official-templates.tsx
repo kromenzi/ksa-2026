@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Award, BadgeCheck, CreditCard, Flame, GraduationCap, Printer, ShieldCheck } from "lucide-react";
+import { Award, BadgeCheck, CreditCard, Flame, GraduationCap, ImagePlus, Printer, ShieldCheck, Trash2 } from "lucide-react";
 import { useData } from "@/lib/data-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +37,7 @@ const SAMPLE_DATA: Record<OfficialHseTemplateKind, OfficialHseTemplateData> = {
     jobTitle: "Job Title",
     department: "Department",
     qualification: "Qualified Operator",
+    issueDate: "2026-09-18",
     expiryDate: "2027-09-18",
     approver: "HSE Manager",
   },
@@ -82,6 +83,77 @@ function FormField({
     <div className="space-y-1.5">
       <Label className="text-xs">{label}</Label>
       <Input type={type} value={value || ""} onChange={event => onChange(event.target.value)} />
+    </div>
+  );
+}
+
+function PhotoUploadField({
+  isAr,
+  value,
+  onChange,
+}: {
+  isAr: boolean;
+  value?: string;
+  onChange: (value: string) => void;
+}) {
+  const handlePhoto = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 5 * 1024 * 1024) {
+      window.alert(isAr ? "حجم الصورة يجب ألا يتجاوز 5 ميجابايت." : "Photo size must not exceed 5 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") onChange(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="space-y-2 rounded-xl border border-dashed border-teal-500/40 bg-teal-500/5 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <Label className="flex items-center gap-2 text-xs font-semibold">
+            <ImagePlus className="h-4 w-4 text-teal-600" />
+            {isAr ? "الصورة الشخصية" : "Personal Photo"}
+          </Label>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {isAr ? "PNG أو JPG بحد أقصى 5 MB، وتظهر مباشرة في البطاقة والطباعة." : "PNG or JPG up to 5 MB. The photo appears immediately on the card and printout."}
+          </p>
+        </div>
+        {value ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 text-red-600 hover:text-red-700"
+            onClick={() => onChange("")}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {isAr ? "حذف" : "Remove"}
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="flex h-20 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-white">
+          {value ? (
+            <img src={value} alt={isAr ? "الصورة الشخصية" : "Personal photo"} className="h-full w-full object-cover" />
+          ) : (
+            <ImagePlus className="h-7 w-7 text-slate-400" />
+          )}
+        </div>
+        <Input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onChange={event => {
+            handlePhoto(event.target.files?.[0]);
+            event.currentTarget.value = "";
+          }}
+          className="cursor-pointer"
+        />
+      </div>
     </div>
   );
 }
@@ -181,6 +253,7 @@ export default function AdminOfficialTemplatesPage() {
 
             {(kind === "equipment-authorization" || kind === "professional-license") && (
               <>
+                <PhotoUploadField isAr={isAr} value={data.photoUrl} onChange={v => set("photoUrl", v)} />
                 <FormField label={isAr ? "رقم البطاقة / الرخصة" : "Card / License No."} value={data.reference} onChange={v => set("reference", v)} />
                 <FormField label={isAr ? "اسم الموظف" : "Employee Name"} value={data.employeeName} onChange={v => set("employeeName", v)} />
                 <FormField label={isAr ? "الرقم الوظيفي" : "Employee ID"} value={data.employeeId} onChange={v => set("employeeId", v)} />
