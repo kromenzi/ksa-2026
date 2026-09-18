@@ -1224,8 +1224,14 @@ export default function AdminReports() {
               { label: isAr ? 'اسم المراقب' : 'Observer', value: shareSafetyReport.observerName || '-' },
               { label: isAr ? 'مستوى المخاطرة' : 'Risk Level', value: getRiskLabel(shareSafetyReport.riskLevel) },
               { label: isAr ? 'الحالة' : 'Status', value: getStatusLabel(shareSafetyReport.status) },
+              { label: isAr ? 'نوع الملاحظة' : 'Observation Type', value: shareSafetyReport.sourceMetadata?.observationType || '-' },
+              { label: isAr ? 'تقييم المخاطر 5×5' : '5×5 Risk Score', value: shareSafetyReport.sourceMetadata?.riskScore ? `${shareSafetyReport.sourceMetadata.riskScore}/25 (L:${shareSafetyReport.sourceMetadata.likelihood || '-'} × C:${shareSafetyReport.sourceMetadata.consequence || '-'})` : '-' },
               { label: isAr ? 'وصف الملاحظة' : 'Observation Description', value: shareSafetyReport.observationDescription || '-' },
-              { label: isAr ? 'الإجراء التصحيحي' : 'Corrective Action', value: shareSafetyReport.correctiveAction || '-' },
+              { label: isAr ? 'الإجراء الفوري' : 'Immediate Action', value: shareSafetyReport.sourceMetadata?.immediateAction || '-' },
+              { label: isAr ? 'الإجراء التصحيحي / الوقائي' : 'Corrective / Preventive Action', value: shareSafetyReport.correctiveAction || '-' },
+              { label: isAr ? 'مسؤول الإجراء' : 'Action Owner', value: shareSafetyReport.sourceMetadata?.actionOwner || '-' },
+              { label: isAr ? 'الموعد المستهدف' : 'Target Date', value: shareSafetyReport.sourceMetadata?.targetDate || '-' },
+              { label: isAr ? 'التحقق والمتابعة' : 'Verification / Follow-up', value: shareSafetyReport.sourceMetadata?.verificationNotes || '-' },
             ],
           }}
         />
@@ -1865,6 +1871,8 @@ function SafetyReportPreviewDialog({
   if (!report) return null;
   const publicUrl = getPublicUrl(report.id);
   const images = [report.image1, report.image2, report.image3, report.image4].filter(Boolean);
+  const metadata = report.sourceMetadata && typeof report.sourceMetadata === "object" ? report.sourceMetadata : {};
+  const riskScore = Number(metadata.riskScore || 0);
   const riskLabel = ({ low: isAr ? 'منخفض' : 'Low', medium: isAr ? 'متوسط' : 'Medium', high: isAr ? 'عالي' : 'High', critical: isAr ? 'حرج' : 'Critical' } as Record<string, string>)[report.riskLevel] || report.riskLevel;
   const statusLabel = ({ open: isAr ? 'مفتوح' : 'Open', in_progress: isAr ? 'قيد التنفيذ' : 'In Progress', closed: isAr ? 'مغلق' : 'Closed' } as Record<string, string>)[report.status] || report.status;
 
@@ -2005,6 +2013,18 @@ function SafetyReportPreviewDialog({
                   </td>
                   <td style={{ border: '1px solid #ccc', padding: '5px 8px', fontWeight: 'bold' }}>{report.status.toUpperCase()}</td>
                 </tr>
+                <tr>
+                  <td style={{ border: '1px solid #ccc', padding: '5px 8px', backgroundColor: '#f0f4f8', fontWeight: 'bold' }}>
+                    {isAr ? 'نوع الملاحظة / Type' : 'Observation Type / النوع'}
+                  </td>
+                  <td style={{ border: '1px solid #ccc', padding: '5px 8px' }}>{String(metadata.observationType || '-')}</td>
+                  <td style={{ border: '1px solid #ccc', padding: '5px 8px', backgroundColor: '#f0f4f8', fontWeight: 'bold' }}>
+                    {isAr ? 'تقييم 5×5 / Score' : '5×5 Risk Score / التقييم'}
+                  </td>
+                  <td style={{ border: '1px solid #ccc', padding: '5px 8px', fontWeight: 'bold' }}>
+                    {riskScore ? `${riskScore}/25 (L:${metadata.likelihood || '-'} × C:${metadata.consequence || '-'})` : '-'}
+                  </td>
+                </tr>
               </tbody>
             </table>
 
@@ -2018,12 +2038,35 @@ function SafetyReportPreviewDialog({
             </div>
 
             <div style={{ border: '1px solid #ccc', marginBottom: '10px' }}>
+              <div style={{ backgroundColor: '#b45309', color: '#fff', padding: '5px 8px', fontSize: '11px', fontWeight: 'bold' }}>
+                {isAr ? 'الإجراء الفوري / Immediate Action' : 'Immediate Action / الإجراء الفوري'}
+              </div>
+              <div style={{ padding: '8px', fontSize: '11px', minHeight: '40px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {String(metadata.immediateAction || '-')}
+              </div>
+            </div>
+
+            <div style={{ border: '1px solid #ccc', marginBottom: '10px' }}>
               <div style={{ backgroundColor: '#1e3a5f', color: '#fff', padding: '5px 8px', fontSize: '11px', fontWeight: 'bold' }}>
-                {isAr ? 'الإجراء التصحيحي / Corrective Action' : 'Corrective Action / الإجراء التصحيحي'}
+                {isAr ? 'الإجراء التصحيحي / الوقائي' : 'Corrective / Preventive Action'}
               </div>
               <div style={{ padding: '8px', fontSize: '11px', minHeight: '50px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {report.correctiveAction || '-'}
               </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', borderTop: '1px solid #ccc' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ border: '1px solid #ccc', padding: '5px', backgroundColor: '#f0f4f8', fontWeight: 'bold', width: '18%' }}>{isAr ? 'المسؤول' : 'Owner'}</td>
+                    <td style={{ border: '1px solid #ccc', padding: '5px', width: '32%' }}>{String(metadata.actionOwner || '-')}</td>
+                    <td style={{ border: '1px solid #ccc', padding: '5px', backgroundColor: '#f0f4f8', fontWeight: 'bold', width: '18%' }}>{isAr ? 'الموعد' : 'Target'}</td>
+                    <td style={{ border: '1px solid #ccc', padding: '5px', width: '32%' }}>{String(metadata.targetDate || '-')}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #ccc', padding: '5px', backgroundColor: '#f0f4f8', fontWeight: 'bold' }}>{isAr ? 'التحقق' : 'Verification'}</td>
+                    <td colSpan={3} style={{ border: '1px solid #ccc', padding: '5px', whiteSpace: 'pre-wrap' }}>{String(metadata.verificationNotes || '-')}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             {images.length > 0 && (
