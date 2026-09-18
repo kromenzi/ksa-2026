@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useData } from "@/lib/data-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -466,6 +466,7 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
   const [customBody, setCustomBody] = useState("");
   const [resolvedImages, setResolvedImages] = useState<string[]>([]);
   const [fontColor, setFontColor] = useState("#1f2937");
+  const customPrintRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -485,10 +486,148 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
   const defaultSubject = `${item.type.toUpperCase()}: ${item.refNo || item.title}${item.severity ? ` [${item.severity.toUpperCase()}]` : ""}`;
   const defaultBody = item.sections.map(s => `${s.label}: ${s.value || (isAr ? "غير متوفر" : "N/A")}`).join("\n\n");
 
-  // Handle print using iframe for better font support or window.print for custom content
+  // Print custom templates inside an isolated light iframe so the admin theme/dialog
+  // cannot leak dark backgrounds, clipping or hidden elements into Chrome print/PDF.
   const handlePrint = useCallback(() => {
     if (customContent) {
-      window.print();
+      const source = customPrintRef.current;
+      if (!source) {
+        toast.error(isAr ? "تعذر تجهيز معاينة الطباعة" : "Unable to prepare print preview");
+        return;
+      }
+
+      document.getElementById("print-share-custom-iframe")?.remove();
+
+      const templateElement = source.querySelector<HTMLElement>(".official-hse-template");
+      const bounds = templateElement?.getBoundingClientRect();
+      const orientation = bounds && bounds.height > bounds.width ? "portrait" : "landscape";
+      const inheritedStyles = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style'))
+        .map(node => node.outerHTML)
+        .join("\n");
+
+      const iframe = document.createElement("iframe");
+      iframe.id = "print-share-custom-iframe";
+      iframe.setAttribute("aria-hidden", "true");
+      iframe.style.position = "fixed";
+      iframe.style.top = "0";
+      iframe.style.left = "-12000px";
+      iframe.style.width = orientation === "portrait" ? "900px" : "1280px";
+      iframe.style.height = orientation === "portrait" ? "1280px" : "900px";
+      iframe.style.border = "0";
+      iframe.style.background = "#ffffff";
+      iframe.style.pointerEvents = "none";
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      const printWindow = iframe.contentWindow;
+      if (!doc || !printWindow) {
+        iframe.remove();
+        toast.error(isAr ? "تعذر فتح محرك الطباعة" : "Unable to open the print engine");
+        return;
+      }
+
+      doc.open();
+      doc.write(`<!doctype html>
+<html lang="${isAr ? "ar" : "en"}" dir="${isAr ? "rtl" : "ltr"}">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+${inheritedStyles}
+<style>
+  @page { size: A4 ${orientation}; margin: 8mm; }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    min-height: 100% !important;
+    background: #ffffff !important;
+    color: #0f2742 !important;
+    color-scheme: light !important;
+  }
+  body {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  #print-custom-root {
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+  #print-custom-root > * { width: 100% !important; }
+  #print-custom-root .official-hse-template {
+    margin: 0 auto !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-scheme: light !important;
+  }
+  #print-custom-root .official-hse-template,
+  #print-custom-root .official-hse-template * {
+    visibility: visible !important;
+    opacity: 1;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  #print-custom-root .official-hse-template [aria-hidden="true"] {
+    display: block !important;
+  }
+  @media print {
+    html, body, #print-custom-root { background: #ffffff !important; }
+    #print-custom-root .official-hse-template { box-shadow: none !important; }
+  }
+</style>
+</head>
+<body><div id="print-custom-root">${source.innerHTML}</div></body>
+</html>`);
+      doc.close();
+
+      const printWhenReady = async () => {
+        try {
+          const fontSet = (doc as Document & { fonts?: { ready: Promise<unknown> } }).fonts;
+          if (fontSet) await fontSet.ready;
+          const stylesheetLinks = Array.from(doc.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'));
+          await Promise.all(stylesheetLinks.map(link => {
+            if (link.sheet) return Promise.resolve();
+            return new Promise<void>(resolve => {
+              const done = () => resolve();
+              link.addEventListener("load", done, { once: true });
+              link.addEventListener("error", done, { once: true });
+              setTimeout(done, 1200);
+            });
+          }));
+          const images = Array.from(doc.images);
+          await Promise.all(images.map(image => image.complete
+            ? Promise.resolve()
+            : new Promise<void>(resolve => {
+                const done = () => resolve();
+                image.addEventListener("load", done, { once: true });
+                image.addEventListener("error", done, { once: true });
+              })));
+        } catch {
+          // Printing should still proceed with browser fallbacks if an asset fails.
+        }
+
+        const cleanup = () => iframe.remove();
+        printWindow.addEventListener("afterprint", cleanup, { once: true });
+        printWindow.focus();
+        printWindow.print();
+        setTimeout(() => {
+          if (document.body.contains(iframe)) iframe.remove();
+        }, 60000);
+      };
+
+      void printWhenReady();
       return;
     }
 
@@ -611,7 +750,7 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[94vh] w-[96vw] max-w-6xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Printer className="h-5 w-5" />
@@ -669,8 +808,20 @@ export default function PrintShareDialog({ open, onOpenChange, item, customConte
                 {isAr ? "القالب الرسمي يستخدم ألوان الهوية المعتمدة ويحافظ عليها أثناء الطباعة وPDF." : "This official template preserves its approved identity colors in print and PDF."}
               </div>
             )}
-            <div className="overflow-auto rounded-lg border bg-slate-100 p-3">
-              {customContent ? customContent : <PrintView item={renderItem} siteName={settings.siteName} isAr={isAr} settings={settings} fontColor={fontColor} />}
+            <div
+              className="relative overflow-auto rounded-2xl border border-slate-200/80 p-4 shadow-inner md:p-6"
+              style={{
+                background:
+                  "radial-gradient(circle at 12% 0%, rgba(15,143,138,.14), transparent 28%), radial-gradient(circle at 88% 100%, rgba(11,58,103,.14), transparent 32%), linear-gradient(145deg,#eef5f7 0%,#f8fbfc 48%,#e9f1f5 100%)",
+              }}
+            >
+              {customContent ? (
+                <div ref={customPrintRef} className="mx-auto min-w-[900px] py-2">
+                  {customContent}
+                </div>
+              ) : (
+                <PrintView item={renderItem} siteName={settings.siteName} isAr={isAr} settings={settings} fontColor={fontColor} />
+              )}
             </div>
             <Button onClick={handlePrint} className="w-full">
               <Printer className="h-4 w-4 mr-2" />

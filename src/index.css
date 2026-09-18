@@ -316,3 +316,39 @@
     grid-template-columns: 1fr 1fr !important;
   }
 }
+
+/* Official HSE cards/certificates: keep preview and browser print deterministic. */
+.official-hse-template {
+  isolation: isolate;
+  color-scheme: light;
+  background-color: #ffffff;
+}
+.official-hse-template img,
+.official-hse-template svg {
+  max-width: 100%;
+}
+@media print {
+  html, body {
+    color-scheme: light !important;
+  }
+  .official-hse-template {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    margin-inline: auto !important;
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .official-hse-template * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .official-hse-template [aria-hidden="true"] {
+    display: block !important;
+  }
+}

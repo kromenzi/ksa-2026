@@ -239,8 +239,14 @@ export default function AdminOfficialTemplatesPage() {
           </CardContent>
         </Card>
 
-        <div className="min-w-0 overflow-auto rounded-xl border bg-slate-100 p-4">
-          <div className="min-w-[720px]">{template}</div>
+        <div
+          className="relative min-w-0 overflow-auto rounded-2xl border border-slate-200/80 p-4 shadow-inner md:p-7"
+          style={{
+            background:
+              "radial-gradient(circle at 12% 0%, rgba(15,143,138,.14), transparent 28%), radial-gradient(circle at 88% 100%, rgba(11,58,103,.14), transparent 32%), linear-gradient(145deg,#eef5f7 0%,#f8fbfc 48%,#e9f1f5 100%)",
+          }}
+        >
+          <div className="relative mx-auto min-w-[900px] py-2">{template}</div>
         </div>
       </div>
 

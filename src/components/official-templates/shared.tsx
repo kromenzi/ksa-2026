@@ -68,21 +68,41 @@ export function safeValue(input?: string, fallback = "—") {
 
 export function SecurityPattern() {
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 opacity-[.06]"
-      style={{
-        backgroundImage:
-          "radial-gradient(circle at 25% 25%, #0f8f8a 0 1px, transparent 1px), repeating-linear-gradient(135deg, transparent 0 10px, #0b3a67 10px 11px, transparent 11px 20px)",
-        backgroundSize: "18px 18px,36px 36px",
-      }}
-    />
+    <>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at 8% 5%, rgba(15,143,138,.15), transparent 26%), radial-gradient(circle at 92% 94%, rgba(11,58,103,.14), transparent 30%), linear-gradient(145deg,#ffffff 0%,#f8fbfd 50%,#eef6f8 100%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[.055]"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 25% 25%, #0f8f8a 0 1px, transparent 1px), repeating-linear-gradient(135deg, transparent 0 10px, #0b3a67 10px 11px, transparent 11px 20px)",
+          backgroundSize: "18px 18px,36px 36px",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full border-[24px]"
+        style={{ borderColor: "rgba(15,143,138,.06)" }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full border-[30px]"
+        style={{ borderColor: "rgba(11,58,103,.05)" }}
+      />
+    </>
   );
 }
 
 export function CompanyBrand({ branding, light = false }: { branding?: OfficialHseBranding; light?: boolean }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       {branding?.companyLogo ? (
         <img src={branding.companyLogo} alt={branding.companyName || "Company"} className="h-10 w-16 object-contain" />
       ) : (
@@ -94,7 +114,7 @@ export function CompanyBrand({ branding, light = false }: { branding?: OfficialH
         </div>
       )}
       <div className="leading-tight">
-        <div className="text-[13px] font-black tracking-wide" style={{ color: light ? "#fff" : HSE_COLORS.navy }}>
+        <div className="max-w-[220px] break-words text-[13px] font-black tracking-wide" style={{ color: light ? "#fff" : HSE_COLORS.navy }}>
           {branding?.companyName || "YOUR COMPANY"}
         </div>
         <div className="text-[8px] font-semibold tracking-[.14em]" style={{ color: light ? "rgba(255,255,255,.8)" : "#55758f" }}>
@@ -151,13 +171,13 @@ export function PhotoBox({ src, portrait = false }: { src?: string; portrait?: b
 
 export function CardField({ en, ar, value, icon }: { en: string; ar: string; value?: string; icon?: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[18px_116px_1fr_100px] items-center gap-1.5 text-[9px]">
+    <div className="grid min-w-0 grid-cols-[18px_minmax(76px,104px)_minmax(0,1fr)_minmax(68px,88px)] items-center gap-1.5 text-[9px]">
       <div style={{ color: HSE_COLORS.blue }}>{icon || <BadgeCheck className="h-4 w-4" />}</div>
-      <div className="font-bold" style={{ color: HSE_COLORS.navy }}>{en}</div>
-      <div className="min-h-[27px] rounded-md px-2 py-1.5 font-semibold" style={{ background: "#edf2f5", color: HSE_COLORS.ink }}>
+      <div className="min-w-0 font-bold leading-tight" style={{ color: HSE_COLORS.navy }}>{en}</div>
+      <div className="min-h-[27px] min-w-0 break-words rounded-md px-2 py-1.5 font-semibold leading-tight" style={{ background: "rgba(237,242,245,.92)", color: HSE_COLORS.ink }}>
         {safeValue(value, "")}
       </div>
-      <div className="text-right font-bold" style={{ color: HSE_COLORS.navy }}>{ar}</div>
+      <div className="min-w-0 text-right font-bold leading-tight" style={{ color: HSE_COLORS.navy }}>{ar}</div>
     </div>
   );
 }
@@ -177,7 +197,7 @@ export function SignatureBox({ en, ar, value }: { en: string; ar: string; value?
 export function CertificateShell({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="official-hse-template relative mx-auto aspect-[1.414/1] w-full max-w-[1120px] overflow-hidden bg-white p-[14px] shadow-xl"
+      className="official-hse-template relative mx-auto aspect-[1.414/1] w-full max-w-[1120px] overflow-hidden rounded-[20px] border border-slate-200 bg-white p-[14px] shadow-xl"
       style={{ fontFamily: "'Cairo','Noto Sans Arabic',Arial,sans-serif", color: HSE_COLORS.ink }}
     >
       <SecurityPattern />
