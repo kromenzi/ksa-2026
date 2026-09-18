@@ -91,8 +91,8 @@ function sanitizeBody(table: string, body: any, mode: "insert" | "update") {
 }
 
 
-const REPORTING_KEY_NAMES = {
-  econst REPORTING_EDGE_URL = `${(process.env.SUPABASE_URL || fallbackSupabaseUrl).replace(/\\/$/, "")}/functions/v1/safety-reporting`;
+const reportingBaseUrl = process.env.SUPABASE_URL || fallbackSupabaseUrl;
+const REPORTING_EDGE_URL = `${reportingBaseUrl.endsWith("/") ? reportingBaseUrl.slice(0, -1) : reportingBaseUrl}/functions/v1/safety-reporting`;
 
 function reportingClientIp(req: any) {
   const forwarded = String(req?.headers?.["x-forwarded-for"] || "").split(",")[0]?.trim();
@@ -120,7 +120,7 @@ async function proxySafetyReporting(req: any, res: any, action: string, requireU
   return json(res, response.status, payload);
 }
 
-odule: string, action: string) {
+function canWrite(profile: any, module: string, action: string) {
   if (!profile?.is_active) return false;
   if (module === "activity" && action === "create") return true;
   if (profile.role === "admin") return true;
