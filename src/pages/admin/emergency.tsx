@@ -8,14 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Flame, Printer, Eye, Trash2, Loader2 } from "lucide-react";
+import { Flame, Printer, Eye, Trash2, Loader2, Award } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import PrintShareDialog from "@/components/print-share-dialog";
+import { OfficialHseTemplate } from "@/components/official-templates";
 
 interface EmergencyApiRow { id:string; refNo?:string|null; title?:string|null; status?:string|null; department?:string|null; date?:string|null; data?:Record<string,any>|null; }
-export interface DrillRecord { id:string; refNo:string; drillType:string; location:string; factory:string; date:string; evacuationTimeSeconds:number; participantsCount:number; status:string; notes:string; }
-const toDrill=(row:EmergencyApiRow):DrillRecord=>{const d=row.data||{};return{id:row.id,refNo:String(row.refNo||""),drillType:String(row.title||d.drillType||""),location:String(d.location||""),factory:String(d.factory||row.department||""),date:String(row.date||d.date||""),evacuationTimeSeconds:Number(d.evacuationTimeSeconds||0),participantsCount:Number(d.participantsCount||0),status:String(row.status||d.status||""),notes:String(d.notes||d.observations||"")};};
+export interface DrillRecord { id:string; refNo:string; drillType:string; location:string; factory:string; date:string; evacuationTimeSeconds:number; participantsCount:number; status:string; notes:string; scenario:string; assemblyPoint:string; coordinator:string; safetyOfficer:string; }
+const toDrill=(row:EmergencyApiRow):DrillRecord=>{const d=row.data||{};return{id:row.id,refNo:String(row.refNo||""),drillType:String(row.title||d.drillType||""),location:String(d.location||""),factory:String(d.factory||row.department||""),date:String(row.date||d.date||""),evacuationTimeSeconds:Number(d.evacuationTimeSeconds||0),participantsCount:Number(d.participantsCount||0),status:String(row.status||d.status||""),notes:String(d.notes||d.observations||""),scenario:String(d.scenario||d.drillType||row.title||""),assemblyPoint:String(d.assemblyPoint||d.assembly_point||""),coordinator:String(d.coordinator||""),safetyOfficer:String(d.safetyOfficer||d.safety_officer||"")};};
 
 export default function AdminEmergencyPage(){
   const {settings,currentUser}=useData(); const isAr=settings.language==="ar"; const queryClient=useQueryClient(); const canDelete=currentUser?.role==="admin"||currentUser?.role==="manager";
@@ -26,13 +27,53 @@ export default function AdminEmergencyPage(){
   const handleDelete=async(item:DrillRecord)=>{if(!canDelete)return;if(!window.confirm(isAr?`حذف سجل التمرين ${item.refNo||item.drillType} نهائياً؟`:`Permanently delete drill ${item.refNo||item.drillType}?`))return;setDeletingId(item.id);try{await apiRequest("DELETE",`/api/emergency/${encodeURIComponent(item.id)}`);if(selectedDrill?.id===item.id)setSelectedDrill(null);await refresh();toast.success(isAr?"تم حذف سجل الطوارئ نهائياً":"Emergency record deleted permanently");}catch(error:any){toast.error(error?.message||(isAr?"تعذر الحذف":"Unable to delete"));}finally{setDeletingId(null);}};
   const timeLabel=(seconds:number)=>seconds>0?`${seconds}s (${Math.floor(seconds/60)}m ${seconds%60}s)`:"—";
   const handlePrintDrill=(item:DrillRecord)=>{const sections:any[]=[{label:isAr?"الرقم المرجعي":"Drill Ref No",value:item.refNo},{label:isAr?"نوع التمرين":"Drill Type",value:item.drillType},{label:isAr?"الموقع":"Location",value:item.location},{label:isAr?"المصنع / القسم":"Factory / Department",value:item.factory},{label:isAr?"تاريخ التنفيذ":"Execution Date",value:item.date},{label:isAr?"زمن الإخلاء":"Evacuation Time",value:timeLabel(item.evacuationTimeSeconds)},{label:isAr?"عدد المشاركين":"Participants",value:String(item.participantsCount||0)},{label:isAr?"النتيجة":"Overall Assessment",value:item.status}];if(item.notes)sections.push({label:isAr?"الملاحظات":"Observations",value:item.notes});setPrintItem({id:item.id,type:"report" as const,refNo:item.refNo,title:`${isAr?"تقرير تمرين الإخلاء والطوارئ":"Emergency Drill Evaluation Report"} - ${item.drillType}`,department:item.factory||"HSE",status:item.status,date:item.date,createdAt:item.date,sections});setIsPrintOpen(true);};
+  const handlePrintDrillCertificate=(item:DrillRecord)=>{
+    const certificateRef=item.refNo?item.refNo+"-CERT":"FIRE-DRILL-CERT";
+    setPrintItem({
+      id:item.id,
+      type:"certificate" as const,
+      refNo:certificateRef,
+      title:isAr?"شهادة تنفيذ تجربة إخلاء":"Fire Drill Certificate",
+      department:item.factory||"HSE",
+      status:item.status,
+      date:item.date,
+      templateKind:"fire-drill",
+      templateData:{
+        reference:certificateRef,
+        factory:item.factory,
+        department:item.factory,
+        date:item.date,
+        location:item.location,
+        scenario:item.scenario||item.drillType,
+        participants:String(item.participantsCount||0),
+        evacuationTime:timeLabel(item.evacuationTimeSeconds),
+        assemblyPoint:item.assemblyPoint,
+        coordinator:item.coordinator,
+        safetyOfficer:item.safetyOfficer,
+        approver:"HSE Manager",
+      },
+      sections:[
+        {label:isAr?"نوع التمرين":"Drill Type",value:item.drillType||"-"},
+        {label:isAr?"الموقع":"Location",value:item.location||"-"},
+        {label:isAr?"زمن الإخلاء":"Evacuation Time",value:timeLabel(item.evacuationTimeSeconds)},
+      ],
+    });
+    setIsPrintOpen(true);
+  };
+
   const handlePrintAll=()=>{if(drills.length===0){toast.info(isAr?"لا توجد سجلات طوارئ محفوظة للطباعة":"No saved emergency records to print");return;}setPrintItem({id:"EMERGENCY-REGISTER",type:"report" as const,refNo:"HSE-ERP-REGISTER",title:isAr?"سجل الاستجابة للطوارئ وتمارين الإخلاء":"Emergency Response & Drill Register",department:"HSE",status:"Active",date:new Date().toISOString().split("T")[0],sections:[{label:isAr?"عدد التمارين المسجلة":"Total Drills",value:String(drills.length)},{label:isAr?"السجل":"Register",value:drills.map(d=>`[${d.refNo}] ${d.drillType} - ${d.location} - ${timeLabel(d.evacuationTimeSeconds)} - ${d.status}`).join("\n")} ]});setIsPrintOpen(true);};
   return <div className="space-y-6" data-testid="admin-emergency-page">
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"><div className="flex items-center gap-3"><div className="h-11 w-11 rounded-xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center"><Flame className="h-5 w-5 text-white"/></div><div><h2 className="text-[28px] font-bold tracking-tight">{isAr?"إدارة الطوارئ والإخلاء":"Emergency Management & Fire Drills"}</h2><p className="text-[12px] text-muted-foreground">{isAr?"سجلات الطوارئ وتمارين الإخلاء المحفوظة فعلياً":"Only emergency and evacuation drill records saved in the database are displayed"}</p></div></div><Button onClick={handlePrintAll} variant="outline" className="gap-2"><Printer className="h-4 w-4"/>{isAr?"طباعة سجل الطوارئ":"Print Emergency Register"}</Button></div>
     <Card className="p-4"><div className="rounded-lg border overflow-hidden"><Table><TableHeader className="bg-muted/50"><TableRow><TableHead>{isAr?"الرقم المرجعي":"Ref No"}</TableHead><TableHead>{isAr?"نوع التمرين والموقع":"Drill Type & Location"}</TableHead><TableHead>{isAr?"زمن الإخلاء":"Evacuation Time"}</TableHead><TableHead>{isAr?"المشاركون":"Participants"}</TableHead><TableHead>{isAr?"الحالة":"Status"}</TableHead><TableHead className="text-right">{isAr?"الإجراءات":"Actions"}</TableHead></TableRow></TableHeader><TableBody>
-      {isLoading?<TableRow><TableCell colSpan={6} className="h-28 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto"/></TableCell></TableRow>:drills.length===0?<TableRow><TableCell colSpan={6} className="h-28 text-center text-muted-foreground">{isAr?"لا توجد سجلات طوارئ أو تمارين محفوظة":"No saved emergency or drill records"}</TableCell></TableRow>:drills.map(item=><TableRow key={item.id}><TableCell className="font-mono text-xs font-semibold">{item.refNo||"—"}</TableCell><TableCell><p className="font-semibold text-sm">{item.drillType||"—"}</p><p className="text-xs text-muted-foreground">{item.location||"—"}</p></TableCell><TableCell className="text-sm">{timeLabel(item.evacuationTimeSeconds)}</TableCell><TableCell className="text-xs">{item.participantsCount||0}</TableCell><TableCell><Badge variant="outline">{item.status||"—"}</Badge></TableCell><TableCell className="text-right"><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" onClick={()=>handlePrintDrill(item)}><Printer className="h-4 w-4"/></Button><Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={()=>setSelectedDrill(item)}><Eye className="h-3.5 w-3.5"/>{isAr?"معاينة":"Preview"}</Button>{canDelete&&<Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={()=>void handleDelete(item)} disabled={deletingId===item.id}>{deletingId===item.id?<Loader2 className="h-4 w-4 animate-spin"/>:<Trash2 className="h-4 w-4"/>}</Button>}</div></TableCell></TableRow>)}
+      {isLoading?<TableRow><TableCell colSpan={6} className="h-28 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto"/></TableCell></TableRow>:drills.length===0?<TableRow><TableCell colSpan={6} className="h-28 text-center text-muted-foreground">{isAr?"لا توجد سجلات طوارئ أو تمارين محفوظة":"No saved emergency or drill records"}</TableCell></TableRow>:drills.map(item=><TableRow key={item.id}><TableCell className="font-mono text-xs font-semibold">{item.refNo||"—"}</TableCell><TableCell><p className="font-semibold text-sm">{item.drillType||"—"}</p><p className="text-xs text-muted-foreground">{item.location||"—"}</p></TableCell><TableCell className="text-sm">{timeLabel(item.evacuationTimeSeconds)}</TableCell><TableCell className="text-xs">{item.participantsCount||0}</TableCell><TableCell><Badge variant="outline">{item.status||"—"}</Badge></TableCell><TableCell className="text-right"><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" onClick={()=>handlePrintDrill(item)} title={isAr?"طباعة تقرير التمرين":"Print drill report"}><Printer className="h-4 w-4"/></Button><Button size="icon" variant="ghost" className="text-amber-600" onClick={()=>handlePrintDrillCertificate(item)} title={isAr?"إصدار شهادة Fire Drill":"Issue Fire Drill Certificate"}><Award className="h-4 w-4"/></Button><Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={()=>setSelectedDrill(item)}><Eye className="h-3.5 w-3.5"/>{isAr?"معاينة":"Preview"}</Button>{canDelete&&<Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={()=>void handleDelete(item)} disabled={deletingId===item.id}>{deletingId===item.id?<Loader2 className="h-4 w-4 animate-spin"/>:<Trash2 className="h-4 w-4"/>}</Button>}</div></TableCell></TableRow>)}
     </TableBody></Table></div></Card>
-    {selectedDrill&&<Dialog open onOpenChange={open=>!open&&setSelectedDrill(null)}><DialogContent className="max-w-xl"><DialogHeader><DialogTitle>{isAr?"تفاصيل سجل الطوارئ":"Emergency Record Details"}</DialogTitle></DialogHeader><div className="space-y-3 text-sm"><div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">{isAr?"المرجع":"Reference"}</span><strong>{selectedDrill.refNo||"—"}</strong></div><div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">{isAr?"نوع التمرين":"Drill Type"}</span><strong>{selectedDrill.drillType||"—"}</strong></div><div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">{isAr?"الموقع":"Location"}</span><strong>{selectedDrill.location||"—"}</strong></div><div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">{isAr?"زمن الإخلاء":"Evacuation Time"}</span><strong>{timeLabel(selectedDrill.evacuationTimeSeconds)}</strong></div>{selectedDrill.notes&&<div className="rounded-lg border p-3 whitespace-pre-wrap">{selectedDrill.notes}</div>}</div><DialogFooter><Button variant="outline" onClick={()=>setSelectedDrill(null)}>{isAr?"إغلاق":"Close"}</Button><Button onClick={()=>handlePrintDrill(selectedDrill)}><Printer className="h-4 w-4 me-2"/>{isAr?"طباعة":"Print"}</Button></DialogFooter></DialogContent></Dialog>}
-    {printItem&&<PrintShareDialog open={isPrintOpen} onOpenChange={setIsPrintOpen} item={printItem}/>} 
+    {selectedDrill&&<Dialog open onOpenChange={open=>!open&&setSelectedDrill(null)}><DialogContent className="max-w-xl"><DialogHeader><DialogTitle>{isAr?"تفاصيل سجل الطوارئ":"Emergency Record Details"}</DialogTitle></DialogHeader><div className="space-y-3 text-sm"><div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">{isAr?"المرجع":"Reference"}</span><strong>{selectedDrill.refNo||"—"}</strong></div><div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">{isAr?"نوع التمرين":"Drill Type"}</span><strong>{selectedDrill.drillType||"—"}</strong></div><div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">{isAr?"الموقع":"Location"}</span><strong>{selectedDrill.location||"—"}</strong></div><div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">{isAr?"زمن الإخلاء":"Evacuation Time"}</span><strong>{timeLabel(selectedDrill.evacuationTimeSeconds)}</strong></div>{selectedDrill.notes&&<div className="rounded-lg border p-3 whitespace-pre-wrap">{selectedDrill.notes}</div>}</div><DialogFooter><Button variant="outline" onClick={()=>setSelectedDrill(null)}>{isAr?"إغلاق":"Close"}</Button><Button variant="outline" onClick={()=>handlePrintDrill(selectedDrill)}><Printer className="h-4 w-4 me-2"/>{isAr?"طباعة التقرير":"Print Report"}</Button><Button onClick={()=>handlePrintDrillCertificate(selectedDrill)}><Award className="h-4 w-4 me-2"/>{isAr?"شهادة Fire Drill":"Fire Drill Certificate"}</Button></DialogFooter></DialogContent></Dialog>}
+    {printItem&&<PrintShareDialog
+      open={isPrintOpen}
+      onOpenChange={setIsPrintOpen}
+      item={printItem}
+      preserveCustomColors={Boolean(printItem.templateKind)}
+      customContent={printItem.templateKind==="fire-drill"?<OfficialHseTemplate kind="fire-drill" data={printItem.templateData} branding={settings.branding} qrValue={printItem.refNo}/>:undefined}
+    />} 
   </div>;
 }
