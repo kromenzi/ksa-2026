@@ -61,6 +61,7 @@ import {
   CalendarDays,
   RadioTower,
   Triangle,
+  Video,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { ColorTheme } from "@/lib/data-context";
@@ -152,6 +153,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         { label: isAr ? 'قواعد السلامة' : 'Safety Rules', icon: FileCheck2, href: "/admin/vision/rules", visible: true, color: "text-indigo-500", bgColor: "bg-indigo-500/10" },
         { label: isAr ? 'أحداث السلامة' : 'Safety Events', icon: ShieldAlert, href: "/admin/vision/events", visible: true, color: "text-rose-500", bgColor: "bg-rose-500/10" },
         { label: isAr ? 'تحليلات السلامة' : 'Safety Analytics', icon: Activity, href: "/admin/vision/analytics", visible: true, color: "text-indigo-500", bgColor: "bg-indigo-500/10" },
+      ]
+    },
+    {
+      title: "Live Collaboration",
+      titleAr: "الاجتماعات والبث المباشر",
+      items: [
+        { label: isAr ? 'اجتماع مباشر' : 'Live Meeting', icon: Video, href: "/admin/live-meeting", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
       ]
     },
     {
