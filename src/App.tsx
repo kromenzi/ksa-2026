@@ -15,6 +15,7 @@ import { OfflineStatusBanner } from "@/components/offline-status-banner";
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
 const HseAssistantPage = lazy(() => import("@/pages/admin/hse-assistant"));
 const ExecutiveHseDashboard = lazy(() => import("@/pages/admin/executive-hse"));
+const SafetyIntelligencePage = lazy(() => import("@/pages/admin/safety-intelligence"));
 const AdminUsers = lazy(() => import("@/pages/admin/users"));
 const AdminPosts = lazy(() => import("@/pages/admin/posts"));
 const AdminSections = lazy(() => import("@/pages/admin/sections"));
@@ -132,6 +133,7 @@ function Router() {
       <Route path="/admin/dashboard"><ProtectedRoute component={AdminDashboard} /></Route>
       <Route path="/admin/hse-assistant"><ProtectedRoute component={HseAssistantPage} /></Route>
       <Route path="/admin/executive-hse"><ProtectedRoute component={ExecutiveHseDashboard} /></Route>
+      <Route path="/admin/safety-intelligence"><ProtectedRoute component={SafetyIntelligencePage} /></Route>
       <Route path="/admin/users"><ProtectedRoute component={AdminUsers} /></Route>
       <Route path="/admin/posts"><ProtectedRoute component={AdminPosts} /></Route>
       <Route path="/admin/sections"><ProtectedRoute component={AdminSections} /></Route>
