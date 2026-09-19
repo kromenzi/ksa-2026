@@ -22,6 +22,7 @@ const AdminNCRForm = lazy(() => import("@/pages/admin/ncr/form"));
 const AdminNCRNewFixed = lazy(() => import("@/pages/admin/ncr/new-fixed"));
 const AdminFiles = lazy(() => import("@/pages/admin/files"));
 const AdminContracts = lazy(() => import("@/pages/admin/contracts"));
+const ContractorSafetyPage = lazy(() => import("@/pages/admin/contractor-safety"));
 const AdminPermits = lazy(() => import("@/pages/admin/permits"));
 const AdminInvoices = lazy(() => import("@/pages/admin/invoices"));
 const AdminSettings = lazy(() => import("@/pages/admin/settings"));
@@ -129,6 +130,7 @@ function Router() {
       <Route path="/admin/ncr/:id"><ProtectedRoute component={AdminNCRForm} /></Route>
       <Route path="/admin/files"><ProtectedRoute component={AdminFiles} /></Route>
       <Route path="/admin/contracts"><ProtectedRoute component={AdminContracts} /></Route>
+      <Route path="/admin/contractor-safety"><ProtectedRoute component={ContractorSafetyPage} /></Route>
       <Route path="/admin/permits"><ProtectedRoute component={AdminPermits} /></Route>
       <Route path="/admin/invoices"><ProtectedRoute component={AdminInvoices} /></Route>
       <Route path="/admin/settings"><ProtectedRoute component={AdminSettings} /></Route>
