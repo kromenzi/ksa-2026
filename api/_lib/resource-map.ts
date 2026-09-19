@@ -74,5 +74,8 @@ export const RESOURCE_MAP: Record<string, ResourceConfig> = {
   "monthly-hse-reports": { table: "monthly_hse_reports", module: "reports" },
   "hse-events": { table: "hse_events", module: "reports" },
   "notification-outbox": { table: "notification_outbox", module: "reports" },
+  "live-meetings": { table: "live_meetings", module: "content" },
+  "live-meeting-participants": { table: "live_meeting_participants", module: "content" },
+  "live-meeting-messages": { table: "live_meeting_messages", module: "content" },
 };
 
