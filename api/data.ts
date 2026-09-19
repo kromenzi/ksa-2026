@@ -86,7 +86,10 @@ export default async function handler(req: any, res: any) {
     if (resource === "notification-delivery-cron") {
       if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
       const cronSecret = String(process.env.CRON_SECRET || "");
-      if (!cronSecret) return json(res, 503, { error: "CRON_SECRET is not configured" });
+      if (!cronSecret) {
+        logger.warn("notification.cron.skipped", { requestId: rid, reason: "CRON_SECRET is not configured" });
+        return json(res, 200, { ok: false, skipped: true, reason: "CRON_SECRET is not configured" });
+      }
       const authHeader = String(req.headers?.authorization || "");
       if (authHeader !== `Bearer ${cronSecret}`) return json(res, 401, { error: "Unauthorized cron request" });
       const result = await processNotificationOutbox(50);
