@@ -185,6 +185,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       items: [
         { label: isAr ? 'فريق السلامة HSE' : 'HSE Safety Team', icon: ShieldCheck, href: "/admin/hse-team", visible: true, color: "text-emerald-600", bgColor: "bg-emerald-600/10" },
         { label: isAr ? 'سجل موظفي الأقسام' : 'Department Workforce Records', icon: Users, href: "/admin/employees", visible: true, color: "text-blue-600", bgColor: "bg-blue-600/10" },
+        { label: isAr ? 'مركز استيراد البيانات' : 'Data Import Center', icon: FileSpreadsheet, href: "/admin/import-center", visible: true, color: "text-sky-600", bgColor: "bg-sky-600/10" },
         { label: isAr ? 'مخالفات موظفي الأقسام' : 'Workforce Safety Violations', icon: ShieldAlert, href: "/admin/employee-violations", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
         { label: isAr ? 'تقارير ملاحظات السلامة (SOR)' : 'Safety Observation Reports (SOR)', icon: ShieldAlert, href: "/admin/reports", visible: hasPermission('reports', 'read'), color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
         { label: isAr ? 'بلاغات السلامة' : 'Safety Reporting', icon: ShieldAlert, href: "/admin/safety-reporting", visible: hasPermission('reports', 'read'), color: "text-teal-500", bgColor: "bg-teal-500/10" },
