@@ -96,3 +96,14 @@ test("unified authorization is enforced across UI and API", async () => {
   assert.ok(migration.includes("permissions_select_own_role_or_manager"));
   assert.ok(migration.includes("on conflict (role,module)"));
 });
+
+
+test("mobile field mode queues observations offline and syncs on reconnect", async () => {
+  const page = await readFile(new URL("../src/pages/admin/mobile-field.tsx", import.meta.url), "utf8");
+  const queue = await readFile(new URL("../src/lib/offline-field-queue.ts", import.meta.url), "utf8");
+  assert.ok(queue.includes("indexedDB.open"));
+  assert.ok(queue.includes("enqueueFieldOperation"));
+  assert.ok(page.includes('window.addEventListener("online"'));
+  assert.ok(page.includes("/api/safety-observations"));
+  assert.ok(page.includes("syncQueue"));
+});
