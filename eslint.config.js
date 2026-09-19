@@ -28,6 +28,7 @@ export default defineConfig([
       'react-hooks/purity': 'warn',
       'react-hooks/static-components': 'warn',
       'react-hooks/preserve-manual-memoization': 'warn',
+      'no-empty': ['error', { allowEmptyCatch: true }],
       'react-refresh/only-export-components': 'off',
     }
   },
