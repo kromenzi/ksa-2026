@@ -194,3 +194,16 @@ test("Supabase advisor hardening revokes public trigger RPC access and covers ne
     "legal_requirements_owner_user_id_idx",
   ]) assert.ok(migration.includes(indexName), `missing index ${indexName}`);
 });
+
+
+test("notification outbox cron reuses unified API and requires CRON_SECRET", async () => {
+  const api = await readFile(new URL("../api/data.ts", import.meta.url), "utf8");
+  const vercel = await readFile(new URL("../vercel.json", import.meta.url), "utf8");
+  assert.ok(api.includes('resource === "notification-delivery-cron"'));
+  assert.ok(api.includes("process.env.CRON_SECRET"));
+  assert.ok(api.includes("Unauthorized cron request"));
+  assert.ok(api.includes("processNotificationOutbox(50)"));
+  assert.ok(vercel.includes('"path": "/api/notification-delivery-cron"'));
+  assert.ok(vercel.includes('"schedule": "0 5 * * *"'));
+  assert.ok(vercel.includes('"destination": "/api/data?resource=notification-delivery-cron"'));
+});

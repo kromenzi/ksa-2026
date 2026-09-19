@@ -66,6 +66,7 @@ async function deliver(row:any):Promise<DeliveryResult>{
 export function notificationProviderStatus(){
   const c=configured();
   return {
+    automation:{cronConfigured:!!process.env.CRON_SECRET,requiredEnv:["CRON_SECRET"]},
     providers:{
       inApp:{configured:true},
       email:{configured:c.email,requiredEnv:["RESEND_API_KEY","NOTIFICATION_FROM_EMAIL"]},

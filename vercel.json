@@ -50,6 +50,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/notification-delivery-cron",
+      "destination": "/api/data?resource=notification-delivery-cron"
+    },
+    {
       "source": "/api/hse-workflows",
       "destination": "/api/data?resource=hse-workflows"
     },
@@ -520,6 +524,12 @@
     {
       "source": "/((?!api(?:/|$)).*)",
       "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/notification-delivery-cron",
+      "schedule": "0 5 * * *"
     }
   ]
 }
