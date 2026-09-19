@@ -190,6 +190,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         { label: isAr ? 'بلاغات السلامة' : 'Safety Reporting', icon: ShieldAlert, href: "/admin/safety-reporting", visible: hasPermission('reports', 'read'), color: "text-teal-500", bgColor: "bg-teal-500/10" },
         { label: isAr ? 'الوضع الميداني للجوال QR' : 'Mobile Field QR', icon: Search, href: "/admin/mobile-field", visible: true, color: "text-blue-600", bgColor: "bg-blue-600/10" },
         { label: isAr ? 'مركز الإجراءات التصحيحية CAPA' : 'CAPA & Action Center', icon: ClipboardCheck, href: "/admin/action-center", visible: true, color: "text-emerald-600", bgColor: "bg-emerald-600/10" },
+        { label: isAr ? 'محرك سير عمل HSE' : 'HSE Workflow Center', icon: Workflow, href: "/admin/workflow-center", visible: true, color: "text-cyan-600", bgColor: "bg-cyan-600/10" },
         { label: isAr ? 'التقرير الشهري الآلي HSE' : 'Automatic Monthly HSE Report', icon: FileText, href: "/admin/monthly-hse-report", visible: true, color: "text-emerald-700", bgColor: "bg-emerald-700/10" },
         { label: isAr ? 'خطة مهام السلامة الشهرية' : 'Monthly HSE Work Plan', icon: CalendarDays, href: "/admin/monthly-hse-plan", visible: true, color: "text-cyan-600", bgColor: "bg-cyan-600/10" },
         { label: isAr ? 'الحوادث وشبه الحوادث وتحليل الأسباب الجذرية' : 'Incidents, Near Misses & RCA', icon: AlertTriangle, href: "/admin/incidents", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },
