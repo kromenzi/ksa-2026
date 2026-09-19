@@ -37,7 +37,11 @@ const COLUMNS: Record<string, Set<string>> = {
   inspections: GENERIC_COLUMNS,
   incidents: GENERIC_COLUMNS,
   audits: GENERIC_COLUMNS,
+  audit_programs: new Set(["id","audit_no","title","audit_type","standard","department","factory","area","lead_auditor_user_id","planned_date","completed_date","status","scope","objective","summary","created_by","created_at","updated_at"]),
+  audit_findings: new Set(["id","audit_id","finding_no","clause","finding_type","title","description","evidence","owner_user_id","due_date","status","action_id","verified_by","verified_at","created_by","created_at","updated_at"]),
   compliance: GENERIC_COLUMNS,
+  legal_requirements: new Set(["id","requirement_no","authority","framework","clause","title","requirement","department","factory","owner_user_id","applicability","compliance_status","review_date","next_review_date","evidence_summary","gap_description","action_id","created_by","created_at","updated_at"]),
+  compliance_evidence: new Set(["id","requirement_id","evidence_type","title","file_url","reference_no","valid_from","valid_until","notes","uploaded_by","uploaded_at"]),
   loto: GENERIC_COLUMNS,
   permits: GENERIC_COLUMNS,
   safety_reporting_cases: GENERIC_COLUMNS,
@@ -313,6 +317,10 @@ export default async function handler(req: any, res: any) {
       if (["fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table)) url += "&order=updated_at.desc";
       if (["fire_device_events","emergency_exit_events"].includes(table)) url += "&order=occurred_at.desc&limit=500";
       if (table === "hse_actions") url += "&order=created_at.desc";
+      if (table === "audit_programs") url += "&order=planned_date.desc.nullslast,created_at.desc";
+      if (table === "audit_findings") { const auditId=String(req.query?.auditId||"").trim(); if(auditId) url += `&audit_id=eq.${encodeURIComponent(auditId)}`; url += "&order=due_date.asc.nullslast,created_at.desc"; }
+      if (table === "legal_requirements") url += "&order=next_review_date.asc.nullslast,created_at.desc";
+      if (table === "compliance_evidence") { const requirementId=String(req.query?.requirementId||"").trim(); if(requirementId) url += `&requirement_id=eq.${encodeURIComponent(requirementId)}`; url += "&order=uploaded_at.desc"; }
       if (["hse_action_comments","hse_action_evidence","hse_action_history","hse_action_escalations"].includes(table)) {
         const actionId = String(req.query?.actionId || "").trim();
         if (actionId) url += `&action_id=eq.${encodeURIComponent(actionId)}`;
@@ -489,6 +497,8 @@ export default async function handler(req: any, res: any) {
         row.sender_name = String(profile.name || "Participant").slice(0, 160);
         row.created_at = new Date().toISOString();
       }
+      if (["audit_programs","audit_findings","legal_requirements"].includes(table)) row.created_by = row.created_by || profile.id;
+      if (table === "compliance_evidence") row.uploaded_by = row.uploaded_by || profile.id;
       if (table === "hse_action_comments") row.created_by = row.created_by || profile.id;
       if (table === "hse_action_evidence") row.uploaded_by = row.uploaded_by || profile.id;
       if (table === "ptw_permits") {
@@ -602,7 +612,7 @@ export default async function handler(req: any, res: any) {
         }
       }
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || table === "hse_actions" || table === "notification_outbox" || table === "live_meetings" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","site_floor_plans","safety_map_points","monthly_hse_reports","emergency_assembly_points","emergency_response_incidents","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || table === "hse_actions" || table === "notification_outbox" || table === "live_meetings" || table === "audit_programs" || table === "audit_findings" || table === "legal_requirements" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","site_floor_plans","safety_map_points","monthly_hse_reports","emergency_assembly_points","emergency_response_incidents","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
