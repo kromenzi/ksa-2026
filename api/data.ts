@@ -255,7 +255,7 @@ export default async function handler(req: any, res: any) {
       const pMonth=Number(req.body?.month);
       const pYear=Number(req.body?.year);
       if(!Number.isInteger(pMonth)||pMonth<1||pMonth>12||!Number.isInteger(pYear)) return json(res,422,{error:"Valid month and year are required"});
-      const response=await supabaseFetchForRequest(req,"/rest/v1/rpc/generate_monthly_hse_report",{
+      const response=await supabaseFetchForRequest(req,"/rest/v1/rpc/request_monthly_hse_report",{
         method:"POST",body:JSON.stringify({p_month:pMonth,p_year:pYear})
       });
       const row=await response.json().catch(()=>null);
