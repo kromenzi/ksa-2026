@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { Link } from "wouter";
 import {
@@ -37,6 +37,7 @@ const isoLocal = (hours=0) => {
 };
 const fmt=(value?:string|null)=>value?new Date(value).toLocaleString():"—";
 const num=(value:any)=>Number(value||0);
+const asBool=(value:any)=>value===true||value==="true"||value===1||value==="1";
 const statusTone=(status?:string)=>{
   const s=String(status||"").toLowerCase();
   if(["critical","overdue","blocked","expired","fault","open"].includes(s)) return "bg-red-500/10 text-red-700 border-red-500/30";
@@ -89,10 +90,13 @@ export default function HseOperationsHub(){
 
   const snapshotQ=useQuery({queryKey:["hse-executive-snapshot"],queryFn:loadSnapshot});
   const hseEmployeesQ=useQuery({queryKey:["hse-directory"],queryFn:loadHseEmployees});
-  const resourceQueries=Object.fromEntries(RESOURCE_KEYS.map(key=>[
-    key,
-    useQuery<AnyRow[]>({queryKey:["hse-roadmap",key],queryFn:()=>loadResource(key)})
-  ])) as Record<string,ReturnType<typeof useQuery<AnyRow[]>>>;
+  const resourceResults=useQueries({
+    queries: RESOURCE_KEYS.map(key=>({
+      queryKey:["hse-roadmap",key] as const,
+      queryFn:()=>loadResource(key)
+    }))
+  });
+  const resourceQueries=Object.fromEntries(RESOURCE_KEYS.map((key,index)=>[key,resourceResults[index]])) as Record<string,any>;
 
   const rows=(key:string)=>(resourceQueries[key]?.data||[]) as AnyRow[];
   const actions=rows("hse-actions");
@@ -185,8 +189,8 @@ export default function HseOperationsHub(){
           permitType:form.permitType,title:form.title,description:form.description||null,department:form.department||null,
           factory:form.factory||null,area:form.area||null,location:form.location||null,status:"Draft",
           riskLevel:form.riskLevel||"Medium",startAt:form.startAt?new Date(form.startAt).toISOString():null,
-          expiresAt:form.expiresAt?new Date(form.expiresAt).toISOString():null,lotoRequired:Boolean(form.lotoRequired),
-          gasTestRequired:Boolean(form.gasTestRequired),precautions:[],requiredPpe:[],signatures:{},gasTestResult:{},
+          expiresAt:form.expiresAt?new Date(form.expiresAt).toISOString():null,lotoRequired:asBool(form.lotoRequired),
+          gasTestRequired:asBool(form.gasTestRequired),precautions:[],requiredPpe:[],signatures:{},gasTestResult:{},
           createdBy:currentUser?.id||null
         });
       }
@@ -224,8 +228,8 @@ export default function HseOperationsHub(){
           manufacturer:form.manufacturer||null,model:form.model||null,department:form.department||null,factory:form.factory||null,
           area:form.area||null,status:"Active",riskRating:form.riskRating||"Medium",certificateNumber:form.certificateNumber||null,
           certificateExpiry:form.certificateExpiry||null,nextInspectionDate:form.nextInspectionDate||null,
-          nextMaintenanceDate:form.nextMaintenanceDate||null,operatorAuthorizationRequired:Boolean(form.operatorAuthorizationRequired),
-          lotoRequired:Boolean(form.lotoRequired),notes:form.notes||null,data:{},createdBy:currentUser?.id||null
+          nextMaintenanceDate:form.nextMaintenanceDate||null,operatorAuthorizationRequired:asBool(form.operatorAuthorizationRequired),
+          lotoRequired:asBool(form.lotoRequired),notes:form.notes||null,data:{},createdBy:currentUser?.id||null
         });
       }
       if(dialog==="equipment-defect"){
