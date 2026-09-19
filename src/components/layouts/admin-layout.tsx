@@ -186,6 +186,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       title: "HSE Compliance & Work Control",
       titleAr: "الامتثال وضوابط العمل في السلامة",
       items: [
+        { label: isAr ? 'مركز عمليات السلامة HSE' : 'HSE Operations Hub', icon: Workflow, href: "/admin/hse-operations", visible: true, color: "text-violet-500", bgColor: "bg-violet-500/10" },
         { label: isAr ? 'تفتيشات السلامة' : 'Safety Inspections', icon: ClipboardCheck, href: "/admin/inspections", visible: true, color: "text-cyan-500", bgColor: "bg-cyan-500/10" },
         { label: isAr ? 'تدقيقات HSE والامتثال لمعايير ISO' : 'HSE Audits & ISO Compliance', icon: FileCheck, href: "/admin/audits", visible: true, color: "text-emerald-600", bgColor: "bg-emerald-600/10" },
         { label: isAr ? 'الامتثال والمتطلبات والمعايير' : 'Compliance & Standards', icon: ShieldCheck, href: "/admin/compliance", visible: true, color: "text-blue-500", bgColor: "bg-blue-500/10" },
