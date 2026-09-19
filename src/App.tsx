@@ -58,6 +58,7 @@ const AdminEquipmentAuth = lazy(() => import("@/pages/admin/equipment-auth"));
 const AdminOfficialTemplates = lazy(() => import("@/pages/admin/official-templates"));
 const AdminSafetyPyramid = lazy(() => import("@/pages/admin/safety-pyramid"));
 const FireEmergencyCommandCenter = lazy(() => import("@/pages/admin/fire-emergency-command"));
+const HseOperationsHub = lazy(() => import("@/pages/admin/hse-operations-hub"));
 const AdminSafetyPyramidPrint = lazy(() => import("@/pages/admin/safety-pyramid-print"));
 const EscalationDashboard = lazy(() => import("@/pages/admin/escalations/dashboard"));
 const EscalationHistory = lazy(() => import("@/pages/admin/escalations/history"));
@@ -153,6 +154,7 @@ function Router() {
       <Route path="/admin/emergency"><ProtectedRoute component={AdminEmergency} /></Route>
       <Route path="/admin/fire-protection"><ProtectedRoute component={AdminFireProtection} /></Route>
       <Route path="/admin/fire-emergency-command"><ProtectedRoute component={FireEmergencyCommandCenter} /></Route>
+      <Route path="/admin/hse-operations"><ProtectedRoute component={HseOperationsHub} /></Route>
       <Route path="/admin/reports-documents/safety-signs"><ProtectedRoute component={AdminSafetySigns} /></Route>
       <Route path="/admin/safety-signs"><ProtectedRoute component={AdminSafetySigns} /></Route>
       <Route path="/admin/enterprise-reports"><ProtectedRoute component={AdminEnterpriseReports} /></Route>
