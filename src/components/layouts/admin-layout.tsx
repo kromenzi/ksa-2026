@@ -227,6 +227,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       title: "Safety Systems & Emergency Preparedness",
       titleAr: "أنظمة السلامة والاستعداد للطوارئ",
       items: [
+        { label: isAr ? 'جواز سلامة المعدات' : 'Equipment Safety Passport', icon: Wrench, href: "/admin/equipment-safety", visible: true, color: "text-indigo-600", bgColor: "bg-indigo-600/10" },
         { label: isAr ? 'معدات وأصول السلامة' : 'Safety Equipment & Assets', icon: HardDrive, href: "/admin/assets", visible: true, color: "text-blue-500", bgColor: "bg-blue-500/10" },
         { label: isAr ? 'تعريف السلامة للزوار والمقاولين' : 'Visitor & Contractor Safety Induction', icon: UserCheck, href: "/admin/visitors", visible: true, color: "text-purple-500", bgColor: "bg-purple-500/10" },
         { label: isAr ? 'مركز قيادة الحريق والطوارئ' : 'Fire & Emergency Command Center', icon: RadioTower, href: "/admin/fire-emergency-command", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
