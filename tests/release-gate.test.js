@@ -119,3 +119,16 @@ test("bulk import is bounded, permission-checked and supports dry-run", async ()
   assert.ok(api.includes("dryRun === true"));
   assert.ok(page.includes("/api/bulk-import"));
 });
+
+
+test("Safety Intelligence is deterministic and sourced from live HSE records", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/20260919182500_safety_intelligence_snapshot.sql", import.meta.url), "utf8");
+  const api = await readFile(new URL("../api/data.ts", import.meta.url), "utf8");
+  const page = await readFile(new URL("../src/pages/admin/safety-intelligence.tsx", import.meta.url), "utf8");
+  assert.ok(migration.includes("hse_intelligence_snapshot"));
+  assert.ok(migration.includes("overdueActions"));
+  assert.ok(migration.includes("openHighRisks"));
+  assert.ok(api.includes('resource === "safety-intelligence"'));
+  assert.ok(page.includes("Deterministic indicators"));
+  assert.ok(page.includes("/api/safety-intelligence"));
+});
