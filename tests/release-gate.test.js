@@ -159,3 +159,16 @@ test("final platform upgrade keeps workflow, intelligence, mobile sync and real 
   assert.ok(delivery.includes("TEAMS_WEBHOOK_URL"));
   assert.ok(api.includes('resource === "notification-delivery"'));
 });
+
+
+test("data API keeps its resource registry modular without adding Vercel functions", async () => {
+  const api = await readFile(new URL("../api/data.ts", import.meta.url), "utf8");
+  const registry = await readFile(new URL("../api/_lib/resource-columns.ts", import.meta.url), "utf8");
+  const vercel = await readFile(new URL("../vercel.json", import.meta.url), "utf8");
+
+  assert.ok(api.includes('from "./_lib/resource-columns.js"'));
+  assert.ok(!api.includes("const COLUMNS: Record<string, Set<string>>"));
+  assert.ok(registry.includes("export const COLUMNS"));
+  assert.ok(registry.includes("export const BULK_IMPORT_RESOURCES"));
+  assert.ok(vercel.includes('"destination": "/api/data?resource='));
+});
