@@ -96,3 +96,18 @@ test("unified authorization is enforced across UI and API", async () => {
   assert.ok(migration.includes("permissions_select_own_role_or_manager"));
   assert.ok(migration.includes("on conflict (role,module)"));
 });
+
+
+test("notification delivery uses server-side providers and persistent rules", async () => {
+  const delivery = await readFile(new URL("../api/_lib/notification-delivery.ts", import.meta.url), "utf8");
+  const integrations = await readFile(new URL("../src/pages/admin/integrations.tsx", import.meta.url), "utf8");
+  const rules = await readFile(new URL("../src/pages/admin/notification-rules.tsx", import.meta.url), "utf8");
+  assert.ok(delivery.includes("RESEND_API_KEY"));
+  assert.ok(delivery.includes("WHATSAPP_ACCESS_TOKEN"));
+  assert.ok(delivery.includes("TEAMS_WEBHOOK_URL"));
+  assert.ok(delivery.includes("attempts>=5") || delivery.includes("attempts>=5".replace(">=", ">=")) || delivery.includes("attempts>=5"));
+  assert.ok(integrations.includes("/api/notification-delivery"));
+  assert.ok(!integrations.includes("setTimeout("));
+  assert.ok(rules.includes("/api/notification-rules"));
+  assert.ok(!rules.includes("localStorage"));
+});
