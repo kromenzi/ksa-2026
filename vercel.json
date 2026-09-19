@@ -50,6 +50,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/bulk-import",
+      "destination": "/api/data?resource=bulk-import"
+    },
+    {
       "source": "/api/live-meetings",
       "destination": "/api/data?resource=live-meetings"
     },
