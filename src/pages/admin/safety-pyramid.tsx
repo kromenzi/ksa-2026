@@ -48,7 +48,7 @@ export default function SafetyPyramidPage() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [enabled, setEnabled] = useState<Record<LevelId, boolean>>(() => {
-    try { const saved = JSON.parse(localStorage.getItem("safety_board_pyramid_enabled_v3") || "null"); if (saved) return saved; } catch {}
+    try { const saved = JSON.parse(localStorage.getItem("safety_board_pyramid_enabled_v3") || "null"); if (saved) return saved; } catch { /* intentional best-effort fallback */ }
     return Object.fromEntries(LEVELS.map(l => [l.id, true])) as Record<LevelId, boolean>;
   });
   const monthName = new Intl.DateTimeFormat(isAr ? "ar-SA" : "en-US", { month: "long" }).format(new Date(selectedYear, selectedMonth - 1, 1));
