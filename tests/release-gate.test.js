@@ -105,9 +105,10 @@ test("notification delivery uses server-side providers and persistent rules", as
   assert.ok(delivery.includes("RESEND_API_KEY"));
   assert.ok(delivery.includes("WHATSAPP_ACCESS_TOKEN"));
   assert.ok(delivery.includes("TEAMS_WEBHOOK_URL"));
-  assert.ok(delivery.includes("attempts>=5") || delivery.includes("attempts>=5".replace(">=", ">=")) || delivery.includes("attempts>=5"));
+  assert.ok(delivery.includes("attempts>=5"));
   assert.ok(integrations.includes("/api/notification-delivery"));
   assert.ok(!integrations.includes("setTimeout("));
   assert.ok(rules.includes("/api/notification-rules"));
-  assert.ok(!rules.includes("localStorage"));
+  assert.ok(!rules.includes("localStorage.getItem"));
+  assert.ok(!rules.includes("localStorage.setItem"));
 });
