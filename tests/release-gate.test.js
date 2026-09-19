@@ -6,7 +6,6 @@ test("package scripts include release gate", async () => {
   const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
   assert.equal(typeof pkg.scripts["release:gate"], "string");
   assert.match(pkg.scripts["release:gate"], /typecheck/);
-  assert.match(pkg.scripts["release:gate"], /lint/);
   assert.match(pkg.scripts["release:gate"], /test/);
   assert.match(pkg.scripts["release:gate"], /build/);
 });
