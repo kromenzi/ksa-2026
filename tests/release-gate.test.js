@@ -49,3 +49,13 @@ test("live meetings stay behind unified API and server-enforced identity", async
   assert.ok(vercel.includes("/api/live-meetings"));
   assert.ok(vercel.includes("https://meet.jit.si"));
 });
+
+
+test("live meeting migration grants authenticated access through RLS", async () => {
+  const source = await readFile(new URL("../supabase/migrations/20260919131500_live_meeting_foundation_and_rls.sql", import.meta.url), "utf8");
+  assert.ok(source.includes("grant select, insert, update, delete on public.live_meetings to authenticated"));
+  assert.ok(source.includes("live_meetings_select_active_users"));
+  assert.ok(source.includes("live_meeting_participants_insert_self"));
+  assert.ok(source.includes("live_meeting_messages_insert_self"));
+  assert.ok(!source.includes("live_meetings_no_direct_client_access\non public.live_meetings\nfor all"));
+});
