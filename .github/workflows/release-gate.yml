@@ -12,7 +12,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,4 +20,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Dependency audit
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run release:gate
+      - name: Legacy lint report
+        run: npm run lint:report
