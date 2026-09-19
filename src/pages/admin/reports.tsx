@@ -237,13 +237,6 @@ export default function AdminReports() {
   const getRiskLabel = (level: string) => safetyRiskLabel(level, isAr);
   const getStatusLabel = (status: string) => safetyStatusLabel(status, isAr);
 
-  const getStatusLabel = (status: string) => {
-    const key = status?.toLowerCase() || '';
-    const ar: Record<string, string> = { open: 'مفتوح', in_progress: 'قيد التنفيذ', closed: 'مغلق' };
-    const en: Record<string, string> = { open: 'Open', in_progress: 'In Progress', closed: 'Closed' };  
-    return isAr ? (ar[key] || status) : (en[key] || status);
-  };
-
   const handleDeleteReport = () => {
     if (deleteConfirmation === "DELETE" && deleteId) {
       deleteReport(deleteId);
