@@ -68,3 +68,45 @@
     line-height: 1.12;
   }
 }
+
+
+/* Keep the hero logo frame compact and reserve a clean row below it for the subtitle. */
+.home-page .hero-brand-lockup {
+  display: block;
+  width: fit-content;
+  margin-inline: auto;
+  margin-bottom: 0 !important;
+  padding: 0.2rem;
+  border-width: 1px !important;
+}
+
+.home-page .hero-brand-lockup .brand-logo-3d {
+  --logo-size: min(54vw, 285px);
+}
+
+.home-page .home-hero-subtitle {
+  position: relative;
+  z-index: 4;
+  display: inline-flex;
+  margin-top: 0.6rem;
+  margin-bottom: 0.35rem;
+  padding: 0.42rem 0.9rem;
+  line-height: 1.35;
+  border-width: 1px !important;
+  box-shadow: 0 5px 14px hsl(var(--primary) / 0.08);
+}
+
+.home-page .home-hero-subtitle svg {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+  .home-page .hero-brand-lockup .brand-logo-3d {
+    --logo-size: min(52vw, 220px);
+  }
+
+  .home-page .home-hero-subtitle {
+    max-width: calc(100vw - 2rem);
+    font-size: 0.72rem;
+  }
+}

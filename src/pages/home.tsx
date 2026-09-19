@@ -82,7 +82,7 @@ export default function Home() {
               <BrandLogo3D src={logo} alt={companyName} size="hero" />
             </div>
 
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest shadow-sm">
+            <div className="home-hero-subtitle inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest shadow-sm">
               <HardHat className="h-3.5 w-3.5" />
               {isAr ? heroSubtitleAr : heroSubtitleEn}
             </div>
