@@ -61,6 +61,9 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "contractor-workers": { table: "contractor_workers", module: "reports" },
   "contractor-documents": { table: "contractor_documents", module: "reports" },
   "contractor-scorecards": { table: "contractor_scorecards", module: "reports" },
+  "chemicals": { table: "chemicals", module: "reports" },
+  "chemical-sds": { table: "chemical_sds", module: "reports" },
+  "chemical-transactions": { table: "chemical_inventory_transactions", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
@@ -128,6 +131,9 @@ const COLUMNS: Record<string, Set<string>> = {
   contractor_workers: new Set(["id","contractor_id","worker_no","name","national_id","job_title","phone","induction_date","induction_expiry","medical_expiry","competency_expiry","status","access_allowed","block_reason","created_at","updated_at"]),
   contractor_documents: new Set(["id","contractor_id","worker_id","document_type","reference_no","issue_date","expiry_date","status","critical_for_access","file_url","notes","created_by","created_at","updated_at"]),
   contractor_scorecards: new Set(["id","contractor_id","month","year","inspections","violations","incidents","overdue_actions","training_compliance","score","rating","notes","created_at","updated_at"]),
+  chemicals: new Set(["id","chemical_code","product_name","manufacturer","cas_numbers","hazard_classes","pictograms","storage_area","compatibility_group","quantity","unit","max_allowed_quantity","product_expiry_date","risk_rating","required_ppe","spill_response","first_aid","disposal_method","qr_code","status","notes","created_by","created_at","updated_at"]),
+  chemical_sds: new Set(["id","chemical_id","revision_date","review_due_date","language","file_url","status","notes","uploaded_by","uploaded_at"]),
+  chemical_inventory_transactions: new Set(["id","chemical_id","transaction_type","quantity","occurred_at","reference","notes","recorded_by"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -269,6 +275,12 @@ export default async function handler(req: any, res: any) {
       if (table === "safety_observations") url += "&order=observed_at.desc";
       if (table === "equipment_assets") url += "&order=asset_code.asc";
       if (table === "contractors") url += "&order=name.asc";
+      if (table === "chemicals") url += "&order=product_name.asc";
+      if (["chemical_sds","chemical_inventory_transactions"].includes(table)) {
+        const chemicalId = String(req.query?.chemicalId || "").trim();
+        if (chemicalId) url += `&chemical_id=eq.${encodeURIComponent(chemicalId)}`;
+        url += table === "chemical_sds" ? "&order=revision_date.desc" : "&order=occurred_at.desc";
+      }
       if (["contractor_workers","contractor_documents","contractor_scorecards"].includes(table)) {
         const contractorId = String(req.query?.contractorId || "").trim();
         if (contractorId) url += `&contractor_id=eq.${encodeURIComponent(contractorId)}`;
@@ -346,7 +358,9 @@ export default async function handler(req: any, res: any) {
         row.issuer_user_id = row.issuer_user_id || profile.id;
       }
       if (table === "loto_isolations") row.created_by = row.created_by || profile.id;
-      if (["inspection_templates","inspection_schedules","safety_observations","equipment_assets","equipment_service_records","equipment_operator_authorizations","contractors","contractor_documents"].includes(table)) row.created_by = row.created_by || profile.id;
+      if (["inspection_templates","inspection_schedules","safety_observations","equipment_assets","equipment_service_records","equipment_operator_authorizations","contractors","contractor_documents","chemicals"].includes(table)) row.created_by = row.created_by || profile.id;
+      if (table === "chemical_sds") row.uploaded_by = row.uploaded_by || profile.id;
+      if (table === "chemical_inventory_transactions") row.recorded_by = row.recorded_by || profile.id;
       if (table === "activity_logs") {
         row.performed_by = row.performed_by || user.id;
         row.performed_by_name = row.performed_by_name || profile.name;
@@ -406,7 +420,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
