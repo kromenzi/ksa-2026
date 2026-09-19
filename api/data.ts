@@ -51,6 +51,9 @@ const COLUMNS: Record<string, Set<string>> = {
   emergency_exits: new Set(["id","exit_code","name","building","floor","area","assembly_point","route_description","door_type","gateway_id","status","door_status","lock_status","panic_bar_status","exit_sign_status","emergency_light_status","emergency_light_battery","obstruction_status","last_signal_at","last_inspection_at","next_inspection_at","qr_code","notes","data","floor_plan_id","map_x","map_y","created_at","updated_at"]),
   emergency_exit_events: new Set(["id","exit_id","gateway_id","event_type","severity","status","message","occurred_at","acknowledged_at","acknowledged_by","cleared_at","source","raw_payload","created_at"]),
   hse_actions: new Set(["id","action_no","title","description","source_type","source_id","category","department","factory","area","priority","status","progress","owner_user_id","assigned_employee_id","due_at","evidence_required","verification_required","verified_by","verified_at","verification_notes","effectiveness_status","effectiveness_notes","escalation_level","created_by","created_at","updated_at","closed_at","metadata"]),
+  hse_workflows: new Set(["id","workflow_no","title","status","source_type","source_id","department","factory","area","owner_user_id","created_by","created_at","updated_at","closed_at","metadata"]),
+  hse_workflow_links: new Set(["id","workflow_id","from_type","from_id","to_type","to_id","relation","created_by","created_at"]),
+  hse_workflow_events: new Set(["id","workflow_id","event_type","resource_type","resource_id","message","data","created_by","created_at"]),
   hse_action_comments: new Set(["id","action_id","comment","created_by","created_at"]),
   hse_action_evidence: new Set(["id","action_id","file_url","file_name","note","uploaded_by","uploaded_at"]),
   hse_action_history: new Set(["id","action_id","event_type","old_values","new_values","changed_by","changed_at"]),
@@ -313,6 +316,12 @@ export default async function handler(req: any, res: any) {
       if (["fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table)) url += "&order=updated_at.desc";
       if (["fire_device_events","emergency_exit_events"].includes(table)) url += "&order=occurred_at.desc&limit=500";
       if (table === "hse_actions") url += "&order=created_at.desc";
+      if (table === "hse_workflows") url += "&order=updated_at.desc";
+      if (["hse_workflow_links","hse_workflow_events"].includes(table)) {
+        const workflowId = String(req.query?.workflowId || "").trim();
+        if (workflowId) url += `&workflow_id=eq.${encodeURIComponent(workflowId)}`;
+        url += "&order=created_at.asc";
+      }
       if (["hse_action_comments","hse_action_evidence","hse_action_history","hse_action_escalations"].includes(table)) {
         const actionId = String(req.query?.actionId || "").trim();
         if (actionId) url += `&action_id=eq.${encodeURIComponent(actionId)}`;
@@ -443,6 +452,7 @@ export default async function handler(req: any, res: any) {
       const row = sanitizeBody(table, body, "insert");
       if (["documents", "reports", "posts", "form_templates", "employees", "routing_rules", "fire_gateways", "fire_panels", "fire_devices", "fire_device_events", "emergency_exits", "emergency_exit_events", "hse_actions", "hse_action_comments"].includes(table)) row.created_at = row.created_at || new Date().toISOString();
       if (table === "hse_actions") row.created_by = row.created_by || profile.id;
+      if (["hse_workflows","hse_workflow_links","hse_workflow_events"].includes(table)) row.created_by = row.created_by || profile.id;
       if (table === "hse_events" || table === "notification_outbox") row.created_by = row.created_by || profile.id;
       if (table === "live_meetings") {
         const entropy = crypto.randomUUID().replace(/-/g, "").slice(0, 16).toUpperCase();
@@ -532,6 +542,62 @@ export default async function handler(req: any, res: any) {
       const r = await supabaseFetchForRequest(req, base, { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to create resource" });
+
+      if (table === "hse_actions" && rows?.[0]?.id && row.source_type && row.source_id) {
+        const existingWorkflowResponse = await supabaseFetchForRequest(
+          req,
+          `/rest/v1/hse_workflows?select=id&source_type=eq.${encodeURIComponent(String(row.source_type))}&source_id=eq.${encodeURIComponent(String(row.source_id))}&status=neq.Closed&limit=1`
+        );
+        const existingWorkflowRows = await existingWorkflowResponse.json().catch(() => []);
+        let workflowId = existingWorkflowRows?.[0]?.id;
+        if (!workflowId) {
+          const workflowResponse = await supabaseFetchForRequest(req, "/rest/v1/hse_workflows", {
+            method: "POST",
+            headers: { Prefer: "return=representation" },
+            body: JSON.stringify({
+              title: row.title || "HSE Corrective Workflow",
+              source_type: row.source_type,
+              source_id: row.source_id,
+              department: row.department || null,
+              factory: row.factory || null,
+              area: row.area || null,
+              owner_user_id: row.owner_user_id || null,
+              created_by: profile.id,
+              status: "Open",
+            }),
+          });
+          const workflowRows = await workflowResponse.json().catch(() => []);
+          if (workflowResponse.ok) workflowId = workflowRows?.[0]?.id;
+        }
+        if (workflowId) {
+          await supabaseFetchForRequest(req, "/rest/v1/hse_workflow_links", {
+            method: "POST",
+            headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+            body: JSON.stringify({
+              workflow_id: workflowId,
+              from_type: String(row.source_type),
+              from_id: row.source_id,
+              to_type: "hse_action",
+              to_id: rows[0].id,
+              relation: "corrective_action",
+              created_by: profile.id,
+            }),
+          });
+          await supabaseFetchForRequest(req, "/rest/v1/hse_workflow_events", {
+            method: "POST",
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify({
+              workflow_id: workflowId,
+              event_type: "ACTION_CREATED",
+              resource_type: "hse_action",
+              resource_id: rows[0].id,
+              message: row.title || "Corrective action created",
+              created_by: profile.id,
+            }),
+          });
+        }
+      }
+
       return json(res, 201, mapClient(rows[0]));
     }
 
