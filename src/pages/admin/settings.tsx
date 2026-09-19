@@ -16,11 +16,20 @@ import { Plus, X, Building2, Factory, FolderTree, Tag, Hash, QrCode, FileText, P
 import { BackupRestoreModule } from "@/components/backup-restore-module";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-
-// Permission types
-type Role = 'admin' | 'manager' | 'editor' | 'viewer';
-type Module = 'users' | 'content' | 'sections' | 'forms' | 'reports' | 'ncr' | 'documents';
-type Action = 'create' | 'read' | 'update' | 'delete' | 'send_email';
+import {
+  DEFAULT_INCIDENT_CATEGORIES,
+  DEFAULT_JOB_TITLES,
+  DEFAULT_LOTO_CATEGORIES,
+  DEFAULT_PERMIT_TYPES,
+  DEFAULT_TRAINING_CATEGORIES,
+  STANDARD_RISK_LEVELS,
+  createDefaultNumbering,
+  createDefaultPdfConfig,
+  createDefaultQrConfig,
+  type SettingsAction as Action,
+  type SettingsModule as Module,
+  type SettingsRole as Role,
+} from "@/features/settings/enterprise-defaults";
 
 interface FactoryItem {
   id: string;
@@ -80,66 +89,31 @@ export default function AdminSettings() {
   const [newDept, setNewDept] = useState({ code: "", name: "", manager: "" });
 
   // Job Titles
-  const [jobTitles, setJobTitles] = useState<string[]>([
-    "Safety Officer", "HSE Inspector", "Environmental Engineer", "LOTO Technician", "Industrial Hygienist", "Safety Director"
-  ]);
+  const [jobTitles, setJobTitles] = useState<string[]>(() => [...DEFAULT_JOB_TITLES]);
   const [newJobTitle, setNewJobTitle] = useState("");
 
   // Categories & Taxonomy
-  const [riskLevels] = useState(["Low", "Medium", "High", "Critical"]);
-  const [incidentCats, setIncidentCats] = useState(["Chemical Spill", "Near Miss", "Property Damage", "First Aid", "Lost Time Injury (LTI)", "Fire Hazard"]);
+  const [riskLevels] = useState<string[]>(() => [...STANDARD_RISK_LEVELS]);
+  const [incidentCats, setIncidentCats] = useState<string[]>(() => [...DEFAULT_INCIDENT_CATEGORIES]);
   const [newIncidentCat, setNewIncidentCat] = useState("");
 
-  const [trainingCats, setTrainingCats] = useState(["General EHS", "Fire Safety", "LOTO Authorization", "Scaffolding Safety", "Hazard Communication", "First Aid & CPR"]);
+  const [trainingCats, setTrainingCats] = useState<string[]>(() => [...DEFAULT_TRAINING_CATEGORIES]);
   const [newTrainingCat, setNewTrainingCat] = useState("");
 
-  const [permitTypes, setPermitTypes] = useState(["Hot Work", "Cold Work", "Confined Space Entry", "Working at Height", "Electrical Isolation", "Excavation"]);
+  const [permitTypes, setPermitTypes] = useState<string[]>(() => [...DEFAULT_PERMIT_TYPES]);
   const [newPermitType, setNewPermitType] = useState("");
 
-  const [lotoCats, setLotoCats] = useState(["Electrical Substation", "Hydraulic Line", "Pneumatic Valve", "Chemical Line Isolation", "Mechanical Lockout"]);
+  const [lotoCats, setLotoCats] = useState<string[]>(() => [...DEFAULT_LOTO_CATEGORIES]);
   const [newLotoCat, setNewLotoCat] = useState("");
 
   // Document Numbering System Settings
-  const [numbering, setNumbering] = useState({
-    ncrPrefix: "NCR",
-    incPrefix: "INC",
-    tbtPrefix: "TBT",
-    insPrefix: "INS",
-    audPrefix: "AUD",
-    ptwPrefix: "PTW",
-    lotoPrefix: "LOTO",
-    astPrefix: "AST",
-    rptPrefix: "RPT",
-    yearFormat: "YYYY" as "YYYY" | "YY",
-    includeMonth: true,
-    includeFactoryCode: true,
-    includeDeptCode: false,
-    digitLength: 6,
-    separator: "-"
-  });
+  const [numbering, setNumbering] = useState(createDefaultNumbering);
 
   // QR Code Configuration
-  const [qrConfig, setQrConfig] = useState({
-    qrSize: 180,
-    qrPosition: "top-right" as "top-right" | "top-left" | "bottom-right" | "bottom-left",
-    qrStyle: "rounded" as "square" | "rounded" | "dots",
-    qrMargin: 8,
-    fgColor: "#0f172a",
-    bgColor: "#ffffff",
-    autoGenerate: true
-  });
+  const [qrConfig, setQrConfig] = useState(createDefaultQrConfig);
 
   // PDF & Print Standardization
-  const [pdfConfig, setPdfConfig] = useState({
-    headerLogoPosition: "left" as "left" | "center" | "right",
-    watermarkText: "CONFIDENTIAL & PROPRIETARY",
-    confidentialFooter: "Strictly Confidential - Abdulkarem Safety Board Platform © 2026",
-    topMargin: "15mm",
-    bottomMargin: "15mm",
-    leftMargin: "12mm",
-    rightMargin: "12mm",
-    enableDpi300: true
-  });
+  const [pdfConfig, setPdfConfig] = useState(createDefaultPdfConfig);
 
   // Backup & Import
 
