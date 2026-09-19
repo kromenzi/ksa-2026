@@ -33,6 +33,10 @@ export default async function handler(req: any, res: any) {
     if (!hasValidCsrfToken(req)) return json(res, 403, { error: "Invalid CSRF token" });
 
     if (req.method === "POST" && !id) {
+      if (!["admin", "manager", "editor"].includes(String(profile.role || ""))) {
+        return json(res, 403, { error: "You do not have permission to start a live meeting" });
+      }
+
       const roomCode = randomBytes(6).toString("hex");
       const providerRoomName = `ABDULKAREM-SAFETY-${roomCode}`;
       const title = String(req.body?.title || "Safety Live Meeting").trim().slice(0, 120) || "Safety Live Meeting";
@@ -69,6 +73,18 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === "PATCH" && id) {
+      const currentResponse = await supabaseFetch(
+        `/rest/v1/live_meetings?id=eq.${encodeURIComponent(String(id))}&select=id,created_by,status&limit=1`,
+        { method: "GET" },
+      );
+      const currentRows = await readBody(currentResponse);
+      const currentMeeting = Array.isArray(currentRows) ? currentRows[0] : null;
+      if (!currentResponse.ok) return json(res, currentResponse.status, currentRows);
+      if (!currentMeeting) return json(res, 404, { error: "Meeting not found" });
+      if (String(profile.role || "") !== "admin" && currentMeeting.created_by !== profile.id) {
+        return json(res, 403, { error: "Only the host or an administrator can end this meeting" });
+      }
+
       const status = req.body?.status === "completed" ? "completed" : req.body?.status;
       const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
       if (status) patch.status = status;
