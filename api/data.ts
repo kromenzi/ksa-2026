@@ -86,6 +86,9 @@ const COLUMNS: Record<string, Set<string>> = {
   monthly_hse_reports: new Set(["id","report_no","month","year","status","snapshot","highlights","management_summary","next_month_plan","generated_by","generated_at","reviewed_by","reviewed_at","approved_by","approved_at","created_at","updated_at"]),
   hse_events: new Set(["id","event_type","source_type","source_id","severity","title","message","department","factory","area","occurred_at","data","created_by","created_at"]),
   notification_outbox: new Set(["id","event_id","channel","recipient","subject","body","payload","status","attempts","next_attempt_at","sent_at","last_error","created_by","created_at","updated_at"]),
+  live_meetings: new Set(["id","room_code","title","provider","provider_room_name","status","created_by","started_at","ended_at","created_at","updated_at"]),
+  live_meeting_participants: new Set(["id","meeting_id","user_id","display_name","role","joined_at","left_at","created_at"]),
+  live_meeting_messages: new Set(["id","meeting_id","user_id","sender_name","message","created_at"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -352,6 +355,12 @@ export default async function handler(req: any, res: any) {
       if (table === "risk_register") url += "&order=residual_score.desc,review_date.asc";
       if (table === "hse_events") url += "&order=occurred_at.desc&limit=500";
       if (table === "notification_outbox") url += "&order=created_at.desc&limit=500";
+      if (table === "live_meetings") url += "&order=started_at.desc&limit=100";
+      if (["live_meeting_participants","live_meeting_messages"].includes(table)) {
+        const meetingId = String(req.query?.meetingId || "").trim();
+        if (meetingId) url += `&meeting_id=eq.${encodeURIComponent(meetingId)}`;
+        url += table === "live_meeting_messages" ? "&order=created_at.asc" : "&order=joined_at.asc";
+      }
       if (table === "risk_controls") {
         const riskId = String(req.query?.riskId || "").trim();
         if (riskId) url += `&risk_id=eq.${encodeURIComponent(riskId)}`;
@@ -434,6 +443,29 @@ export default async function handler(req: any, res: any) {
       if (["documents", "reports", "posts", "form_templates", "employees", "routing_rules", "fire_gateways", "fire_panels", "fire_devices", "fire_device_events", "emergency_exits", "emergency_exit_events", "hse_actions", "hse_action_comments"].includes(table)) row.created_at = row.created_at || new Date().toISOString();
       if (table === "hse_actions") row.created_by = row.created_by || profile.id;
       if (table === "hse_events" || table === "notification_outbox") row.created_by = row.created_by || profile.id;
+      if (table === "live_meetings") {
+        const entropy = crypto.randomUUID().replace(/-/g, "").slice(0, 16).toUpperCase();
+        row.room_code = row.room_code || `LIVE-${entropy.slice(0, 8)}`;
+        row.provider = "jitsi";
+        row.provider_room_name = row.provider_room_name || `ABDULKAREM-SAFETY-${entropy}`;
+        row.status = row.status || "live";
+        row.title = String(row.title || "Safety Live Meeting").slice(0, 160);
+        row.created_by = profile.id;
+        row.started_at = row.started_at || new Date().toISOString();
+        row.created_at = row.created_at || new Date().toISOString();
+        row.updated_at = new Date().toISOString();
+      }
+      if (table === "live_meeting_participants") {
+        row.user_id = row.user_id || profile.id;
+        row.display_name = String(row.display_name || profile.name || "Participant").slice(0, 160);
+        row.role = row.role || "participant";
+        row.joined_at = row.joined_at || new Date().toISOString();
+      }
+      if (table === "live_meeting_messages") {
+        row.user_id = row.user_id || profile.id;
+        row.sender_name = String(row.sender_name || profile.name || "Participant").slice(0, 160);
+        row.created_at = row.created_at || new Date().toISOString();
+      }
       if (table === "hse_action_comments") row.created_by = row.created_by || profile.id;
       if (table === "hse_action_evidence") row.uploaded_by = row.uploaded_by || profile.id;
       if (table === "ptw_permits") {
@@ -504,7 +536,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || table === "hse_actions" || table === "notification_outbox" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","site_floor_plans","safety_map_points","monthly_hse_reports","emergency_assembly_points","emergency_response_incidents","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || table === "hse_actions" || table === "notification_outbox" || table === "live_meetings" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","site_floor_plans","safety_map_points","monthly_hse_reports","emergency_assembly_points","emergency_response_incidents","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
