@@ -227,6 +227,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       items: [
         { label: isAr ? 'معدات وأصول السلامة' : 'Safety Equipment & Assets', icon: HardDrive, href: "/admin/assets", visible: true, color: "text-blue-500", bgColor: "bg-blue-500/10" },
         { label: isAr ? 'تعريف السلامة للزوار والمقاولين' : 'Visitor & Contractor Safety Induction', icon: UserCheck, href: "/admin/visitors", visible: true, color: "text-purple-500", bgColor: "bg-purple-500/10" },
+        { label: isAr ? 'مركز قيادة الحريق والطوارئ' : 'Fire & Emergency Command Center', icon: RadioTower, href: "/admin/fire-emergency-command", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
         { label: isAr ? 'الاستعداد للطوارئ وتمارين الإخلاء' : 'Emergency Preparedness & Drills', icon: Flame, href: "/admin/emergency", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
         { label: isAr ? 'أنظمة الحماية من الحريق' : 'Fire Protection Systems', icon: ShieldAlert, href: "/admin/fire-protection", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },
       ]
