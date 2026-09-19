@@ -50,6 +50,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/live-meetings",
+      "destination": "/api/data?resource=live-meetings"
+    },
+    {
       "source": "/api/notifications-all",
       "destination": "/api/data?resource=notifications-all"
     },
