@@ -42,6 +42,7 @@ const AdminTrainingMatrix = lazy(() => import("@/pages/admin/training-matrix"));
 const AdminCompetency = lazy(() => import("@/pages/admin/competency"));
 const AdminIncidents = lazy(() => import("@/pages/admin/incidents"));
 const AdminRiskAssessment = lazy(() => import("@/pages/admin/risk-assessment"));
+const SafetyMapPage = lazy(() => import("@/pages/admin/safety-map"));
 const RiskRegisterPage = lazy(() => import("@/pages/admin/risk-register"));
 const ChemicalsPage = lazy(() => import("@/pages/admin/chemicals"));
 const AdminInspections = lazy(() => import("@/pages/admin/inspections"));
@@ -153,6 +154,7 @@ function Router() {
       <Route path="/admin/competency"><ProtectedRoute component={AdminCompetency} /></Route>
       <Route path="/admin/incidents"><ProtectedRoute component={AdminIncidents} /></Route>
       <Route path="/admin/risk-assessment"><ProtectedRoute component={AdminRiskAssessment} /></Route>
+      <Route path="/admin/safety-map"><ProtectedRoute component={SafetyMapPage} /></Route>
       <Route path="/admin/risk-register"><ProtectedRoute component={RiskRegisterPage} /></Route>
       <Route path="/admin/chemicals"><ProtectedRoute component={ChemicalsPage} /></Route>
       <Route path="/admin/inspections"><ProtectedRoute component={AdminInspections} /></Route>
