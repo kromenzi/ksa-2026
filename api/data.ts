@@ -49,6 +49,10 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "loto-isolations": { table: "loto_isolations", module: "reports" },
   "loto-points": { table: "loto_points", module: "reports" },
   "loto-locks": { table: "loto_locks", module: "reports" },
+  "inspection-templates": { table: "inspection_templates", module: "reports" },
+  "inspection-schedules": { table: "inspection_schedules", module: "reports" },
+  "inspection-tasks": { table: "inspection_tasks", module: "reports" },
+  "safety-observations": { table: "safety_observations", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
@@ -104,6 +108,10 @@ const COLUMNS: Record<string, Set<string>> = {
   loto_isolations: new Set(["id","loto_no","permit_id","equipment_name","asset_ref","department","factory","area","isolation_type","status","authorized_employee_id","verified_by_user_id","zero_energy_verified","start_at","verified_at","released_at","closed_at","notes","created_by","created_at","updated_at"]),
   loto_points: new Set(["id","isolation_id","point_code","energy_type","location","normal_state","isolated_state","verification_method","status","created_at"]),
   loto_locks: new Set(["id","isolation_id","point_id","lock_number","tag_number","applied_by_employee_id","applied_at","removed_at","status","notes"]),
+  inspection_templates: new Set(["id","name","category","description","checklist","active","created_by","created_at","updated_at"]),
+  inspection_schedules: new Set(["id","template_id","assigned_employee_id","factory","area","department","frequency","day_of_week","day_of_month","next_run_date","active","created_by","created_at","updated_at"]),
+  inspection_tasks: new Set(["id","schedule_id","template_id","inspector_employee_id","title","department","factory","area","due_date","status","result","checklist_result","findings","notes","started_at","completed_at","action_id","created_at","updated_at"]),
+  safety_observations: new Set(["id","observation_no","observed_at","observer_employee_id","observation_type","category","department","factory","area","description","severity","status","immediate_action","photo_urls","action_id","created_by","created_at","updated_at","closed_at"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -239,6 +247,10 @@ export default async function handler(req: any, res: any) {
         if (permitId) url += `&permit_id=eq.${encodeURIComponent(permitId)}`;
         url += "&order=created_at.desc";
       }
+      if (table === "inspection_templates") url += "&order=name.asc";
+      if (table === "inspection_schedules") url += "&order=next_run_date.asc";
+      if (table === "inspection_tasks") url += "&order=due_date.desc";
+      if (table === "safety_observations") url += "&order=observed_at.desc";
       if (["loto_points","loto_locks"].includes(table)) {
         const isolationId = String(req.query?.isolationId || "").trim();
         if (isolationId) url += `&isolation_id=eq.${encodeURIComponent(isolationId)}`;
@@ -300,6 +312,7 @@ export default async function handler(req: any, res: any) {
         row.issuer_user_id = row.issuer_user_id || profile.id;
       }
       if (table === "loto_isolations") row.created_by = row.created_by || profile.id;
+      if (["inspection_templates","inspection_schedules","safety_observations"].includes(table)) row.created_by = row.created_by || profile.id;
       if (table === "activity_logs") {
         row.performed_by = row.performed_by || user.id;
         row.performed_by_name = row.performed_by_name || profile.name;
@@ -359,7 +372,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
