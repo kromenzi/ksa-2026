@@ -419,10 +419,11 @@ export default async function handler(req: any, res: any) {
 
     const action = req.method === "POST" ? "create" : req.method === "PATCH" || req.method === "PUT" ? "update" : req.method === "DELETE" ? "delete" : "";
     if (!action) return json(res, 405, { error: "Method not allowed" });
-    const liveSelfServiceCreate =
-      req.method === "POST" &&
-      (resource === "live-meeting-participants" || resource === "live-meeting-messages");
-    if (!liveSelfServiceCreate && !canWrite(profile, config.module, action)) {
+    const liveSelfServiceMutation =
+      (req.method === "POST" &&
+        (resource === "live-meeting-participants" || resource === "live-meeting-messages")) ||
+      (req.method === "PATCH" && resource === "live-meeting-participants");
+    if (!liveSelfServiceMutation && !canWrite(profile, config.module, action)) {
       return json(res, 403, { error: "Insufficient permission" });
     }
 
@@ -471,6 +472,16 @@ export default async function handler(req: any, res: any) {
         if (!meetingResponse.ok) return json(res, meetingResponse.status, { error: meetingRows?.message || "Unable to validate meeting" });
         const meeting = meetingRows[0];
         if (!meeting || meeting.status !== "live") return json(res, 404, { error: "Live meeting not found" });
+        const activeParticipantResponse = await supabaseFetchForRequest(
+          req,
+          `/rest/v1/live_meeting_participants?select=*&meeting_id=eq.${encodeURIComponent(meetingId)}&user_id=eq.${encodeURIComponent(String(profile.id))}&left_at=is.null&limit=1`
+        );
+        const activeParticipantRows = await activeParticipantResponse.json().catch(() => []);
+        if (!activeParticipantResponse.ok) {
+          return json(res, activeParticipantResponse.status, { error: activeParticipantRows?.message || "Unable to validate attendance" });
+        }
+        if (activeParticipantRows[0]) return json(res, 200, mapClient(activeParticipantRows[0]));
+
         row.user_id = profile.id;
         row.display_name = String(profile.name || "Participant").slice(0, 160);
         row.role = meeting.created_by === profile.id ? "host" : "participant";
@@ -552,6 +563,36 @@ export default async function handler(req: any, res: any) {
     const url = `${base}?id=eq.${encodeURIComponent(id)}`;
 
     if (req.method === "PATCH" || req.method === "PUT") {
+      if (table === "live_meeting_participants") {
+        const participantResponse = await supabaseFetchForRequest(
+          req,
+          `${base}?select=id,user_id,meeting_id,left_at&id=eq.${encodeURIComponent(id)}&limit=1`
+        );
+        const participantRows = await participantResponse.json().catch(() => []);
+        if (!participantResponse.ok) {
+          return json(res, participantResponse.status, { error: participantRows?.message || "Unable to validate participant" });
+        }
+        const participant = participantRows[0];
+        if (!participant) return json(res, 404, { error: "Participant not found" });
+        if (participant.user_id !== profile.id && profile.role !== "admin") {
+          return json(res, 403, { error: "Participants can only update their own attendance" });
+        }
+        if (participant.left_at) return json(res, 200, mapClient(participant));
+
+        const leftAt = new Date().toISOString();
+        const leaveResponse = await supabaseFetchForRequest(req, url, {
+          method: "PATCH",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({ left_at: leftAt }),
+        });
+        const leaveRows = await leaveResponse.json().catch(() => []);
+        if (!leaveResponse.ok) {
+          return json(res, leaveResponse.status, { error: leaveRows?.message || "Unable to record meeting leave" });
+        }
+        if (!leaveRows[0]) return json(res, 404, { error: "Participant not found or could not be updated" });
+        return json(res, 200, mapClient(leaveRows[0]));
+      }
+
       if (table === "live_meetings") {
         const ownership = await supabaseFetchForRequest(
           req,
