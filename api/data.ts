@@ -73,6 +73,7 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "emergency-muster": { table: "emergency_muster_entries", module: "reports" },
   "safety-map-points": { table: "safety_map_points", module: "reports" },
   "safety-qr-registry": { table: "safety_qr_registry", module: "reports" },
+  "monthly-hse-reports": { table: "monthly_hse_reports", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
@@ -152,6 +153,7 @@ const COLUMNS: Record<string, Set<string>> = {
   emergency_muster_entries: new Set(["id","response_id","person_type","person_ref","person_name","department","assembly_point_id","status","accounted_at","notes"]),
   safety_map_points: new Set(["id","floor_plan_id","point_type","label","resource_type","resource_id","map_x","map_y","status","icon","details","created_by","created_at","updated_at"]),
   safety_qr_registry: new Set(["id","qr_code","resource_type","resource_id","label","route","status","metadata","created_at","updated_at"]),
+  monthly_hse_reports: new Set(["id","report_no","month","year","status","snapshot","highlights","management_summary","next_month_plan","generated_by","generated_at","reviewed_by","reviewed_at","approved_by","approved_at","created_at","updated_at"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -246,6 +248,19 @@ export default async function handler(req: any, res: any) {
       return json(res, 200, (rows || []).map(mapClient));
     }
 
+    if (resource === "monthly-hse-report-generate") {
+      if (req.method !== "POST") return json(res,405,{error:"Method not allowed"});
+      const pMonth=Number(req.body?.month);
+      const pYear=Number(req.body?.year);
+      if(!Number.isInteger(pMonth)||pMonth<1||pMonth>12||!Number.isInteger(pYear)) return json(res,422,{error:"Valid month and year are required"});
+      const response=await supabaseFetchForRequest(req,"/rest/v1/rpc/generate_monthly_hse_report",{
+        method:"POST",body:JSON.stringify({p_month:pMonth,p_year:pYear})
+      });
+      const row=await response.json().catch(()=>null);
+      if(!response.ok) return json(res,response.status,{error:row?.message||"Unable to generate monthly HSE report"});
+      return json(res,200,mapClient(row));
+    }
+
     if (resource === "qr-lookup") {
       if (req.method !== "GET") return json(res,405,{error:"Method not allowed"});
       const code=String(req.query?.code||"").trim();
@@ -303,6 +318,7 @@ export default async function handler(req: any, res: any) {
       if (table === "safety_observations") url += "&order=observed_at.desc";
       if (table === "equipment_assets") url += "&order=asset_code.asc";
       if (table === "contractors") url += "&order=name.asc";
+      if (table === "monthly_hse_reports") url += "&order=year.desc,month.desc";
       if (table === "safety_qr_registry") url += "&order=resource_type.asc,label.asc";
       if (table === "site_floor_plans") url += "&order=building.asc,floor.asc";
       if (table === "safety_map_points") {
@@ -469,7 +485,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","site_floor_plans","safety_map_points","emergency_assembly_points","emergency_response_incidents","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","site_floor_plans","safety_map_points","monthly_hse_reports","emergency_assembly_points","emergency_response_incidents","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
