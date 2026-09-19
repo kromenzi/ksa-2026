@@ -34,3 +34,32 @@ test.describe("Safety Board production smoke", () => {
     expect(widths.scroll).toBeLessThanOrEqual(widths.client + 1);
   });
 });
+
+
+test.describe("authenticated Safety Board smoke", () => {
+  test("admin login reaches protected operational modules", async ({ page, request }) => {
+    const email = process.env.E2E_ADMIN_EMAIL;
+    const password = process.env.E2E_ADMIN_PASSWORD;
+    test.skip(!email || !password, "E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD secrets are not configured");
+
+    await page.goto(`${baseURL}/admin/login`, { waitUntil: "networkidle" });
+    await page.getByLabel(/^Email$/i).fill(email);
+    await page.getByLabel(/^Password$/i).fill(password);
+    await page.getByTestId("button-login-submit").click();
+    await page.waitForURL(/\/admin\/dashboard$/, { timeout: 15000 });
+
+    const protectedApi = await page.request.get(`${baseURL}/api/hse-workflows`);
+    expect(protectedApi.status()).toBe(200);
+
+    for (const route of [
+      "/admin/workflow-center",
+      "/admin/safety-intelligence",
+      "/admin/live-meeting",
+      "/admin/import-center",
+    ]) {
+      await page.goto(`${baseURL}${route}`, { waitUntil: "networkidle" });
+      await expect(page).not.toHaveURL(/\/admin\/login$/);
+      await expect(page.locator("body")).not.toContainText(/Access denied|غير مصرح بالدخول/i);
+    }
+  });
+});
