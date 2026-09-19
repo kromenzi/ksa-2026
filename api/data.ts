@@ -2,6 +2,7 @@ import { getAccessToken, getAuthUser, getProfile, hasValidCsrfToken, json, supab
 import { fallbackSupabaseUrl } from "./_lib/supabase-public-config.js";
 import { monthlyHsePlanHandler } from "./_lib/monthly-hse-plan.js";
 import { hseAssistantHandler } from "./_lib/hse-assistant.js";
+import { notificationProviderStatus, processNotificationOutbox } from "./_lib/notification-delivery.js";
 import { hasAppPermission } from "./_lib/authorization.js";
 
 import { RESOURCE_MAP } from "./_lib/resource-map.js";
@@ -87,6 +88,8 @@ const COLUMNS: Record<string, Set<string>> = {
   monthly_hse_reports: new Set(["id","report_no","month","year","status","snapshot","highlights","management_summary","next_month_plan","generated_by","generated_at","reviewed_by","reviewed_at","approved_by","approved_at","created_at","updated_at"]),
   hse_events: new Set(["id","event_type","source_type","source_id","severity","title","message","department","factory","area","occurred_at","data","created_by","created_at"]),
   notification_outbox: new Set(["id","event_id","channel","recipient","subject","body","payload","status","attempts","next_attempt_at","sent_at","last_error","created_by","created_at","updated_at"]),
+  notification_rules: GENERIC_COLUMNS,
+  integrations: GENERIC_COLUMNS,
   live_meetings: new Set(["id","room_code","title","provider","provider_room_name","status","created_by","started_at","ended_at","created_at","updated_at"]),
   live_meeting_participants: new Set(["id","meeting_id","user_id","display_name","role","joined_at","left_at","created_at"]),
   live_meeting_messages: new Set(["id","meeting_id","user_id","sender_name","message","created_at"]),
@@ -168,6 +171,27 @@ export default async function handler(req: any, res: any) {
       return json(res, 403, { error: "CSRF validation failed" });
     }
     if (resource === "hse-assistant") return await hseAssistantHandler(req,res,profile);
+    if (resource === "notification-delivery") {
+      if (!(await hasAppPermission(req, profile, "settings", req.method === "GET" ? "read" : "update"))) {
+        return json(res, 403, { error: "Insufficient permission" });
+      }
+      if (req.method === "GET") {
+        const status = notificationProviderStatus();
+        const outboxResponse = await supabaseFetchForRequest(
+          req,
+          "/rest/v1/notification_outbox?select=id,status,channel,attempts,last_error,created_at&order=created_at.desc&limit=100"
+        );
+        const outboxRows = await outboxResponse.json().catch(() => []);
+        return json(res, 200, { ...status, outbox: outboxResponse.ok ? outboxRows.map(mapClient) : [] });
+      }
+      if (req.method === "POST") {
+        const action = String(req.body?.action || "process");
+        if (action !== "process") return json(res, 422, { error: "Unsupported notification delivery action" });
+        const result = await processNotificationOutbox(Number(req.body?.limit || 20));
+        return json(res, 200, result);
+      }
+      return json(res, 405, { error: "Method not allowed" });
+    }
     if (resource === "safety-reporting-reveal") return await proxySafetyReporting(req, res, "reveal", true);
 
     // Notifications use a dedicated flow because users may only read/update
@@ -350,6 +374,8 @@ export default async function handler(req: any, res: any) {
       if (table === "risk_register") url += "&order=residual_score.desc,review_date.asc";
       if (table === "hse_events") url += "&order=occurred_at.desc&limit=500";
       if (table === "notification_outbox") url += "&order=created_at.desc&limit=500";
+      if (table === "notification_rules") url += "&order=updated_at.desc";
+      if (table === "integrations") url += "&order=updated_at.desc";
       if (table === "live_meetings") url += "&order=started_at.desc&limit=100";
       if (["live_meeting_participants","live_meeting_messages"].includes(table)) {
         const meetingId = String(req.query?.meetingId || "").trim();
