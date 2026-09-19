@@ -133,3 +133,29 @@ test("secure live meeting invite tokens are server-hashed and hidden from authen
   assert.ok(page.includes("Secure invite"));
   assert.ok(!page.includes("navigator.clipboard.writeText(meetingUrl)"));
 });
+
+
+test("final platform upgrade keeps workflow, intelligence, mobile sync and real notification delivery", async () => {
+  const workflowMigration = await readFile(new URL("../supabase/migrations/20260919173000_hse_workflow_engine_v1.sql", import.meta.url), "utf8");
+  const intelligenceMigration = await readFile(new URL("../supabase/migrations/20260919182500_safety_intelligence_snapshot.sql", import.meta.url), "utf8");
+  const api = await readFile(new URL("../api/data.ts", import.meta.url), "utf8");
+  const delivery = await readFile(new URL("../api/_lib/notification-delivery.ts", import.meta.url), "utf8");
+  const mobile = await readFile(new URL("../src/pages/admin/mobile-field.tsx", import.meta.url), "utf8");
+  const queue = await readFile(new URL("../src/lib/offline-field-queue.ts", import.meta.url), "utf8");
+
+  assert.ok(workflowMigration.includes("public.hse_workflows"));
+  assert.ok(api.includes("ACTION_CREATED"));
+  assert.ok(api.includes('relation: "corrective_action"'));
+
+  assert.ok(intelligenceMigration.includes("hse_intelligence_snapshot"));
+  assert.ok(api.includes('resource === "safety-intelligence"'));
+
+  assert.ok(queue.includes("indexedDB.open"));
+  assert.ok(mobile.includes('window.addEventListener("online"'));
+  assert.ok(mobile.includes("/api/safety-observations"));
+
+  assert.ok(delivery.includes("RESEND_API_KEY"));
+  assert.ok(delivery.includes("WHATSAPP_ACCESS_TOKEN"));
+  assert.ok(delivery.includes("TEAMS_WEBHOOK_URL"));
+  assert.ok(api.includes('resource === "notification-delivery"'));
+});
