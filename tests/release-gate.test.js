@@ -109,3 +109,18 @@ test("enterprise audit and compliance modules are backed by normalized records",
   assert.ok(auditPage.includes("/api/audit-programs"));
   assert.ok(compliancePage.includes("/api/legal-requirements"));
 });
+
+
+test("secure live meeting invite tokens are server-hashed and hidden from authenticated reads", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/20260919181000_secure_live_meeting_v2.sql", import.meta.url), "utf8");
+  const api = await readFile(new URL("../api/data.ts", import.meta.url), "utf8");
+  const page = await readFile(new URL("../src/pages/admin/live-meeting.tsx", import.meta.url), "utf8");
+  assert.ok(migration.includes("join_token_hash"));
+  assert.ok(migration.includes("revoke select on public.live_meetings from authenticated"));
+  assert.ok(api.includes("sha256Hex"));
+  assert.ok(api.includes("Invalid or expired meeting invite"));
+  assert.ok(!api.includes("select=*&order=started_at"));
+  assert.ok(page.includes("/api/live-meeting-invite"));
+  assert.ok(page.includes("Secure invite"));
+  assert.ok(!page.includes("navigator.clipboard.writeText(meetingUrl)"));
+});
