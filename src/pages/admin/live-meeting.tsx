@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { RadioTower, Video, VideoOff, Mic, MonitorUp, MessageSquare, Users, LogOut, Square, Copy, ExternalLink, Loader2 } from "lucide-react";
+import { RadioTower, Video, VideoOff, Mic, MonitorUp, MessageSquare, Users, LogOut, Square, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/queryClient";
 import { useData } from "@/lib/data-context";
@@ -25,6 +25,7 @@ export default function LiveMeetingPage() {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(isAr ? "اجتماع سلامة مباشر" : "Safety Live Meeting");
   const [active, setActive] = useState<LiveMeeting | null>(null);
+  const [activeParticipantId, setActiveParticipantId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const canHost = ["admin", "manager", "editor"].includes(String(currentUser?.role || ""));
   const canEndActiveMeeting = !!active && (currentUser?.role === "admin" || active.createdBy === currentUser?.id);
@@ -47,11 +48,13 @@ export default function LiveMeetingPage() {
     try {
       const res = await apiRequest("POST", "/api/live-meetings", { title: title.trim() || "Safety Live Meeting" });
       const meeting = await res.json() as LiveMeeting;
-      await apiRequest("POST", "/api/live-meeting-participants", {
+      const participantRes = await apiRequest("POST", "/api/live-meeting-participants", {
         meetingId: meeting.id,
         displayName: currentUser?.name || "Host",
         role: "host",
       });
+      const participant = await participantRes.json();
+      setActiveParticipantId(participant?.id || null);
       setActive(meeting);
       queryClient.invalidateQueries({ queryKey: ["/api/live-meetings"] });
       toast.success(isAr ? "بدأ الاجتماع المباشر" : "Live meeting started");
@@ -64,15 +67,35 @@ export default function LiveMeetingPage() {
 
   const joinMeeting = async (meeting: LiveMeeting) => {
     try {
-      await apiRequest("POST", "/api/live-meeting-participants", {
+      const participantRes = await apiRequest("POST", "/api/live-meeting-participants", {
         meetingId: meeting.id,
         displayName: currentUser?.name || "Participant",
         role: meeting.createdBy === currentUser?.id ? "host" : "participant",
       });
+      const participant = await participantRes.json();
+      setActiveParticipantId(participant?.id || null);
     } catch {
       // Joining the media room should remain available even if attendance logging fails.
+      setActiveParticipantId(null);
     }
     setActive(meeting);
+  };
+
+  const leaveMeeting = async () => {
+    setBusy(true);
+    try {
+      if (activeParticipantId) {
+        await apiRequest("PATCH", `/api/live-meeting-participants/${encodeURIComponent(activeParticipantId)}`, {
+          leftAt: new Date().toISOString(),
+        });
+      }
+    } catch {
+      // Leaving the media room must not be blocked by an attendance logging failure.
+    } finally {
+      setActiveParticipantId(null);
+      setActive(null);
+      setBusy(false);
+    }
   };
 
   const endMeeting = async () => {
@@ -84,6 +107,7 @@ export default function LiveMeetingPage() {
         endedAt: new Date().toISOString(),
       });
       await res.json().catch(() => null);
+      setActiveParticipantId(null);
       setActive(null);
       queryClient.invalidateQueries({ queryKey: ["/api/live-meetings"] });
       toast.success(isAr ? "تم إنهاء الاجتماع" : "Meeting ended");
@@ -143,10 +167,11 @@ export default function LiveMeetingPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setActive(null)}
+                onClick={leaveMeeting}
+                disabled={busy}
                 className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
               >
-                <LogOut className="h-4 w-4 me-1.5" />
+                {busy ? <Loader2 className="h-4 w-4 animate-spin me-1.5" /> : <LogOut className="h-4 w-4 me-1.5" />}
                 {isAr ? "مغادرة" : "Leave"}
               </Button>
             )}
@@ -272,10 +297,6 @@ export default function LiveMeetingPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="rounded-xl" onClick={() => window.open(`https://meet.jit.si/${encodeURIComponent(meeting.providerRoomName)}`, "_blank", "noopener,noreferrer")}>
-                    <ExternalLink className="h-3.5 w-3.5 me-1.5" />
-                    {isAr ? "نافذة جديدة" : "Open"}
-                  </Button>
                   <Button size="sm" className="rounded-xl" onClick={() => joinMeeting(meeting)}>
                     <Video className="h-3.5 w-3.5 me-1.5" />
                     {isAr ? "انضمام" : "Join"}
