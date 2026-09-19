@@ -45,6 +45,10 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "hse-action-history": { table: "hse_action_history", module: "reports" },
   "hse-escalation-rules": { table: "hse_escalation_rules", module: "reports" },
   "hse-action-escalations": { table: "hse_action_escalations", module: "reports" },
+  "ptw-permits": { table: "ptw_permits", module: "reports" },
+  "loto-isolations": { table: "loto_isolations", module: "reports" },
+  "loto-points": { table: "loto_points", module: "reports" },
+  "loto-locks": { table: "loto_locks", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
@@ -96,6 +100,10 @@ const COLUMNS: Record<string, Set<string>> = {
   hse_action_history: new Set(["id","action_id","event_type","old_values","new_values","changed_by","changed_at"]),
   hse_escalation_rules: new Set(["id","name","priority","overdue_hours","escalation_level","target_role","active","created_at"]),
   hse_action_escalations: new Set(["id","action_id","rule_id","escalation_level","target_role","reason","status","escalated_at","acknowledged_at","acknowledged_by","notes"]),
+  ptw_permits: new Set(["id","permit_no","permit_type","title","description","department","factory","area","location","requester_employee_id","issuer_user_id","hse_reviewer_user_id","approver_user_id","status","risk_level","start_at","expires_at","reviewed_at","approved_at","activated_at","suspended_at","closed_at","suspension_reason","closure_notes","precautions","required_ppe","gas_test_required","gas_test_result","loto_required","signatures","created_by","created_at","updated_at"]),
+  loto_isolations: new Set(["id","loto_no","permit_id","equipment_name","asset_ref","department","factory","area","isolation_type","status","authorized_employee_id","verified_by_user_id","zero_energy_verified","start_at","verified_at","released_at","closed_at","notes","created_by","created_at","updated_at"]),
+  loto_points: new Set(["id","isolation_id","point_code","energy_type","location","normal_state","isolated_state","verification_method","status","created_at"]),
+  loto_locks: new Set(["id","isolation_id","point_id","lock_number","tag_number","applied_by_employee_id","applied_at","removed_at","status","notes"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -225,6 +233,17 @@ export default async function handler(req: any, res: any) {
         url += `&order=${orderField}.desc`;
       }
       if (table === "hse_escalation_rules") url += "&order=priority.asc,overdue_hours.asc";
+      if (table === "ptw_permits") url += "&order=created_at.desc";
+      if (table === "loto_isolations") {
+        const permitId = String(req.query?.permitId || "").trim();
+        if (permitId) url += `&permit_id=eq.${encodeURIComponent(permitId)}`;
+        url += "&order=created_at.desc";
+      }
+      if (["loto_points","loto_locks"].includes(table)) {
+        const isolationId = String(req.query?.isolationId || "").trim();
+        if (isolationId) url += `&isolation_id=eq.${encodeURIComponent(isolationId)}`;
+        url += "&order=created_at.asc";
+      }
       if (table === "section_config") url += "&order=section_type.asc";
       if (GENERIC_TABLES.has(table)) url += "&order=updated_at.desc";
       if (table === "safety_reporting_messages") {
@@ -276,6 +295,11 @@ export default async function handler(req: any, res: any) {
       if (table === "hse_actions") row.created_by = row.created_by || profile.id;
       if (table === "hse_action_comments") row.created_by = row.created_by || profile.id;
       if (table === "hse_action_evidence") row.uploaded_by = row.uploaded_by || profile.id;
+      if (table === "ptw_permits") {
+        row.created_by = row.created_by || profile.id;
+        row.issuer_user_id = row.issuer_user_id || profile.id;
+      }
+      if (table === "loto_isolations") row.created_by = row.created_by || profile.id;
       if (table === "activity_logs") {
         row.performed_by = row.performed_by || user.id;
         row.performed_by_name = row.performed_by_name || profile.name;
@@ -335,7 +359,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || table === "hse_actions" || ["fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
