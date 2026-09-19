@@ -50,6 +50,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/safety-intelligence",
+      "destination": "/api/data?resource=safety-intelligence"
+    },
+    {
       "source": "/api/bulk-import",
       "destination": "/api/data?resource=bulk-import"
     },
