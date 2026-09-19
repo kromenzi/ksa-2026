@@ -1,4 +1,5 @@
 import { getAuthUser, getProfile, json, supabaseFetch, supabaseFetchForRequest } from "./_lib/supabase.js";
+import { logger, requestId } from "./_lib/logger.js";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "https://sfdpkpqokazsegsstjfs.supabase.co").replace(/\/$/, "");
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable__ve50anGhjvRKxXi6UdrcQ_SQ945faS";
@@ -186,7 +187,10 @@ async function resourceHandler(req:any,res:any,resource:string){
 }
 
 export default async function handler(req:any,res:any){
+  const startedAt=Date.now();
+  const rid=requestId(req);
   const resource=String(req.query?.resource||"").trim();
+  logger.info("system_health.request.start",{requestId:rid,method:req.method,resource:resource||null});
   if(resource==="document-storage") return documentStorageHandler(req,res);
   if(resource&&RESOURCE_MAP[resource]) return resourceHandler(req,res,resource);
   if(req.method!=="GET") return json(res,405,{error:"Method not allowed"});
@@ -202,8 +206,10 @@ export default async function handler(req:any,res:any){
   const canSeeDetails=Boolean(profile?.is_active&&profile.role==="admin");
 
   if(!canSeeDetails){
-    return json(res,overall?200:503,{ok:overall,timestamp});
+    logger.info("system_health.request.done",{requestId:rid,overall,durationMs:Date.now()-startedAt,details:false});
+    return json(res,overall?200:503,{ok:overall,timestamp,requestId:rid,version:process.env.VERCEL_GIT_COMMIT_SHA||process.env.GITHUB_SHA||"unknown"});
   }
 
-  return json(res,overall?200:503,{ok:overall,timestamp,services:{supabase:{state:supabase.ok?"online":"offline",status:supabase.status},cameraGateway:{state:!gateway.configured?"not-configured":gateway.ok?"online":"offline",status:gateway.status},espAI:{state:!esp.configured?"not-configured":esp.ok?"online":"offline",status:esp.status}}});
+  logger.info("system_health.request.done",{requestId:rid,overall,durationMs:Date.now()-startedAt,details:true});
+  return json(res,overall?200:503,{ok:overall,timestamp,requestId:rid,version:process.env.VERCEL_GIT_COMMIT_SHA||process.env.GITHUB_SHA||"unknown",services:{supabase:{state:supabase.ok?"online":"offline",status:supabase.status},cameraGateway:{state:!gateway.configured?"not-configured":gateway.ok?"online":"offline",status:gateway.status},espAI:{state:!esp.configured?"not-configured":esp.ok?"online":"offline",status:esp.status}}});
 }
