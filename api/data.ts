@@ -1,4 +1,4 @@
-import { getAccessToken, getAuthUser, getProfile, hasValidCsrfToken, json, supabaseFetchForRequest } from "./_lib/supabase.js";
+import { getAccessToken, getAuthUser, getProfile, hasValidCsrfToken, json, supabaseFetch, supabaseFetchForRequest } from "./_lib/supabase.js";
 import { fallbackSupabaseUrl } from "./_lib/supabase-public-config.js";
 import { monthlyHsePlanHandler } from "./_lib/monthly-hse-plan.js";
 import { hseAssistantHandler } from "./_lib/hse-assistant.js";
@@ -99,7 +99,7 @@ const COLUMNS: Record<string, Set<string>> = {
   monthly_hse_reports: new Set(["id","report_no","month","year","status","snapshot","highlights","management_summary","next_month_plan","generated_by","generated_at","reviewed_by","reviewed_at","approved_by","approved_at","created_at","updated_at"]),
   hse_events: new Set(["id","event_type","source_type","source_id","severity","title","message","department","factory","area","occurred_at","data","created_by","created_at"]),
   notification_outbox: new Set(["id","event_id","channel","recipient","subject","body","payload","status","attempts","next_attempt_at","sent_at","last_error","created_by","created_at","updated_at"]),
-  live_meetings: new Set(["id","room_code","title","provider","provider_room_name","status","created_by","started_at","ended_at","created_at","updated_at"]),
+  live_meetings: new Set(["id","room_code","title","provider","provider_room_name","status","created_by","started_at","ended_at","created_at","updated_at","access_mode","waiting_room"]),
   live_meeting_participants: new Set(["id","meeting_id","user_id","display_name","role","joined_at","left_at","created_at"]),
   live_meeting_messages: new Set(["id","meeting_id","user_id","sender_name","message","created_at"]),
 };
@@ -124,6 +124,11 @@ function sanitizeBody(table: string, body: any, mode: "insert" | "update") {
 
 const reportingBaseUrl = process.env.SUPABASE_URL || fallbackSupabaseUrl;
 const REPORTING_EDGE_URL = `${reportingBaseUrl.endsWith("/") ? reportingBaseUrl.slice(0, -1) : reportingBaseUrl}/functions/v1/safety-reporting`;
+
+async function sha256Hex(value:string){
+  const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
 
 function reportingClientIp(req: any) {
   const forwarded = String(req?.headers?.["x-forwarded-for"] || "").split(",")[0]?.trim();
@@ -180,6 +185,28 @@ export default async function handler(req: any, res: any) {
       return json(res, 403, { error: "CSRF validation failed" });
     }
     if (resource === "hse-assistant") return await hseAssistantHandler(req,res,profile);
+
+    if (resource === "live-meeting-invite") {
+      if (req.method !== "POST") return json(res,405,{error:"Method not allowed"});
+      if (!(await hasAppPermission(req,profile,"content","update"))) return json(res,403,{error:"Insufficient permission"});
+      const meetingId=String(req.body?.meetingId||"").trim();
+      if(!meetingId)return json(res,422,{error:"meetingId is required"});
+      const lookup=await supabaseFetch(`/rest/v1/live_meetings?select=id,created_by,status&id=eq.${encodeURIComponent(meetingId)}&limit=1`);
+      const meetings=await lookup.json().catch(()=>[]);
+      if(!lookup.ok)return json(res,lookup.status,{error:meetings?.message||"Unable to load meeting"});
+      const meeting=meetings[0];
+      if(!meeting)return json(res,404,{error:"Meeting not found"});
+      if(profile.role!=="admin"&&meeting.created_by!==profile.id)return json(res,403,{error:"Only the meeting host or an administrator can create an invite"});
+      if(meeting.status!=="live")return json(res,409,{error:"Meeting is not live"});
+      const token=crypto.randomUUID().replace(/-/g,"")+crypto.randomUUID().replace(/-/g,"");
+      const joinTokenHash=await sha256Hex(token);
+      const patch=await supabaseFetch(`/rest/v1/live_meetings?id=eq.${encodeURIComponent(meetingId)}`,{
+        method:"PATCH",headers:{Prefer:"return=minimal"},
+        body:JSON.stringify({access_mode:"invite_only",join_token_hash:joinTokenHash,waiting_room:true,updated_at:new Date().toISOString()}),
+      });
+      if(!patch.ok){const p=await patch.json().catch(()=>({}));return json(res,patch.status,{error:p?.message||"Unable to secure meeting"});}
+      return json(res,200,{meetingId,accessMode:"invite_only",joinPath:`/admin/live-meeting?meeting=${encodeURIComponent(meetingId)}&token=${encodeURIComponent(token)}`});
+    }
     if (resource === "safety-reporting-reveal") return await proxySafetyReporting(req, res, "reveal", true);
 
     if (resource === "bulk-import") {
@@ -397,7 +424,7 @@ export default async function handler(req: any, res: any) {
       if (table === "risk_register") url += "&order=residual_score.desc,review_date.asc";
       if (table === "hse_events") url += "&order=occurred_at.desc&limit=500";
       if (table === "notification_outbox") url += "&order=created_at.desc&limit=500";
-      if (table === "live_meetings") url += "&order=started_at.desc&limit=100";
+      if (table === "live_meetings") url = `${base}?select=id,room_code,title,provider,provider_room_name,status,created_by,started_at,ended_at,created_at,updated_at,access_mode,waiting_room&order=started_at.desc&limit=100`;
       if (["live_meeting_participants","live_meeting_messages"].includes(table)) {
         const meetingId = String(req.query?.meetingId || "").trim();
         if (meetingId) url += `&meeting_id=eq.${encodeURIComponent(meetingId)}`;
@@ -506,14 +533,19 @@ export default async function handler(req: any, res: any) {
       if (table === "live_meeting_participants") {
         const meetingId = String(row.meeting_id || "").trim();
         if (!meetingId) return json(res, 422, { error: "meetingId is required" });
-        const meetingResponse = await supabaseFetchForRequest(
-          req,
-          `/rest/v1/live_meetings?select=id,created_by,status&id=eq.${encodeURIComponent(meetingId)}&limit=1`
+        const meetingResponse = await supabaseFetch(
+          `/rest/v1/live_meetings?select=id,created_by,status,access_mode,join_token_hash&id=eq.${encodeURIComponent(meetingId)}&limit=1`
         );
         const meetingRows = await meetingResponse.json().catch(() => []);
         if (!meetingResponse.ok) return json(res, meetingResponse.status, { error: meetingRows?.message || "Unable to validate meeting" });
         const meeting = meetingRows[0];
         if (!meeting || meeting.status !== "live") return json(res, 404, { error: "Live meeting not found" });
+        if (meeting.access_mode === "invite_only" && meeting.created_by !== profile.id && profile.role !== "admin") {
+          const providedToken=String(body.joinToken||"").trim();
+          if(!providedToken)return json(res,403,{error:"A secure meeting invite is required"});
+          const providedHash=await sha256Hex(providedToken);
+          if(!meeting.join_token_hash||providedHash!==meeting.join_token_hash)return json(res,403,{error:"Invalid or expired meeting invite"});
+        }
         const activeParticipantResponse = await supabaseFetchForRequest(
           req,
           `/rest/v1/live_meeting_participants?select=*&meeting_id=eq.${encodeURIComponent(meetingId)}&user_id=eq.${encodeURIComponent(String(profile.id))}&left_at=is.null&limit=1`
