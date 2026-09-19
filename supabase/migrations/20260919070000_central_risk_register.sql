@@ -11,7 +11,7 @@ create table if not exists public.risk_register (
   factory text,
   area text,
   owner_user_id uuid references public.users(id) on delete set null,
-  source_assessment_id uuid references public.risk_assessments(id) on delete set null,
+  source_assessment_id text references public.risk_assessments(id) on delete set null,
   initial_likelihood integer not null default 1,
   initial_severity integer not null default 1,
   initial_score integer not null default 1,
