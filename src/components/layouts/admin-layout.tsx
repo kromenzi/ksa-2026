@@ -299,6 +299,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         { label: isAr ? 'سجل النشاط' : 'Activity Log', icon: History, href: "/admin/activity", visible: hasPermission('activity', 'read'), color: "text-slate-400", bgColor: "bg-slate-500/10" },
         { label: isAr ? 'المنشآت ومواقع العمل' : 'Facilities & Work Sites', icon: Factory, href: "/admin/plants", visible: hasPermission('settings', 'read'), color: "text-lime-500", bgColor: "bg-lime-500/10" },
         { label: isAr ? 'الربط والتكامل' : 'Integrations', icon: Workflow, href: "/admin/integrations", visible: hasPermission('settings', 'read'), color: "text-blue-400", bgColor: "bg-blue-400/10" },
+        { label: isAr ? 'جاهزية النظام' : 'System Readiness', icon: Activity, href: "/admin/system-readiness", visible: hasPermission('settings', 'read'), color: "text-emerald-400", bgColor: "bg-emerald-400/10" },
         { label: isAr ? 'إعدادات النظام' : 'Settings', icon: Settings, href: "/admin/settings", visible: hasPermission('settings', 'read'), color: "text-gray-400", bgColor: "bg-gray-500/10" },
       ]
     },

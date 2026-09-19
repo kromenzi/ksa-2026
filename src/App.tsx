@@ -31,6 +31,7 @@ const ContractorSafetyPage = lazy(() => import("@/pages/admin/contractor-safety"
 const AdminPermits = lazy(() => import("@/pages/admin/permits"));
 const AdminInvoices = lazy(() => import("@/pages/admin/invoices"));
 const AdminSettings = lazy(() => import("@/pages/admin/settings"));
+const SystemReadinessPage = lazy(() => import("@/pages/admin/system-readiness"));
 const AdminActivityLogs = lazy(() => import("@/pages/admin/activity-logs"));
 const AdminPlants = lazy(() => import("@/pages/admin/plants"));
 const AdminIntegrations = lazy(() => import("@/pages/admin/integrations"));
@@ -158,6 +159,7 @@ function Router() {
       <Route path="/admin/permits"><ProtectedRoute component={AdminPermits} /></Route>
       <Route path="/admin/invoices"><ProtectedRoute component={AdminInvoices} /></Route>
       <Route path="/admin/settings"><ProtectedRoute component={AdminSettings} /></Route>
+      <Route path="/admin/system-readiness"><ProtectedRoute component={SystemReadinessPage} /></Route>
       <Route path="/admin/activity"><ProtectedRoute component={AdminActivityLogs} /></Route>
       <Route path="/admin/plants"><ProtectedRoute component={AdminPlants} /></Route>
       <Route path="/admin/integrations"><ProtectedRoute component={AdminIntegrations} /></Route>
