@@ -91,6 +91,7 @@ const MonthlyHseReportPage = lazy(() => import("@/pages/admin/monthly-hse-report
 const MobileFieldPage = lazy(() => import("@/pages/admin/mobile-field"));
 const ActionCenterPage = lazy(() => import("@/pages/admin/action-center"));
 const LiveMeetingPage = lazy(() => import("@/pages/admin/live-meeting"));
+const ImportCenterPage = lazy(() => import("@/pages/admin/import-center"));
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useData();
@@ -142,6 +143,7 @@ function Router() {
       <Route path="/admin/mobile-field"><ProtectedRoute component={MobileFieldPage} /></Route>
       <Route path="/admin/action-center"><ProtectedRoute component={ActionCenterPage} /></Route>
       <Route path="/admin/live-meeting"><ProtectedRoute component={LiveMeetingPage} /></Route>
+      <Route path="/admin/import-center"><ProtectedRoute component={ImportCenterPage} /></Route>
       <Route path="/admin/ncr"><ProtectedRoute component={AdminNCR} /></Route>
       <Route path="/admin/ncr/new"><ProtectedRoute component={AdminNCRNewFixed} /></Route>
       <Route path="/admin/ncr/:id/preview"><ProtectedRoute component={AdminNCRPreview} /></Route>
