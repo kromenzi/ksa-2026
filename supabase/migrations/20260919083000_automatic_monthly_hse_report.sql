@@ -34,7 +34,7 @@ as $$
 declare
   start_ts timestamptz;
   end_ts timestamptz;
-  result jsonb;
+  snapshot_result jsonb;
 begin
   if p_month<1 or p_month>12 or p_year<2020 or p_year>2100 then
     raise exception 'Invalid report period';
@@ -42,7 +42,7 @@ begin
   start_ts:=make_timestamptz(p_year,p_month,1,0,0,0,'Asia/Riyadh');
   end_ts:=start_ts+interval '1 month';
 
-  result:=jsonb_build_object(
+  snapshot_result:=jsonb_build_object(
     'period',jsonb_build_object('month',p_month,'year',p_year,'start',start_ts,'end',end_ts),
     'actions',jsonb_build_object(
       'created',(select count(*) from public.hse_actions where created_at>=start_ts and created_at<end_ts),
@@ -91,9 +91,9 @@ begin
       'issues',(select count(*) from public.chemicals where status in ('Expired','Restricted') or (max_allowed_quantity is not null and quantity>max_allowed_quantity))
     )
   );
-  return result;
+  return snapshot_result;
 end;
-$$;
+$;
 revoke all on function private.build_monthly_hse_snapshot(integer,integer) from public,anon,authenticated;
 
 create or replace function public.generate_monthly_hse_report(p_month integer,p_year integer)
