@@ -12,6 +12,7 @@ import { AdminLayout } from "@/components/layouts/admin-layout";
 import EnvironmentalMeasurementsAlert from "@/components/environmental-measurements-alert";
 
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
+const HseAssistantPage = lazy(() => import("@/pages/admin/hse-assistant"));
 const ExecutiveHseDashboard = lazy(() => import("@/pages/admin/executive-hse"));
 const AdminUsers = lazy(() => import("@/pages/admin/users"));
 const AdminPosts = lazy(() => import("@/pages/admin/posts"));
@@ -124,6 +125,7 @@ function Router() {
       <Route path="/admin" component={AdminRedirect} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard"><ProtectedRoute component={AdminDashboard} /></Route>
+      <Route path="/admin/hse-assistant"><ProtectedRoute component={HseAssistantPage} /></Route>
       <Route path="/admin/executive-hse"><ProtectedRoute component={ExecutiveHseDashboard} /></Route>
       <Route path="/admin/users"><ProtectedRoute component={AdminUsers} /></Route>
       <Route path="/admin/posts"><ProtectedRoute component={AdminPosts} /></Route>
