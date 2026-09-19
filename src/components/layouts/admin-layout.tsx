@@ -170,6 +170,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         { label: isAr ? 'خطة مهام السلامة الشهرية' : 'Monthly HSE Work Plan', icon: CalendarDays, href: "/admin/monthly-hse-plan", visible: true, color: "text-cyan-600", bgColor: "bg-cyan-600/10" },
         { label: isAr ? 'الحوادث وشبه الحوادث وتحليل الأسباب الجذرية' : 'Incidents, Near Misses & RCA', icon: AlertTriangle, href: "/admin/incidents", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },
         { label: isAr ? 'إدارة المواد الكيميائية وSDS' : 'Chemical & SDS Management', icon: Boxes, href: "/admin/chemicals", visible: true, color: "text-amber-600", bgColor: "bg-amber-600/10" },
+        { label: isAr ? 'سجل المخاطر المركزي' : 'Central Risk Register', icon: Shield, href: "/admin/risk-register", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
         { label: isAr ? 'تقييم المخاطر (5×5)' : 'Risk Assessment (5×5)', icon: Shield, href: "/admin/risk-assessment", visible: true, color: "text-orange-500", bgColor: "bg-orange-500/10" },
         { label: isAr ? 'تقارير عدم المطابقة (NCR)' : 'Non-Conformance Reports (NCR)', icon: ClipboardList, href: "/admin/ncr", visible: hasPermission('ncr', 'read'), color: "text-amber-500", bgColor: "bg-amber-500/10" },
         { label: isAr ? 'هرم السلامة' : 'Safety Pyramid', icon: Triangle, href: "/admin/safety-pyramid", visible: true, color: "text-rose-600", bgColor: "bg-rose-600/10" },
