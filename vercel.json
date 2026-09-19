@@ -50,6 +50,34 @@
   ],
   "rewrites": [
     {
+      "source": "/api/audit-programs",
+      "destination": "/api/data?resource=audit-programs"
+    },
+    {
+      "source": "/api/audit-programs/:id",
+      "destination": "/api/data?resource=audit-programs&id=:id"
+    },
+    {
+      "source": "/api/audit-findings",
+      "destination": "/api/data?resource=audit-findings"
+    },
+    {
+      "source": "/api/audit-findings/:id",
+      "destination": "/api/data?resource=audit-findings&id=:id"
+    },
+    {
+      "source": "/api/legal-requirements",
+      "destination": "/api/data?resource=legal-requirements"
+    },
+    {
+      "source": "/api/legal-requirements/:id",
+      "destination": "/api/data?resource=legal-requirements&id=:id"
+    },
+    {
+      "source": "/api/compliance-evidence",
+      "destination": "/api/data?resource=compliance-evidence"
+    },
+    {
       "source": "/api/live-meetings",
       "destination": "/api/data?resource=live-meetings"
     },
