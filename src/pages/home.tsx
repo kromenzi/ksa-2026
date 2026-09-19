@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { useData } from "@/lib/data-context";
+import { BrandLogo3D } from "@/components/brand-logo-3d";
 import { Shield, FileText, ClipboardList, LayoutDashboard, Mail, Phone, Clock, ArrowRight, ArrowLeft, HardHat, AlertTriangle, BarChart3, Zap, TrendingUp, CheckCircle2, Activity, FileCheck, Users } from "lucide-react";
 
 interface ReportSettingsData {
@@ -77,16 +78,9 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-50" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
           <div className="text-center max-w-4xl mx-auto space-y-8">
-            <img 
-              src={logo} 
-              alt={companyName} 
-              className="w-[min(86vw,520px)] max-h-[340px] brand-logo-full mx-auto mb-4 drop-shadow-xl transition-all duration-300 hover:scale-105" 
-              onError={(e) => {
-                if (e.currentTarget.src !== window.location.origin + '/utec-logo.svg') {
-                  e.currentTarget.src = '/utec-logo.svg';
-                }
-              }}
-            />
+            <div className="hero-brand-lockup mb-4">
+              <BrandLogo3D src={logo} alt={companyName} size="hero" />
+            </div>
 
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest shadow-sm">
               <HardHat className="h-3.5 w-3.5" />

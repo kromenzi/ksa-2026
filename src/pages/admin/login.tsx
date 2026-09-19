@@ -5,6 +5,7 @@ import * as z from "zod";
 import { useLocation } from "wouter";
 import { useData } from "@/lib/data-context";
 import { apiRequest } from "@/lib/queryClient";
+import { BrandLogo3D } from "@/components/brand-logo-3d";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -170,7 +171,7 @@ export default function AdminLogin() {
   ];
 
   return (
-    <div className="min-h-screen flex bg-background" dir={isAr ? "rtl" : "ltr"}>
+    <div className="min-h-screen flex bg-background login-shell" dir={isAr ? "rtl" : "ltr"}>
       <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] relative overflow-hidden" style={{ background: "linear-gradient(180deg, hsl(210 14% 7%) 0%, hsl(210 12% 10%) 55%, hsl(198 18% 11%) 100%)" }}>
         <div className="absolute inset-0 hazard-stripe opacity-40" />
         <div className="absolute inset-x-0 top-0 h-0.5 bg-primary" />
@@ -210,20 +211,20 @@ export default function AdminLogin() {
 
         <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
           <div className="w-full max-w-md space-y-5">
-            <div className="text-center space-y-2">
-              <img src={settings.branding?.companyLogo || "/utec-logo.svg"} alt={settings.siteName || "Logo"} className="w-[min(74vw,380px)] max-h-[255px] brand-logo-full mx-auto mb-4 drop-shadow-xl transition-all duration-300 hover:scale-105" onError={(e) => { if (e.currentTarget.src !== window.location.origin + "/utec-logo.svg") e.currentTarget.src = "/utec-logo.svg"; }} />
+            <div className="text-center space-y-2 relative z-10">
+              <BrandLogo3D src={settings.branding?.companyLogo || "/utec-logo.svg"} alt={settings.siteName || "Logo"} size="login" className="mb-2" />
               <h1 className="text-2xl font-bold tracking-tight">{isAr ? "التحكم بالحساب" : "Account Access"}</h1>
               <p className="text-sm text-muted-foreground">{isAr ? "سجّل الدخول أو أنشئ حسابًا أو اطلب استعادة كلمة المرور" : "Sign in, create an account, or request a reset"}</p>
             </div>
 
-            <Card className="shadow-xl shadow-black/8 border-border/50 border-t-2 border-t-primary bg-card/90 rounded-sm">
+            <Card className="login-card relative z-10">
               <CardContent className="p-6">
                 <Tabs defaultValue="login" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 mb-4">
-                    <TabsTrigger value="login">{isAr ? "دخول" : "Login"}</TabsTrigger>
-                    <TabsTrigger value="signup">{isAr ? "حساب" : "Signup"}</TabsTrigger>
-                    <TabsTrigger value="reset">{isAr ? "استعادة" : "Reset"}</TabsTrigger>
-                    <TabsTrigger value="change">{isAr ? "تغيير" : "Change"}</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-4 mb-4 login-tabs-list">
+                    <TabsTrigger value="login" className="login-tabs-trigger">{isAr ? "دخول" : "Login"}</TabsTrigger>
+                    <TabsTrigger value="signup" className="login-tabs-trigger">{isAr ? "حساب" : "Signup"}</TabsTrigger>
+                    <TabsTrigger value="reset" className="login-tabs-trigger">{isAr ? "استعادة" : "Reset"}</TabsTrigger>
+                    <TabsTrigger value="change" className="login-tabs-trigger">{isAr ? "تغيير" : "Change"}</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="login">
