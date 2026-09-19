@@ -266,7 +266,7 @@ export default function AdminDashboard() {
       [data-dashboard-print-root="true"] .shadow-sm,
       [data-dashboard-print-root="true"] .shadow-md,
       [data-dashboard-print-root="true"] .shadow-lg { box-shadow: none !important; }
-      [data-dashboard-print-root="true"] .hover\:shadow-lg { box-shadow: none !important; }
+      [data-dashboard-print-root="true"] .hover:shadow-lg { box-shadow: none !important; }
       .dashboard-print-header {
         display: flex !important;
         align-items: center;

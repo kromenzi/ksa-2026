@@ -123,7 +123,7 @@ async function documentStorageHandler(req:any,res:any){
     const relativeUrl=String(payload?.signedURL||payload?.signedUrl||"");
     if(!relativeUrl)return json(res,502,{error:"Storage did not return a signed file URL"});
     let signedUrl=relativeUrl.startsWith("http")?relativeUrl:`${SUPABASE_URL}/storage/v1${relativeUrl.startsWith("/")?relativeUrl:`/${relativeUrl}`}`;
-    if(Boolean(body.download)){
+    if(body.download){
       const fileName=String(body.fileName||"document").replace(/[\r\n]/g,"");
       signedUrl+=`${signedUrl.includes("?")?"&":"?"}download=${encodeURIComponent(fileName)}`;
     }
@@ -203,7 +203,7 @@ export default async function handler(req:any,res:any){
 
   const user=await getAuthUser(req);
   const profile=user?await getProfile(req,user):null;
-  const canSeeDetails=Boolean(profile?.is_active&&profile.role==="admin");
+  const canSeeDetails=profile?.is_active&&profile.role==="admin";
 
   if(!canSeeDetails){
     logger.info("system_health.request.done",{requestId:rid,overall,durationMs:Date.now()-startedAt,details:false});

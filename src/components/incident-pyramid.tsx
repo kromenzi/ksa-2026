@@ -24,7 +24,7 @@ export const PYRAMID_LEVEL_DEFS: PyramidLevelDefinition[] = [
 ];
 const MONTH_NAMES=[{en:"January",ar:"يناير"},{en:"February",ar:"فبراير"},{en:"March",ar:"مارس"},{en:"April",ar:"أبريل"},{en:"May",ar:"مايو"},{en:"June",ar:"يونيو"},{en:"July",ar:"يوليو"},{en:"August",ar:"أغسطس"},{en:"September",ar:"سبتمبر"},{en:"October",ar:"أكتوبر"},{en:"November",ar:"نوفمبر"},{en:"December",ar:"ديسمبر"}];
 export interface UnifiedIncidentRecord {id:string;refNo:string;date:string;month:number;year:number;category:string;levelId:string;location:string;department:string;description:string;status:string;responsible:string;}
-function escapeHtml(value:unknown){return String(value??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;");}
+function escapeHtml(value:unknown){return String(value??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");}
 
 function openStandalonePyramidPrint({year,monthName,monthlyCounts,ytdCounts,isAr}:{year:number;monthName:string;monthlyCounts:Record<string,number>;ytdCounts:Record<string,number>;isAr:boolean}){
  const title=isAr?`الهرم الأمني للمنشأة - ${year}`:`Incident Pyramid - ${year}`;

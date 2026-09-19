@@ -170,8 +170,8 @@ export default function AdminFiles() {
   const handleDelete = async (doc: DocumentItem) => {
     const confirmed = window.confirm(
       isAr
-        ? `حذف المستند \"${doc.title}\" نهائياً؟ لن يعود بعد تحديث الصفحة.`
-        : `Permanently delete \"${doc.title}\"? It will not return after refresh.`,
+        ? `حذف المستند "${doc.title}" نهائياً؟ لن يعود بعد تحديث الصفحة.`
+        : `Permanently delete "${doc.title}"? It will not return after refresh.`,
     );
     if (!confirmed) return;
     setDeletingId(doc.id);

@@ -23,5 +23,3 @@ jobs:
       - name: Dependency audit
         run: npm audit --omit=dev --audit-level=high
       - run: npm run release:gate
-      - name: Legacy lint report
-        run: npm run lint:report

@@ -19,7 +19,7 @@ function recoverFromStaleChunk(value: unknown) {
       return false;
     }
     sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
-  } catch {}
+  } catch { /* best-effort compatibility fallback */ }
 
   window.location.reload();
   return true;

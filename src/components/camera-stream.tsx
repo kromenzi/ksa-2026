@@ -80,7 +80,7 @@ export default function CameraStream({
     let hls: any;
     let disposed = false;
     let script: HTMLScriptElement | null = null;
-    const startNative = async () => { video.src = effectiveStreamUrl; try { await video.play(); } catch {} };
+    const startNative = async () => { video.src = effectiveStreamUrl; try { await video.play(); } catch { /* intentional best-effort fallback */ } };
     const attachHls = () => {
       if (disposed || !window.Hls?.isSupported?.()) { if (!disposed) startNative(); return; }
       hls = new window.Hls({ enableWorker: true, lowLatencyMode: true, backBufferLength: 30 });
@@ -93,7 +93,7 @@ export default function CameraStream({
       script = document.createElement("script"); script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js"; script.async = true;
       script.onload = attachHls; script.onerror = () => setLiveError(true); document.head.appendChild(script);
     }
-    return () => { disposed = true; try { hls?.destroy?.(); } catch {} if (script?.parentNode) script.parentNode.removeChild(script); };
+    return () => { disposed = true; try { hls?.destroy?.(); } catch { /* intentional best-effort fallback */ } if (script?.parentNode) script.parentNode.removeChild(script); };
   }, [effectiveStreamUrl, effectiveStreamType]);
 
   useEffect(() => {

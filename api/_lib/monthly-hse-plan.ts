@@ -76,7 +76,7 @@ export async function monthlyHsePlanHandler(req:any,res:any){
     if(req.method==="GET"&&action==="tasks"){
       const month=Math.max(1,Math.min(12,Number(req.query?.month)||new Date().getMonth()+1));
       const year=Math.max(2020,Math.min(2100,Number(req.query?.year)||new Date().getFullYear()));
-      let path="/rest/v1/monthly_hse_tasks?select=*&year=eq."+year+"&month=eq."+month+"&order=due_date.asc,created_at.desc";
+      const path="/rest/v1/monthly_hse_tasks?select=*&year=eq."+year+"&month=eq."+month+"&order=due_date.asc,created_at.desc";
       const rows=await rest(req,path);
       return json(res,200,(rows||[]).map(mapRow));
     }

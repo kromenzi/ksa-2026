@@ -30,13 +30,6 @@ interface FactoryItem {
   manager: string;
 }
 
-interface DepartmentItem {
-  id: string;
-  code: string;
-  name: string;
-  manager: string;
-}
-
 export default function AdminSettings() {
   const { settings, updateSettings, currentUser, departments, addDepartment, deleteDepartment, plants, addPlant, permissionRows, updatePermission } = useData();
   // REAL_SETTINGS_BACKEND_V1
@@ -48,21 +41,6 @@ export default function AdminSettings() {
   const [localSettings, setLocalSettings] = useState(settings);
   const [activeTab, setActiveTab] = useState("company");
 
-  useEffect(() => {
-    if (enterpriseReady) return;
-    const cfg = savedEnterpriseConfig;
-    if (cfg.numbering) setNumbering(prev => ({ ...prev, ...cfg.numbering }));
-    if (cfg.qrConfig) setQrConfig(prev => ({ ...prev, ...cfg.qrConfig }));
-    if (cfg.pdfConfig) setPdfConfig(prev => ({ ...prev, ...cfg.pdfConfig }));
-    if (Array.isArray(cfg.jobTitles)) setJobTitles(cfg.jobTitles);
-    if (Array.isArray(cfg.incidentCats)) setIncidentCats(cfg.incidentCats);
-    if (Array.isArray(cfg.trainingCats)) setTrainingCats(cfg.trainingCats);
-    if (Array.isArray(cfg.permitTypes)) setPermitTypes(cfg.permitTypes);
-    if (Array.isArray(cfg.lotoCats)) setLotoCats(cfg.lotoCats);
-    if (cfg.companyData) setCompanyData(prev => ({ ...prev, ...cfg.companyData }));
-    if (cfg.brandingText) setBrandingText(prev => ({ ...prev, ...cfg.brandingText }));
-    setEnterpriseReady(true);
-  }, [enterpriseReady, savedEnterpriseConfig]);
 
   // Company Information
   const [companyData, setCompanyData] = useState({
@@ -178,6 +156,23 @@ export default function AdminSettings() {
     overallHealthPct: number;
     scannedAt?: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (enterpriseReady) return;
+    const cfg = savedEnterpriseConfig;
+    if (cfg.numbering) setNumbering(prev => ({ ...prev, ...cfg.numbering }));
+    if (cfg.qrConfig) setQrConfig(prev => ({ ...prev, ...cfg.qrConfig }));
+    if (cfg.pdfConfig) setPdfConfig(prev => ({ ...prev, ...cfg.pdfConfig }));
+    if (Array.isArray(cfg.jobTitles)) setJobTitles(cfg.jobTitles);
+    if (Array.isArray(cfg.incidentCats)) setIncidentCats(cfg.incidentCats);
+    if (Array.isArray(cfg.trainingCats)) setTrainingCats(cfg.trainingCats);
+    if (Array.isArray(cfg.permitTypes)) setPermitTypes(cfg.permitTypes);
+    if (Array.isArray(cfg.lotoCats)) setLotoCats(cfg.lotoCats);
+    if (cfg.companyData) setCompanyData(prev => ({ ...prev, ...cfg.companyData }));
+    if (cfg.brandingText) setBrandingText(prev => ({ ...prev, ...cfg.brandingText }));
+    setEnterpriseReady(true);
+  }, [enterpriseReady, savedEnterpriseConfig]);
+
 
   // Permissions Matrix is loaded from Supabase through DataContext.
 

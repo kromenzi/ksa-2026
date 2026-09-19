@@ -14,4 +14,4 @@ try {
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
   }
-} catch {}
+} catch { /* best-effort compatibility fallback */ }
