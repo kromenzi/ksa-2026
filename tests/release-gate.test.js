@@ -26,7 +26,7 @@ test("security headers remain configured", async () => {
 
 
 test("event notification migration keeps RLS and secure RPC", async () => {
-  const source = await readFile(new URL("../supabase/migrations/20260919102000_hse_event_notification_foundation.sql", import.meta.url), "utf8");
+  const source = await readFile(new URL("../supabase/migrations/20260919070222_hse_event_notification_foundation.sql", import.meta.url), "utf8");
   assert.ok(source.includes("alter table public.hse_events enable row level security"));
   assert.ok(source.includes("alter table public.notification_outbox enable row level security"));
   assert.ok(source.includes("security invoker"));
@@ -52,7 +52,7 @@ test("live meetings stay behind unified API and server-enforced identity", async
 
 
 test("live meeting migration grants authenticated access through RLS", async () => {
-  const source = await readFile(new URL("../supabase/migrations/20260919131500_live_meeting_foundation_and_rls.sql", import.meta.url), "utf8");
+  const source = await readFile(new URL("../supabase/migrations/20260919121553_live_meeting_foundation_and_rls.sql", import.meta.url), "utf8");
   assert.ok(source.includes("grant select, insert, update, delete on public.live_meetings to authenticated"));
   assert.ok(source.includes("live_meetings_select_active_users"));
   assert.ok(source.includes("live_meeting_participants_insert_self"));
@@ -72,7 +72,7 @@ test("live meeting attendance records leave time and prevents duplicate active j
   assert.ok(api.includes("Participants can only update their own attendance"));
   assert.ok(api.includes("Unable to record meeting leave"));
 
-  const migration = await readFile(new URL("../supabase/migrations/20260919165000_live_meeting_attendance_integrity.sql", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20260919135310_live_meeting_attendance_integrity.sql", import.meta.url), "utf8");
   assert.ok(migration.includes("live_meeting_one_active_participant_idx"));
   assert.ok(migration.includes("where user_id is not null and left_at is null"));
 });
@@ -84,7 +84,7 @@ test("unified authorization is enforced across UI and API", async () => {
   const authz = await readFile(new URL("../api/_lib/authorization.ts", import.meta.url), "utf8");
   const layout = await readFile(new URL("../src/components/layouts/admin-layout.tsx", import.meta.url), "utf8");
   const routes = await readFile(new URL("../src/lib/route-permissions.ts", import.meta.url), "utf8");
-  const migration = await readFile(new URL("../supabase/migrations/20260919170500_unified_application_permissions.sql", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20260919140844_unified_application_permissions.sql", import.meta.url), "utf8");
 
   assert.ok(dataApi.includes("hasAppPermission"));
   assert.ok(systemApi.includes("hasAppPermission"));
@@ -99,7 +99,7 @@ test("unified authorization is enforced across UI and API", async () => {
 
 
 test("enterprise audit and compliance modules are backed by normalized records", async () => {
-  const migration = await readFile(new URL("../supabase/migrations/20260919174500_audit_compliance_enterprise.sql", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20260919142114_audit_compliance_enterprise.sql", import.meta.url), "utf8");
   const auditPage = await readFile(new URL("../src/pages/admin/audits.tsx", import.meta.url), "utf8");
   const compliancePage = await readFile(new URL("../src/pages/admin/compliance.tsx", import.meta.url), "utf8");
   assert.ok(migration.includes("public.audit_programs"));
@@ -122,7 +122,7 @@ test("bulk import is bounded, permission-checked and supports dry-run", async ()
 
 
 test("secure live meeting invite tokens are server-hashed and hidden from authenticated reads", async () => {
-  const migration = await readFile(new URL("../supabase/migrations/20260919181000_secure_live_meeting_v2.sql", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20260919143138_secure_live_meeting_v2.sql", import.meta.url), "utf8");
   const api = await readFile(new URL("../api/data.ts", import.meta.url), "utf8");
   const page = await readFile(new URL("../src/pages/admin/live-meeting.tsx", import.meta.url), "utf8");
   assert.ok(migration.includes("join_token_hash"));
@@ -136,8 +136,8 @@ test("secure live meeting invite tokens are server-hashed and hidden from authen
 
 
 test("final platform upgrade keeps workflow, intelligence, mobile sync and real notification delivery", async () => {
-  const workflowMigration = await readFile(new URL("../supabase/migrations/20260919173000_hse_workflow_engine_v1.sql", import.meta.url), "utf8");
-  const intelligenceMigration = await readFile(new URL("../supabase/migrations/20260919182500_safety_intelligence_snapshot.sql", import.meta.url), "utf8");
+  const workflowMigration = await readFile(new URL("../supabase/migrations/20260919143713_hse_workflow_engine_v1.sql", import.meta.url), "utf8");
+  const intelligenceMigration = await readFile(new URL("../supabase/migrations/20260919143720_safety_intelligence_snapshot.sql", import.meta.url), "utf8");
   const api = await readFile(new URL("../api/data.ts", import.meta.url), "utf8");
   const delivery = await readFile(new URL("../api/_lib/notification-delivery.ts", import.meta.url), "utf8");
   const mobile = await readFile(new URL("../src/pages/admin/mobile-field.tsx", import.meta.url), "utf8");
@@ -175,7 +175,7 @@ test("data API keeps its resource registry modular without adding Vercel functio
 
 
 test("Supabase advisor hardening revokes public trigger RPC access and covers new foreign keys", async () => {
-  const migration = await readFile(new URL("../supabase/migrations/20260919150000_security_performance_advisor_hardening_v2.sql", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20260919145516_security_performance_advisor_hardening_v2.sql", import.meta.url), "utf8");
   assert.ok(migration.includes("revoke all on function public.materialize_in_app_notification() from public, anon, authenticated"));
   for (const indexName of [
     "audit_findings_action_id_idx",
@@ -230,4 +230,22 @@ test("settings and dashboard keep reusable defaults/widgets outside page monolit
   assert.ok(dashboard.includes('from "@/features/dashboard/dashboard-widgets"'));
   assert.ok(widgets.includes("export function KPICard"));
   assert.ok(widgets.includes("export function MiniStat"));
+});
+
+
+test("repository migration versions are aligned with the current production history snapshot", async () => {
+  const required = [
+    "20260919070222_hse_event_notification_foundation.sql",
+    "20260919121553_live_meeting_foundation_and_rls.sql",
+    "20260919135310_live_meeting_attendance_integrity.sql",
+    "20260919140844_unified_application_permissions.sql",
+    "20260919142114_audit_compliance_enterprise.sql",
+    "20260919143138_secure_live_meeting_v2.sql",
+    "20260919143713_hse_workflow_engine_v1.sql",
+    "20260919143720_safety_intelligence_snapshot.sql",
+    "20260919145516_security_performance_advisor_hardening_v2.sql",
+  ];
+  for (const file of required) {
+    await readFile(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8");
+  }
 });
