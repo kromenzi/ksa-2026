@@ -249,3 +249,19 @@ test("repository migration versions are aligned with the current production hist
     await readFile(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8");
   }
 });
+
+
+test("system readiness center stays permission-protected and uses live readiness APIs", async () => {
+  const app = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const page = await readFile(new URL("../src/pages/admin/system-readiness.tsx", import.meta.url), "utf8");
+  const permissions = await readFile(new URL("../src/lib/route-permissions.ts", import.meta.url), "utf8");
+  const layout = await readFile(new URL("../src/components/layouts/admin-layout.tsx", import.meta.url), "utf8");
+
+  assert.ok(app.includes('/admin/system-readiness'));
+  assert.ok(page.includes('/api/system-health'));
+  assert.ok(page.includes('/api/notification-delivery'));
+  assert.ok(page.includes('CRON_SECRET'));
+  assert.ok(page.includes('Jitsi'));
+  assert.ok(permissions.includes('["/admin/system-readiness", { module: "settings", action: "read" }]'));
+  assert.ok(layout.includes('href: "/admin/system-readiness"'));
+});
