@@ -39,6 +39,12 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "fire-device-events": { table: "fire_device_events", module: "reports" },
   "emergency-exits": { table: "emergency_exits", module: "reports" },
   "emergency-exit-events": { table: "emergency_exit_events", module: "reports" },
+  "hse-actions": { table: "hse_actions", module: "reports" },
+  "hse-action-comments": { table: "hse_action_comments", module: "reports" },
+  "hse-action-evidence": { table: "hse_action_evidence", module: "reports" },
+  "hse-action-history": { table: "hse_action_history", module: "reports" },
+  "hse-escalation-rules": { table: "hse_escalation_rules", module: "reports" },
+  "hse-action-escalations": { table: "hse_action_escalations", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
@@ -84,6 +90,12 @@ const COLUMNS: Record<string, Set<string>> = {
   fire_device_events: new Set(["id","device_id","panel_id","gateway_id","event_type","severity","status","message","occurred_at","acknowledged_at","acknowledged_by","cleared_at","source","raw_payload","created_at"]),
   emergency_exits: new Set(["id","exit_code","name","building","floor","area","assembly_point","route_description","door_type","gateway_id","status","door_status","lock_status","panic_bar_status","exit_sign_status","emergency_light_status","emergency_light_battery","obstruction_status","last_signal_at","last_inspection_at","next_inspection_at","qr_code","notes","data","created_at","updated_at"]),
   emergency_exit_events: new Set(["id","exit_id","gateway_id","event_type","severity","status","message","occurred_at","acknowledged_at","acknowledged_by","cleared_at","source","raw_payload","created_at"]),
+  hse_actions: new Set(["id","action_no","title","description","source_type","source_id","category","department","factory","area","priority","status","progress","owner_user_id","assigned_employee_id","due_at","evidence_required","verification_required","verified_by","verified_at","verification_notes","effectiveness_status","effectiveness_notes","escalation_level","created_by","created_at","updated_at","closed_at","metadata"]),
+  hse_action_comments: new Set(["id","action_id","comment","created_by","created_at"]),
+  hse_action_evidence: new Set(["id","action_id","file_url","file_name","note","uploaded_by","uploaded_at"]),
+  hse_action_history: new Set(["id","action_id","event_type","old_values","new_values","changed_by","changed_at"]),
+  hse_escalation_rules: new Set(["id","name","priority","overdue_hours","escalation_level","target_role","active","created_at"]),
+  hse_action_escalations: new Set(["id","action_id","rule_id","escalation_level","target_role","reason","status","escalated_at","acknowledged_at","acknowledged_by","notes"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -205,6 +217,14 @@ export default async function handler(req: any, res: any) {
       if (table === "employees") url += "&order=name.asc";
       if (["fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table)) url += "&order=updated_at.desc";
       if (["fire_device_events","emergency_exit_events"].includes(table)) url += "&order=occurred_at.desc&limit=500";
+      if (table === "hse_actions") url += "&order=created_at.desc";
+      if (["hse_action_comments","hse_action_evidence","hse_action_history","hse_action_escalations"].includes(table)) {
+        const actionId = String(req.query?.actionId || "").trim();
+        if (actionId) url += `&action_id=eq.${encodeURIComponent(actionId)}`;
+        const orderField = table === "hse_action_comments" ? "created_at" : table === "hse_action_evidence" ? "uploaded_at" : table === "hse_action_history" ? "changed_at" : "escalated_at";
+        url += `&order=${orderField}.desc`;
+      }
+      if (table === "hse_escalation_rules") url += "&order=priority.asc,overdue_hours.asc";
       if (table === "section_config") url += "&order=section_type.asc";
       if (GENERIC_TABLES.has(table)) url += "&order=updated_at.desc";
       if (table === "safety_reporting_messages") {
@@ -252,7 +272,10 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "POST") {
       const row = sanitizeBody(table, body, "insert");
-      if (["documents", "reports", "posts", "form_templates", "employees", "routing_rules", "fire_gateways", "fire_panels", "fire_devices", "fire_device_events", "emergency_exits", "emergency_exit_events"].includes(table)) row.created_at = row.created_at || new Date().toISOString();
+      if (["documents", "reports", "posts", "form_templates", "employees", "routing_rules", "fire_gateways", "fire_panels", "fire_devices", "fire_device_events", "emergency_exits", "emergency_exit_events", "hse_actions", "hse_action_comments"].includes(table)) row.created_at = row.created_at || new Date().toISOString();
+      if (table === "hse_actions") row.created_by = row.created_by || profile.id;
+      if (table === "hse_action_comments") row.created_by = row.created_by || profile.id;
+      if (table === "hse_action_evidence") row.uploaded_by = row.uploaded_by || profile.id;
       if (table === "activity_logs") {
         row.performed_by = row.performed_by || user.id;
         row.performed_by_name = row.performed_by_name || profile.name;
@@ -312,7 +335,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || ["fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || table === "hse_actions" || ["fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
