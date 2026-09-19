@@ -14,7 +14,7 @@ import {
   Search, Edit, Trash2, Mail, AlertTriangle, Printer, Upload, FileEdit, ChevronDown, 
   Eye, ClipboardList, MapPin, Calendar, Building2, User, Clock, CheckCircle2, 
   ShieldAlert, FileText, X, Zap, Activity, Filter, XCircle, FileBarChart,
-  ShieldCheck, ShieldAlert as ShieldAlertIcon, Archive, FileSpreadsheet, FileCode2, Download, FileText as FileDocIcon, Loader2
+  ShieldCheck, ShieldAlert as ShieldAlertIcon, Archive, FileSpreadsheet, FileCode2, Download, FileText as FileDocIcon, Loader2, ExternalLink
 } from "lucide-react";
 import PrintShareDialog from "@/components/print-share-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -736,6 +736,16 @@ export default function AdminNCRList() {
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
+                              <Link href={`/admin/ncr/${ncr.id}/preview`}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-sky-500/10 hover:text-sky-600" data-testid={`button-link-preview-ncr-${ncr.id}`}>
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs">{isAr ? 'فتح المعاينة كرابط' : 'Open preview link'}</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-amber-500/10 hover:text-amber-600" onClick={() => setShareItem(ncr)} data-testid={`button-print-ncr-${ncr.id}`}>
                                 <Printer className="h-4 w-4" />
                               </Button>
@@ -1110,7 +1120,7 @@ export default function AdminNCRList() {
           onOpenChange={(open) => !open && setShareItem(null)}
           item={{
             id: shareItem.id,
-            url: typeof window !== 'undefined' ? `${window.location.origin}/admin/ncr/${shareItem.id}` : undefined,
+            url: typeof window !== 'undefined' ? `${window.location.origin}/admin/ncr/${shareItem.id}/preview` : undefined,
             type: "ncr",
             refNo: shareItem.refNo,
             title: `NCR: ${shareItem.refNo}`,

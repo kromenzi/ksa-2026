@@ -5,12 +5,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Shield, MapPin, User, AlertTriangle, CheckCircle2, Printer, ArrowLeft, ArrowRight } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function PublicReport() {
   const { id } = useParams<{ id: string }>();
   const { safetyReports, reportSettingsData, settings } = useData();
+  const { data: linkedReport, isLoading: linkedReportLoading } = useQuery<any>({
+    queryKey: ["/api/public-reports", id],
+    enabled: Boolean(id),
+    queryFn: async () => {
+      const response = await fetch(`/api/public-reports/${encodeURIComponent(id || "")}`, { cache: "no-store" });
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error("Unable to load report preview");
+      return response.json();
+    },
+    retry: false,
+  });
 
-  const report = safetyReports.find((r) => r.id === id);
+  const report = linkedReport || safetyReports.find((r) => r.id === id);
   const isAr = settings.language === "ar";
   const Arrow = isAr ? ArrowRight : ArrowLeft;
 
@@ -42,6 +54,10 @@ export default function PublicReport() {
   const handlePrint = () => {
     window.print();
   };
+
+  if (linkedReportLoading && !report) {
+    return <div className="min-h-screen grid place-items-center text-sm text-muted-foreground">{isAr ? "جاري تحميل المعاينة..." : "Loading preview..."}</div>;
+  }
 
   if (!report) {
     return (
