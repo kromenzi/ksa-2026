@@ -172,6 +172,14 @@ export default async function handler(req: any, res: any) {
       return json(res, 403, { error: "CSRF validation failed" });
     }
     if (resource === "hse-assistant") return await hseAssistantHandler(req,res,profile);
+    if (resource === "safety-intelligence") {
+      if (req.method !== "GET") return json(res,405,{error:"Method not allowed"});
+      if (!(await hasAppPermission(req,profile,"reports","read"))) return json(res,403,{error:"Insufficient permission"});
+      const response=await supabaseFetchForRequest(req,"/rest/v1/rpc/hse_intelligence_snapshot",{method:"POST",body:"{}"});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok)return json(res,response.status,{error:payload?.message||"Unable to load Safety Intelligence"});
+      return json(res,200,payload);
+    }
     if (resource === "safety-reporting-reveal") return await proxySafetyReporting(req, res, "reveal", true);
 
     // Notifications use a dedicated flow because users may only read/update
