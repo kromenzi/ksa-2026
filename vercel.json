@@ -50,6 +50,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/bulk-import",
+      "destination": "/api/data?resource=bulk-import"
+    },
+    {
       "source": "/api/audit-programs",
       "destination": "/api/data?resource=audit-programs"
     },
