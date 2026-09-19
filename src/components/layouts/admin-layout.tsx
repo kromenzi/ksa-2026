@@ -294,7 +294,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const renderSidebarContent = (mobile = false) => (
     <div className="flex flex-col h-full sidebar-glass">
       <div className={cn(
-        "flex items-center border-b border-white/[0.06] transition-all duration-300",
+        "flex items-center sidebar-brand border-b border-white/[0.06] transition-all duration-300",
         isCollapsed && !mobile ? "p-2 justify-center h-[62px]" : "px-3.5 py-2.5 gap-2.5 h-[62px]"
       )}>
         {isCollapsed && !mobile ? (
@@ -349,13 +349,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           if (visibleItems.length === 0) return null;
           const isGroupCollapsed = collapsedGroups[gi] ?? true;
           return (
-            <div key={gi} className={cn("mb-1", gi > 0 && "mt-2.5")}>
+            <div key={gi} className={cn("mb-1 sidebar-nav-group", isGroupCollapsed && "sidebar-nav-group-collapsed", gi > 0 && "mt-2.5")}>
               {(!isCollapsed || mobile) && (
                 <div 
                   onClick={() => toggleGroup(gi)}
-                  className="px-2.5 py-1 mb-1 flex items-center justify-between cursor-pointer select-none rounded-lg hover:bg-white/[0.04] transition-colors group/header"
+                  className="px-2.5 py-1 mb-1 flex items-center justify-between cursor-pointer select-none rounded-lg hover:bg-white/[0.04] transition-colors group/header sidebar-group-header"
                 >
-                  <span className="text-[10px] font-bold tracking-widest text-white/50 uppercase group-hover/header:text-white/80 transition-colors">
+                  <span className="text-[10px] font-bold tracking-widest text-white/50 uppercase group-hover/header:text-white/80 transition-colors sidebar-group-title">
                     {isAr ? group.titleAr : group.title}
                   </span>
                   <ChevronDown className={cn("h-3 w-3 text-white/40 transition-transform duration-200", isGroupCollapsed && "-rotate-90 rtl:rotate-90")} />
@@ -381,6 +381,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                             <div 
                               className={cn(
                                 "flex items-center justify-center h-8 w-8 mx-auto rounded-lg mb-1 transition-all duration-200 cursor-pointer relative",
+                                "sidebar-nav-icon-link",
                                 isActive 
                                   ? "bg-primary/20 text-white shadow-sm ring-1 ring-primary/40" 
                                   : "text-white/60 hover:bg-white/[0.06] hover:text-white"
@@ -409,7 +410,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   return (
                     <div key={uniqueKey} className="mb-1">
                       <button type="button" onClick={() => toggleItem(childKey)} className={cn(
-                        "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all duration-150 group relative mx-1 mb-0.5 text-white/80 hover:bg-white/[0.05] hover:text-white"
+                        "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all duration-150 group relative mx-1 mb-0.5 text-white/80 hover:bg-white/[0.05] hover:text-white sidebar-parent-link",
+                        isActive && "sidebar-parent-link-active"
                       )}>
                         <div className="h-6 w-6 rounded-md flex items-center justify-center bg-emerald-500/10 shrink-0"><ItemIcon className={cn("h-3.5 w-3.5", item.color)} /></div>
                         <span className="truncate leading-none flex-1 text-start">{item.label}</span>
@@ -419,8 +421,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                         const ChildIcon = child.icon;
                         const childActive = location === child.href || location.startsWith(`${child.href}/`);
                         const childClass = cn(
-                          "flex w-[calc(100%-1.5rem)] items-center gap-2 px-2 py-1.5 rounded-lg text-[10.5px] transition-all mx-3 mb-0.5 border border-transparent text-start",
-                          childActive ? "bg-primary/15 text-white ring-1 ring-primary/20" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                          "flex w-[calc(100%-1.5rem)] items-center gap-2 px-2 py-1.5 rounded-lg text-[10.5px] transition-all mx-3 mb-0.5 border border-transparent text-start sidebar-child-link",
+                          childActive ? "bg-primary/15 text-white ring-1 ring-primary/20 sidebar-child-link-active" : "text-white/60 hover:text-white hover:bg-white/[0.04]"
                         );
                         const childContent = <>
                           <div className={cn("h-5 w-5 rounded-md flex items-center justify-center", childActive ? child.bgColor : "bg-white/[0.03]")}><ChildIcon className={cn("h-3 w-3", childActive ? child.color : "text-white/50")} /></div>
@@ -435,7 +437,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 }
 
                 const itemClass = cn(
-                  "flex w-[calc(100%-0.5rem)] items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-medium transition-all duration-150 cursor-pointer group relative mx-1 mb-0.5 text-start",
+                  "flex w-[calc(100%-0.5rem)] items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-medium transition-all duration-150 cursor-pointer group relative mx-1 mb-0.5 text-start sidebar-nav-link",
                   isActive ? "bg-primary/15 text-white shadow-sm ring-1 ring-primary/30 font-semibold" : "text-white/70 hover:bg-white/[0.05] hover:text-white"
                 );
                 const itemContent = <>
@@ -456,7 +458,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <div className={cn(
-        "border-t border-white/[0.06] transition-all duration-300",
+        "border-t border-white/[0.06] transition-all duration-300 sidebar-account-area",
         isCollapsed && !mobile ? "p-2" : "p-3"
       )}>
         {isCollapsed && !mobile ? (
@@ -485,7 +487,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.04] mb-2 ring-1 ring-white/[0.06]">
+            <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.04] mb-2 ring-1 ring-white/[0.06] sidebar-account-card">
               <Avatar className="h-9 w-9 ring-2 ring-white/10">
                 <AvatarImage src={currentUser?.avatar || undefined} />
                 <AvatarFallback className="bg-gradient-to-br from-slate-500/30 to-cyan-600/20 text-white/80 text-[10px] font-bold">
@@ -533,7 +535,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       )}>
         <GlobalPrintTemplate />
         <GlobalPrintFooter />
-        <header className="h-[58px] border-b border-border/50 bg-background/85 sticky top-0 z-40 px-3 md:px-6 flex items-center justify-between backdrop-blur-sm">
+        <header className="h-[58px] border-b border-border/50 bg-background/85 sticky top-0 z-40 px-3 md:px-6 flex items-center justify-between backdrop-blur-sm admin-top-header">
           <div className="flex items-center gap-3">
             <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
               <SheetTrigger asChild>

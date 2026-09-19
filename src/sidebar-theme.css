@@ -188,3 +188,278 @@ html:not(.dark) .sidebar-glass > div:last-child [data-slot="avatar-fallback"] {
     animation: none !important;
   }
 }
+
+
+/* Refined navigation system: calmer hierarchy, stronger active state, and cleaner theme surfaces. */
+.sidebar-glass {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 15% 0%, hsl(var(--primary) / 0.16), transparent 30%),
+    linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, hsl(216 38% 9%) 100%) !important;
+  border-color: hsl(var(--sidebar-border) / 0.9) !important;
+}
+
+.sidebar-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.32;
+  background-image: linear-gradient(hsl(210 40% 98% / 0.025) 1px, transparent 1px), linear-gradient(90deg, hsl(210 40% 98% / 0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(180deg, black, transparent 85%);
+}
+
+.sidebar-brand {
+  background: linear-gradient(180deg, hsl(var(--sidebar-background) / 0.85), transparent);
+  border-color: hsl(var(--sidebar-border) / 0.9) !important;
+}
+
+.sidebar-brand img {
+  filter: drop-shadow(0 8px 14px hsl(var(--primary) / 0.18));
+}
+
+.sidebar-scroll {
+  padding: 0.75rem 0.55rem 1rem !important;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--sidebar-primary) / 0.45) transparent;
+}
+
+.sidebar-nav-group {
+  padding: 0.2rem 0.15rem 0.4rem;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, hsl(210 35% 98% / 0.035), transparent 78%);
+}
+
+.sidebar-nav-group + .sidebar-nav-group {
+  border-top: 1px solid hsl(var(--sidebar-border) / 0.62);
+  padding-top: 0.7rem;
+}
+
+.sidebar-group-header {
+  min-height: 2.35rem !important;
+  margin: 0 0.18rem 0.35rem !important;
+  padding: 0.55rem 0.7rem !important;
+  border: 1px solid transparent !important;
+  border-radius: 0.75rem !important;
+  background: transparent !important;
+  color: hsl(var(--sidebar-foreground) / 0.68) !important;
+}
+
+.sidebar-group-header:hover {
+  border-color: hsl(var(--sidebar-primary) / 0.2) !important;
+  background: hsl(var(--sidebar-primary) / 0.09) !important;
+  color: hsl(var(--sidebar-foreground)) !important;
+}
+
+.sidebar-group-title {
+  font-size: 0.62rem !important;
+  letter-spacing: 0.075em !important;
+  line-height: 1.25 !important;
+  color: inherit !important;
+}
+
+.sidebar-nav-link,
+.sidebar-parent-link,
+.sidebar-child-link {
+  border: 1px solid transparent !important;
+  box-sizing: border-box;
+}
+
+.sidebar-nav-link {
+  min-height: 2.65rem;
+  padding-inline: 0.55rem !important;
+  border-radius: 0.78rem !important;
+  color: hsl(var(--sidebar-foreground) / 0.74) !important;
+}
+
+.sidebar-nav-link:hover,
+.sidebar-parent-link:hover,
+.sidebar-child-link:hover {
+  border-color: hsl(var(--sidebar-primary) / 0.22) !important;
+  background: hsl(var(--sidebar-primary) / 0.1) !important;
+  color: hsl(var(--sidebar-foreground)) !important;
+  transform: translateX(-2px);
+}
+
+[dir="rtl"] .sidebar-nav-link:hover,
+[dir="rtl"] .sidebar-parent-link:hover,
+[dir="rtl"] .sidebar-child-link:hover {
+  transform: translateX(2px);
+}
+
+.sidebar-nav-link.bg-primary\/15,
+.sidebar-nav-link-active,
+.sidebar-child-link-active,
+.sidebar-parent-link-active {
+  border-color: hsl(var(--sidebar-primary) / 0.45) !important;
+  background: linear-gradient(90deg, hsl(var(--sidebar-primary) / 0.2), hsl(var(--sidebar-primary) / 0.08)) !important;
+  color: hsl(var(--sidebar-foreground)) !important;
+  box-shadow: 0 6px 16px hsl(220 45% 3% / 0.18), inset 0 0 0 1px hsl(var(--sidebar-primary) / 0.06);
+}
+
+.sidebar-nav-link.bg-primary\/15::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.4rem;
+  inset-inline-start: -0.55rem;
+  width: 0.2rem;
+  border-radius: 999px;
+  background: hsl(var(--sidebar-primary));
+  box-shadow: 0 0 12px hsl(var(--sidebar-primary) / 0.65);
+}
+
+.sidebar-nav-link > div,
+.sidebar-parent-link > div,
+.sidebar-child-link > div {
+  border: 1px solid hsl(var(--sidebar-foreground) / 0.08);
+  background: hsl(220 40% 4% / 0.18) !important;
+}
+
+.sidebar-nav-link:hover > div,
+.sidebar-parent-link:hover > div,
+.sidebar-child-link:hover > div,
+.sidebar-nav-link.bg-primary\/15 > div,
+.sidebar-child-link-active > div {
+  border-color: hsl(var(--sidebar-primary) / 0.28);
+  background: hsl(var(--sidebar-primary) / 0.14) !important;
+}
+
+.sidebar-nav-icon-link {
+  min-height: 2.35rem !important;
+  min-width: 2.35rem !important;
+  border: 1px solid hsl(var(--sidebar-foreground) / 0.1);
+  background: hsl(var(--sidebar-primary) / 0.08);
+}
+
+.sidebar-nav-icon-link:hover {
+  border-color: hsl(var(--sidebar-primary) / 0.42);
+  background: hsl(var(--sidebar-primary) / 0.18) !important;
+}
+
+.sidebar-account-area {
+  background: linear-gradient(180deg, transparent, hsl(220 45% 3% / 0.22));
+  border-color: hsl(var(--sidebar-border) / 0.9) !important;
+}
+
+.sidebar-account-card {
+  border: 1px solid hsl(var(--sidebar-primary) / 0.16);
+  background: linear-gradient(135deg, hsl(var(--sidebar-primary) / 0.13), hsl(220 35% 4% / 0.18)) !important;
+}
+
+.admin-top-header {
+  background: hsl(var(--background) / 0.78) !important;
+  border-color: hsl(var(--border) / 0.72) !important;
+  box-shadow: 0 8px 24px hsl(220 30% 10% / 0.05);
+}
+
+.admin-top-header button:hover {
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.12);
+}
+
+:root:not(.dark) .sidebar-glass,
+html:not(.dark) .sidebar-glass {
+  background:
+    radial-gradient(circle at 15% 0%, hsl(var(--primary) / 0.12), transparent 32%),
+    linear-gradient(180deg, hsl(210 28% 99%) 0%, hsl(210 26% 95%) 100%) !important;
+  box-shadow: 8px 0 28px hsl(214 40% 30% / 0.1) !important;
+}
+
+:root:not(.dark) .sidebar-glass::before,
+html:not(.dark) .sidebar-glass::before {
+  opacity: 0.55;
+  background-image: linear-gradient(hsl(215 28% 30% / 0.035) 1px, transparent 1px), linear-gradient(90deg, hsl(215 28% 30% / 0.035) 1px, transparent 1px);
+}
+
+:root:not(.dark) .sidebar-nav-group,
+html:not(.dark) .sidebar-nav-group {
+  background: linear-gradient(180deg, hsl(0 0% 100% / 0.62), transparent 78%);
+}
+
+:root:not(.dark) .sidebar-group-header,
+html:not(.dark) .sidebar-group-header {
+  color: hsl(215 28% 32% / 0.78) !important;
+}
+
+:root:not(.dark) .sidebar-group-header:hover,
+html:not(.dark) .sidebar-group-header:hover {
+  background: hsl(var(--primary) / 0.08) !important;
+  color: hsl(215 28% 18%) !important;
+}
+
+:root:not(.dark) .sidebar-nav-link,
+:root:not(.dark) .sidebar-parent-link,
+:root:not(.dark) .sidebar-child-link,
+html:not(.dark) .sidebar-nav-link,
+html:not(.dark) .sidebar-parent-link,
+html:not(.dark) .sidebar-child-link {
+  color: hsl(215 28% 25% / 0.82) !important;
+}
+
+:root:not(.dark) .sidebar-nav-link:hover,
+:root:not(.dark) .sidebar-parent-link:hover,
+:root:not(.dark) .sidebar-child-link:hover,
+html:not(.dark) .sidebar-nav-link:hover,
+html:not(.dark) .sidebar-parent-link:hover,
+html:not(.dark) .sidebar-child-link:hover {
+  background: hsl(var(--primary) / 0.08) !important;
+  color: hsl(215 28% 16%) !important;
+}
+
+:root:not(.dark) .sidebar-nav-link.bg-primary\/15,
+:root:not(.dark) .sidebar-nav-link-active,
+:root:not(.dark) .sidebar-child-link-active,
+:root:not(.dark) .sidebar-parent-link-active,
+html:not(.dark) .sidebar-nav-link.bg-primary\/15,
+html:not(.dark) .sidebar-nav-link-active,
+html:not(.dark) .sidebar-child-link-active,
+html:not(.dark) .sidebar-parent-link-active {
+  background: linear-gradient(90deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.055)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+  box-shadow: 0 5px 15px hsl(var(--primary) / 0.1), inset 0 0 0 1px hsl(var(--primary) / 0.08);
+}
+
+:root:not(.dark) .sidebar-nav-link > div,
+:root:not(.dark) .sidebar-parent-link > div,
+:root:not(.dark) .sidebar-child-link > div,
+html:not(.dark) .sidebar-nav-link > div,
+html:not(.dark) .sidebar-parent-link > div,
+html:not(.dark) .sidebar-child-link > div {
+  background: hsl(210 30% 94% / 0.7) !important;
+  border-color: hsl(214 24% 78% / 0.72);
+}
+
+:root:not(.dark) .sidebar-account-area,
+html:not(.dark) .sidebar-account-area {
+  background: linear-gradient(180deg, transparent, hsl(214 32% 82% / 0.24));
+}
+
+:root:not(.dark) .sidebar-account-card,
+html:not(.dark) .sidebar-account-card {
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(0 0% 100% / 0.68)) !important;
+  border-color: hsl(var(--primary) / 0.18);
+}
+
+@media (max-width: 767px) {
+  .sidebar-scroll {
+    padding-inline: 0.7rem !important;
+  }
+
+  .sidebar-nav-link {
+    min-height: 2.9rem;
+  }
+
+  .sidebar-group-title {
+    font-size: 0.66rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-nav-link,
+  .sidebar-parent-link,
+  .sidebar-child-link {
+    transition: none !important;
+  }
+}
