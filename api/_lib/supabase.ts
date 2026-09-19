@@ -1,4 +1,5 @@
 import { fallbackSupabasePublishableKey, fallbackSupabaseUrl } from "./supabase-public-config.js";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 
 const url = (process.env.SUPABASE_URL || fallbackSupabaseUrl).replace(/\/$/, "");
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -107,4 +108,23 @@ export function setAccessCookie(res: any, token: string, maxAge = 60 * 60 * 24 *
 
 export function clearAccessCookie(res: any) {
   res.setHeader("Set-Cookie", "sb_access_token=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0");
+}
+
+function readCookie(req: any, name: string) {
+  const header = String(req?.headers?.cookie || "");
+  const match = header.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
+export function issueCsrfToken(res: any) {
+  const token = randomBytes(32).toString("hex");
+  res.setHeader("Set-Cookie", `csrf_token=${token}; Path=/; Secure; SameSite=Lax; Max-Age=7200`);
+  return token;
+}
+
+export function hasValidCsrfToken(req: any) {
+  const header = String(req?.headers?.["x-csrf-token"] || req?.headers?.["X-CSRF-Token"] || "");
+  const cookie = readCookie(req, "csrf_token");
+  if (!header || !cookie || header.length !== cookie.length) return false;
+  return timingSafeEqual(Buffer.from(header), Buffer.from(cookie));
 }

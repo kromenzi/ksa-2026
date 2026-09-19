@@ -1,4 +1,4 @@
-import { getAccessToken, getAuthUser, getProfile, json, supabaseFetchForRequest } from "./_lib/supabase.js";
+import { getAccessToken, getAuthUser, getProfile, hasValidCsrfToken, json, supabaseFetchForRequest } from "./_lib/supabase.js";
 import { fallbackSupabaseUrl } from "./_lib/supabase-public-config.js";
 import { monthlyHsePlanHandler } from "./_lib/monthly-hse-plan.js";
 import { hseAssistantHandler } from "./_lib/hse-assistant.js";
@@ -169,6 +169,9 @@ export default async function handler(req: any, res: any) {
     const user = await getAuthUser(req);
     const profile = await getProfile(req);
     if (!user || !profile || !profile.is_active) return json(res, 401, { error: "Not authenticated" });
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(String(req.method || "").toUpperCase()) && !hasValidCsrfToken(req)) {
+      return json(res, 403, { error: "CSRF validation failed" });
+    }
     if (resource === "hse-assistant") return await hseAssistantHandler(req,res,profile);
     if (resource === "safety-reporting-reveal") return await proxySafetyReporting(req, res, "reveal", true);
 
