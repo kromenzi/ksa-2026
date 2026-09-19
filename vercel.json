@@ -50,6 +50,22 @@
   ],
   "rewrites": [
     {
+      "source": "/api/hse-workflows",
+      "destination": "/api/data?resource=hse-workflows"
+    },
+    {
+      "source": "/api/hse-workflows/:id",
+      "destination": "/api/data?resource=hse-workflows&id=:id"
+    },
+    {
+      "source": "/api/hse-workflow-links",
+      "destination": "/api/data?resource=hse-workflow-links"
+    },
+    {
+      "source": "/api/hse-workflow-events",
+      "destination": "/api/data?resource=hse-workflow-events"
+    },
+    {
       "source": "/api/live-meetings",
       "destination": "/api/data?resource=live-meetings"
     },
