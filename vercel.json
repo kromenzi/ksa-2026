@@ -35,7 +35,7 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "camera=(self), microphone=(), geolocation=()"
+          "value": "camera=(self \"https://meet.jit.si\"), microphone=(self \"https://meet.jit.si\"), display-capture=(self \"https://meet.jit.si\"), geolocation=()"
         },
         {
           "key": "Cross-Origin-Opener-Policy",
@@ -43,12 +43,28 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://quickchart.io; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://quickchart.io; frame-src 'self' https://meet.jit.si; object-src 'none'; base-uri 'self'; form-action 'self'"
         }
       ]
     }
   ],
   "rewrites": [
+    {
+      "source": "/api/live-meetings",
+      "destination": "/api/data?resource=live-meetings"
+    },
+    {
+      "source": "/api/live-meetings/:id",
+      "destination": "/api/data?resource=live-meetings&id=:id"
+    },
+    {
+      "source": "/api/live-meeting-participants",
+      "destination": "/api/data?resource=live-meeting-participants"
+    },
+    {
+      "source": "/api/live-meeting-messages",
+      "destination": "/api/data?resource=live-meeting-messages"
+    },
     {
       "source": "/api/notifications-all",
       "destination": "/api/data?resource=notifications-all"
