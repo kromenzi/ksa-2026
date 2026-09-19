@@ -50,6 +50,26 @@
   ],
   "rewrites": [
     {
+      "source": "/api/notification-delivery",
+      "destination": "/api/data?resource=notification-delivery"
+    },
+    {
+      "source": "/api/notification-rules",
+      "destination": "/api/data?resource=notification-rules"
+    },
+    {
+      "source": "/api/notification-rules/:id",
+      "destination": "/api/data?resource=notification-rules&id=:id"
+    },
+    {
+      "source": "/api/integrations",
+      "destination": "/api/data?resource=integrations"
+    },
+    {
+      "source": "/api/integrations/:id",
+      "destination": "/api/data?resource=integrations&id=:id"
+    },
+    {
       "source": "/api/live-meetings",
       "destination": "/api/data?resource=live-meetings"
     },
