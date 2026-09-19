@@ -96,3 +96,19 @@ test("unified authorization is enforced across UI and API", async () => {
   assert.ok(migration.includes("permissions_select_own_role_or_manager"));
   assert.ok(migration.includes("on conflict (role,module)"));
 });
+
+
+test("HSE workflow engine links operational sources to corrective actions", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/20260919173000_hse_workflow_engine_v1.sql", import.meta.url), "utf8");
+  const api = await readFile(new URL("../api/data.ts", import.meta.url), "utf8");
+  const resources = await readFile(new URL("../api/_lib/resource-map.ts", import.meta.url), "utf8");
+  const page = await readFile(new URL("../src/pages/admin/workflow-center.tsx", import.meta.url), "utf8");
+
+  assert.ok(migration.includes("create table if not exists public.hse_workflows"));
+  assert.ok(migration.includes("create table if not exists public.hse_workflow_links"));
+  assert.ok(migration.includes("create table if not exists public.hse_workflow_events"));
+  assert.ok(resources.includes('"hse-workflows"'));
+  assert.ok(api.includes("ACTION_CREATED"));
+  assert.ok(api.includes('relation: "corrective_action"'));
+  assert.ok(page.includes("HSE Workflow Engine"));
+});
