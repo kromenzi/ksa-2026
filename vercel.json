@@ -50,6 +50,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/safety-observations",
+      "destination": "/api/data?resource=safety-observations"
+    },
+    {
+      "source": "/api/safety-observations/:id",
+      "destination": "/api/data?resource=safety-observations&id=:id"
+    },
+    {
       "source": "/api/live-meetings",
       "destination": "/api/data?resource=live-meetings"
     },
