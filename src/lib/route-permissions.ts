@@ -6,6 +6,7 @@ const PREFIX_REQUIREMENTS: Array<[string, RouteRequirement]> = [
   ["/admin/users", { module: "users", action: "read" }],
   ["/admin/activity", { module: "activity", action: "read" }],
   ["/admin/settings", { module: "settings", action: "read" }],
+  ["/admin/system-readiness", { module: "settings", action: "read" }],
   ["/admin/integrations", { module: "settings", action: "read" }],
   ["/admin/email-settings", { module: "settings", action: "read" }],
   ["/admin/inbound-", { module: "settings", action: "read" }],
