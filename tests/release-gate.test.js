@@ -96,3 +96,15 @@ test("unified authorization is enforced across UI and API", async () => {
   assert.ok(migration.includes("permissions_select_own_role_or_manager"));
   assert.ok(migration.includes("on conflict (role,module)"));
 });
+
+
+test("bulk import is bounded, permission-checked and supports dry-run", async () => {
+  const api = await readFile(new URL("../api/data.ts", import.meta.url), "utf8");
+  const page = await readFile(new URL("../src/pages/admin/import-center.tsx", import.meta.url), "utf8");
+  assert.ok(api.includes("BULK_IMPORT_RESOURCES"));
+  assert.ok(api.includes("A single import is limited to 500 rows"));
+  assert.ok(api.includes("dryRun === true"));
+  assert.ok(api.includes("hasAppPermission"));
+  assert.ok(page.includes("/api/bulk-import"));
+  assert.ok(page.includes("parseCsv"));
+});
