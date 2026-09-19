@@ -55,6 +55,7 @@ const AdminLicenses = lazy(() => import("@/pages/admin/licenses"));
 const FacilityRegulatoryLicenses = lazy(() => import("@/pages/admin/facility-regulatory-licenses"));
 const EnvironmentalMeasurements = lazy(() => import("@/pages/admin/environmental-measurements"));
 const AdminEquipmentAuth = lazy(() => import("@/pages/admin/equipment-auth"));
+const EquipmentSafetyPage = lazy(() => import("@/pages/admin/equipment-safety"));
 const AdminOfficialTemplates = lazy(() => import("@/pages/admin/official-templates"));
 const AdminSafetyPyramid = lazy(() => import("@/pages/admin/safety-pyramid"));
 const FireEmergencyCommandCenter = lazy(() => import("@/pages/admin/fire-emergency-command"));
@@ -163,6 +164,7 @@ function Router() {
       <Route path="/admin/facility-regulatory-licenses"><ProtectedRoute component={FacilityRegulatoryLicenses} /></Route>
       <Route path="/admin/environmental-measurements"><ProtectedRoute component={EnvironmentalMeasurements} /></Route>
       <Route path="/admin/equipment-auth"><ProtectedRoute component={AdminEquipmentAuth} /></Route>
+      <Route path="/admin/equipment-safety"><ProtectedRoute component={EquipmentSafetyPage} /></Route>
       <Route path="/admin/official-templates"><ProtectedRoute component={AdminOfficialTemplates} /></Route>
       <Route path="/admin/safety-pyramid"><ProtectedRoute component={AdminSafetyPyramid} /></Route>
       <Route path="/admin/safety-pyramid-print" component={AdminSafetyPyramidPrint} />
