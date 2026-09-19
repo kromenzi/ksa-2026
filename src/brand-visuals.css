@@ -263,3 +263,71 @@
     opacity: 0.7;
   }
 }
+
+
+/* High-resolution logo sizing and refined authentication composition. */
+.brand-logo-3d {
+  --logo-size: min(92vw, 560px);
+}
+
+.brand-logo-3d__stage {
+  width: 78%;
+}
+
+.brand-logo-3d--login {
+  --logo-size: min(78vw, 370px);
+}
+
+.brand-logo-3d--login .brand-logo-3d__stage {
+  width: 82%;
+}
+
+.login-hero-panel {
+  box-shadow: inset -28px 0 70px hsl(220 50% 3% / 0.22), 18px 0 70px hsl(220 45% 8% / 0.12);
+}
+
+.login-hero-panel::after {
+  content: "";
+  position: absolute;
+  inset: 12% 8% auto;
+  height: 18rem;
+  border: 1px solid hsl(var(--primary) / 0.2);
+  border-radius: 50%;
+  transform: rotate(-12deg);
+  box-shadow: 0 0 0 1rem hsl(var(--primary) / 0.025), 0 0 0 2rem hsl(var(--primary) / 0.018);
+  pointer-events: none;
+}
+
+.login-content-panel {
+  position: relative;
+  z-index: 1;
+}
+
+.login-content-panel .login-card {
+  margin-top: 0.35rem;
+}
+
+.login-content-panel .login-card .p-6 {
+  padding: 1.65rem !important;
+}
+
+.login-content-panel input {
+  min-height: 3rem;
+  font-size: 0.92rem !important;
+}
+
+.login-content-panel form button[type="submit"] {
+  min-height: 3rem;
+  font-size: 0.94rem !important;
+  letter-spacing: 0.01em;
+}
+
+.login-content-panel .brand-logo-3d__face {
+  border-radius: 29%;
+}
+
+@media (max-width: 640px) {
+  .brand-logo-3d--login {
+    --logo-size: min(78vw, 285px);
+  }
+}

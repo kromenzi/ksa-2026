@@ -10,8 +10,8 @@ interface BrandLogo3DProps {
 
 export function BrandLogo3D({ src, alt, className, size = "hero" }: BrandLogo3DProps) {
   const handleImageError = (event: SyntheticEvent<HTMLImageElement>) => {
-    if (event.currentTarget.src !== `${window.location.origin}/utec-logo.svg`) {
-      event.currentTarget.src = "/utec-logo.svg";
+    if (event.currentTarget.src !== `${window.location.origin}/logo.png`) {
+      event.currentTarget.src = "/logo.png";
     }
   };
 

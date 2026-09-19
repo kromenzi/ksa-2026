@@ -352,3 +352,25 @@
     display: block !important;
   }
 }
+
+
+/* Global readability pass: slightly larger type, stronger contrast, and clearer controls. */
+@layer base {
+  html { font-size: 16px; }
+  body {
+    font-family: Inter, "Segoe UI", Tahoma, Arial, sans-serif;
+    font-size: 0.94rem;
+    line-height: 1.6;
+    text-rendering: optimizeLegibility;
+  }
+  button, input, textarea, select { font-family: inherit; }
+}
+
+@layer components {
+  .text-xs { font-size: 0.78rem !important; line-height: 1.45 !important; }
+  .text-\[10px\] { font-size: 0.72rem !important; }
+  .text-\[11px\] { font-size: 0.78rem !important; }
+  .text-\[12px\] { font-size: 0.84rem !important; }
+  .text-\[13px\] { font-size: 0.9rem !important; }
+  .admin-top-header button { min-height: 2.3rem; }
+}

@@ -616,7 +616,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-background/90 transition-all">
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-background/90 transition-all color-theme-trigger" aria-label={isAr ? 'تغيير الألوان' : 'Color theme'}>
                           <Palette className="h-3.5 w-3.5 text-muted-foreground" />
                         </Button>
                       </PopoverTrigger>
@@ -626,7 +626,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <PopoverContent align="end" className="w-48 p-2" sideOffset={8}>
+                <PopoverContent align="end" className="w-56 p-2.5 color-theme-popover" sideOffset={8}>
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
                     {isAr ? 'نمط الألوان' : 'Color Theme'}
                   </p>

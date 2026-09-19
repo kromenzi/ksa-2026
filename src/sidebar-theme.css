@@ -463,3 +463,84 @@ html:not(.dark) .sidebar-account-card {
     transition: none !important;
   }
 }
+
+
+/* Final readability and control polish. */
+.sidebar-glass .sidebar-scroll {
+  padding-inline: 0.7rem !important;
+}
+
+.sidebar-group-title {
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.055em !important;
+}
+
+.sidebar-nav-link,
+.sidebar-parent-link,
+.sidebar-child-link {
+  min-height: 2.9rem !important;
+  font-size: 0.9rem !important;
+  font-weight: 650 !important;
+}
+
+.sidebar-child-link {
+  min-height: 2.65rem !important;
+  font-size: 0.86rem !important;
+}
+
+.sidebar-nav-link > div,
+.sidebar-parent-link > div,
+.sidebar-child-link > div {
+  min-width: 2.15rem;
+  min-height: 2.15rem;
+}
+
+.sidebar-nav-link > div > svg,
+.sidebar-parent-link > div > svg,
+.sidebar-child-link > div > svg {
+  width: 1.05rem !important;
+  height: 1.05rem !important;
+}
+
+.color-theme-trigger {
+  position: relative;
+  color: hsl(var(--primary)) !important;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.14), hsl(var(--accent) / 0.6));
+  border: 1px solid hsl(var(--primary) / 0.28) !important;
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.12);
+}
+
+.color-theme-trigger:hover {
+  transform: translateY(-1px) rotate(8deg);
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.25), hsl(var(--accent) / 0.85)) !important;
+  box-shadow: 0 7px 18px hsl(var(--primary) / 0.2);
+}
+
+.color-theme-popover {
+  border: 1px solid hsl(var(--primary) / 0.22) !important;
+  border-radius: 1rem !important;
+  background: hsl(var(--popover) / 0.96) !important;
+  box-shadow: 0 18px 42px hsl(220 45% 8% / 0.2) !important;
+  backdrop-filter: blur(16px);
+}
+
+.color-theme-popover > p {
+  font-size: 0.75rem !important;
+  font-weight: 800 !important;
+  color: hsl(var(--primary)) !important;
+}
+
+.color-theme-popover button {
+  min-height: 2.65rem;
+  font-size: 0.86rem !important;
+  font-weight: 650 !important;
+}
+
+.color-theme-popover button:hover {
+  transform: translateX(-2px);
+}
+
+[dir="rtl"] .color-theme-popover button:hover {
+  transform: translateX(2px);
+}

@@ -172,13 +172,13 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen flex bg-background login-shell" dir={isAr ? "rtl" : "ltr"}>
-      <div className="hidden lg:flex lg:w-[45%] xl:w-[40%] relative overflow-hidden" style={{ background: "linear-gradient(180deg, hsl(210 14% 7%) 0%, hsl(210 12% 10%) 55%, hsl(198 18% 11%) 100%)" }}>
+      <div className="hidden lg:flex lg:w-[45%] xl:w-[42%] relative overflow-hidden login-hero-panel" style={{ background: "linear-gradient(180deg, hsl(210 14% 7%) 0%, hsl(210 12% 10%) 55%, hsl(198 18% 11%) 100%)" }}>
         <div className="absolute inset-0 hazard-stripe opacity-40" />
         <div className="absolute inset-x-0 top-0 h-0.5 bg-primary" />
         <div className="relative z-10 flex flex-col justify-between p-8 xl:p-12 w-full">
           <div className="flex items-center gap-3 mb-2">
             <div className="h-12 w-12 rounded-xl overflow-hidden bg-white/10 p-0.5 shadow-lg shadow-primary/30 ring-1 ring-white/20 shrink-0">
-              <img src={settings.branding?.companyLogo || "/utec-logo.svg"} alt="Logo" className="h-full w-full brand-logo-mark rounded-lg" referrerPolicy="no-referrer" onError={(e) => { if (e.currentTarget.src !== window.location.origin + "/utec-logo.svg") e.currentTarget.src = "/utec-logo.svg"; }} />
+              <img src={settings.branding?.companyLogo || "/logo.png"} alt="Logo" className="h-full w-full brand-logo-mark rounded-lg" referrerPolicy="no-referrer" onError={(e) => { if (e.currentTarget.src !== window.location.origin + "/logo.png") e.currentTarget.src = "/logo.png"; }} />
             </div>
             <div>
               <h2 className="text-white font-bold text-lg tracking-tight">{settings.siteName || "UTEC SAFETY BOARD"}</h2>
@@ -196,10 +196,10 @@ export default function AdminLogin() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col bg-background">
+      <div className="flex-1 flex flex-col bg-background login-content-panel">
         <div className="flex items-center justify-between p-4 sm:p-6">
           <div className="flex items-center gap-2 lg:hidden">
-            <img src={settings.branding?.companyLogo || "/utec-logo.svg"} alt="Logo" className="h-10 w-[60px] brand-logo-full" onError={(e) => { if (e.currentTarget.src !== window.location.origin + "/utec-logo.svg") e.currentTarget.src = "/utec-logo.svg"; }} />
+            <img src={settings.branding?.companyLogo || "/logo.png"} alt="Logo" className="h-10 w-[60px] brand-logo-full" onError={(e) => { if (e.currentTarget.src !== window.location.origin + "/logo.png") e.currentTarget.src = "/logo.png"; }} />
             <span className="font-bold text-sm">{settings.siteName || "UTEC SAFETY BOARD"}</span>
           </div>
           <div className="lg:ms-auto" />
@@ -212,7 +212,7 @@ export default function AdminLogin() {
         <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
           <div className="w-full max-w-md space-y-5">
             <div className="text-center space-y-2 relative z-10">
-              <BrandLogo3D src={settings.branding?.companyLogo || "/utec-logo.svg"} alt={settings.siteName || "Logo"} size="login" className="mb-2" />
+              <BrandLogo3D src={settings.branding?.companyLogo || "/logo.png"} alt={settings.siteName || "Logo"} size="login" className="mb-2" />
               <h1 className="text-2xl font-bold tracking-tight">{isAr ? "التحكم بالحساب" : "Account Access"}</h1>
               <p className="text-sm text-muted-foreground">{isAr ? "سجّل الدخول أو أنشئ حسابًا أو اطلب استعادة كلمة المرور" : "Sign in, create an account, or request a reset"}</p>
             </div>

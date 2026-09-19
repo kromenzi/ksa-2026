@@ -27,7 +27,7 @@ export default function Home() {
 
   const isAr = (settings?.language || siteSettings?.language) === "ar";
   const branding = settings?.branding;
-  const logo = branding?.companyLogo || reportSettings?.companyLogo || "/utec-logo.svg";
+  const logo = branding?.companyLogo || reportSettings?.companyLogo || "/logo.png";
   const companyName = branding?.companyName || "UTEC SAFETY BOARD";
   const heroTitleEn = branding?.heroTitleEn || "UTEC SAFETY BOARD";
   const heroTitleAr = branding?.heroTitleAr || "UTEC SAFETY BOARD – لوحة السلامة";
