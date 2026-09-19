@@ -33,6 +33,12 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "safety-reporting-messages": { table: "safety_reporting_messages", module: "reports" },
   "safety-reporting-channels": { table: "safety_reporting_channels", module: "settings" },
   "escalation-matrix": { table: "escalation_matrix", module: "reports" },
+  "fire-gateways": { table: "fire_gateways", module: "reports" },
+  "fire-panels": { table: "fire_panels", module: "reports" },
+  "fire-devices": { table: "fire_devices", module: "reports" },
+  "fire-device-events": { table: "fire_device_events", module: "reports" },
+  "emergency-exits": { table: "emergency_exits", module: "reports" },
+  "emergency-exit-events": { table: "emergency_exit_events", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
@@ -72,6 +78,12 @@ const COLUMNS: Record<string, Set<string>> = {
   safety_reporting_messages: new Set(["id", "case_id", "sender_type", "message", "created_by", "created_at"]),
   safety_reporting_channels: new Set(["id", "channel", "is_enabled", "public_label_ar", "public_label_en", "destination", "config", "updated_at"]),
   escalation_matrix: GENERIC_COLUMNS,
+  fire_gateways: new Set(["id","gateway_code","name","protocol","host","port","manufacturer","model","firmware","building","area","status","signal_quality","connected_devices","last_heartbeat_at","last_error","notes","config","created_at","updated_at"]),
+  fire_panels: new Set(["id","panel_code","name","manufacturer","model","serial_number","building","floor","area","protocol","gateway_id","host","status","last_signal_at","last_test_at","next_test_at","notes","data","created_at","updated_at"]),
+  fire_devices: new Set(["id","device_code","device_type","panel_id","zone_id","gateway_id","loop_no","address_no","building","floor","area","exact_location","manufacturer","model","serial_number","protocol","status","power_status","battery_level","isolated","last_signal_at","last_test_at","next_test_at","notes","data","created_at","updated_at"]),
+  fire_device_events: new Set(["id","device_id","panel_id","gateway_id","event_type","severity","status","message","occurred_at","acknowledged_at","acknowledged_by","cleared_at","source","raw_payload","created_at"]),
+  emergency_exits: new Set(["id","exit_code","name","building","floor","area","assembly_point","route_description","door_type","gateway_id","status","door_status","lock_status","panic_bar_status","exit_sign_status","emergency_light_status","emergency_light_battery","obstruction_status","last_signal_at","last_inspection_at","next_inspection_at","qr_code","notes","data","created_at","updated_at"]),
+  emergency_exit_events: new Set(["id","exit_id","gateway_id","event_type","severity","status","message","occurred_at","acknowledged_at","acknowledged_by","cleared_at","source","raw_payload","created_at"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -191,6 +203,8 @@ export default async function handler(req: any, res: any) {
       if (rawId) url += table === "section_config" ? `&section_type=eq.${encodeURIComponent(rawId)}` : `&id=eq.${encodeURIComponent(rawId)}`;
       if (table === "users") url = `${base}?select=id,name,email,role,is_active,avatar,joined_at,auth_user_id${rawId ? `&id=eq.${encodeURIComponent(rawId)}` : ""}`;
       if (table === "employees") url += "&order=name.asc";
+      if (["fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table)) url += "&order=updated_at.desc";
+      if (["fire_device_events","emergency_exit_events"].includes(table)) url += "&order=occurred_at.desc&limit=500";
       if (table === "section_config") url += "&order=section_type.asc";
       if (GENERIC_TABLES.has(table)) url += "&order=updated_at.desc";
       if (table === "safety_reporting_messages") {
@@ -238,7 +252,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "POST") {
       const row = sanitizeBody(table, body, "insert");
-      if (["documents", "reports", "posts", "form_templates", "employees", "routing_rules"].includes(table)) row.created_at = row.created_at || new Date().toISOString();
+      if (["documents", "reports", "posts", "form_templates", "employees", "routing_rules", "fire_gateways", "fire_panels", "fire_devices", "fire_device_events", "emergency_exits", "emergency_exit_events"].includes(table)) row.created_at = row.created_at || new Date().toISOString();
       if (table === "activity_logs") {
         row.performed_by = row.performed_by || user.id;
         row.performed_by_name = row.performed_by_name || profile.name;
@@ -298,7 +312,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || ["fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
