@@ -2,6 +2,7 @@ import { getAccessToken, getAuthUser, getProfile, hasValidCsrfToken, json, supab
 import { fallbackSupabaseUrl } from "./_lib/supabase-public-config.js";
 import { monthlyHsePlanHandler } from "./_lib/monthly-hse-plan.js";
 import { hseAssistantHandler } from "./_lib/hse-assistant.js";
+import { notificationProviderStatus, processNotificationOutbox } from "./_lib/notification-delivery.js";
 import { hasAppPermission } from "./_lib/authorization.js";
 
 import { RESOURCE_MAP } from "./_lib/resource-map.js";
@@ -63,6 +64,9 @@ const COLUMNS: Record<string, Set<string>> = {
   emergency_exits: new Set(["id","exit_code","name","building","floor","area","assembly_point","route_description","door_type","gateway_id","status","door_status","lock_status","panic_bar_status","exit_sign_status","emergency_light_status","emergency_light_battery","obstruction_status","last_signal_at","last_inspection_at","next_inspection_at","qr_code","notes","data","floor_plan_id","map_x","map_y","created_at","updated_at"]),
   emergency_exit_events: new Set(["id","exit_id","gateway_id","event_type","severity","status","message","occurred_at","acknowledged_at","acknowledged_by","cleared_at","source","raw_payload","created_at"]),
   hse_actions: new Set(["id","action_no","title","description","source_type","source_id","category","department","factory","area","priority","status","progress","owner_user_id","assigned_employee_id","due_at","evidence_required","verification_required","verified_by","verified_at","verification_notes","effectiveness_status","effectiveness_notes","escalation_level","created_by","created_at","updated_at","closed_at","metadata"]),
+  hse_workflows: new Set(["id","workflow_no","title","status","source_type","source_id","department","factory","area","owner_user_id","created_by","created_at","updated_at","closed_at","metadata"]),
+  hse_workflow_links: new Set(["id","workflow_id","from_type","from_id","to_type","to_id","relation","created_by","created_at"]),
+  hse_workflow_events: new Set(["id","workflow_id","event_type","resource_type","resource_id","message","data","created_by","created_at"]),
   hse_action_comments: new Set(["id","action_id","comment","created_by","created_at"]),
   hse_action_evidence: new Set(["id","action_id","file_url","file_name","note","uploaded_by","uploaded_at"]),
   hse_action_history: new Set(["id","action_id","event_type","old_values","new_values","changed_by","changed_at"]),
@@ -99,6 +103,8 @@ const COLUMNS: Record<string, Set<string>> = {
   monthly_hse_reports: new Set(["id","report_no","month","year","status","snapshot","highlights","management_summary","next_month_plan","generated_by","generated_at","reviewed_by","reviewed_at","approved_by","approved_at","created_at","updated_at"]),
   hse_events: new Set(["id","event_type","source_type","source_id","severity","title","message","department","factory","area","occurred_at","data","created_by","created_at"]),
   notification_outbox: new Set(["id","event_id","channel","recipient","subject","body","payload","status","attempts","next_attempt_at","sent_at","last_error","created_by","created_at","updated_at"]),
+  notification_rules: GENERIC_COLUMNS,
+  integrations: GENERIC_COLUMNS,
   live_meetings: new Set(["id","room_code","title","provider","provider_room_name","status","created_by","started_at","ended_at","created_at","updated_at","access_mode","waiting_room"]),
   live_meeting_participants: new Set(["id","meeting_id","user_id","display_name","role","joined_at","left_at","created_at"]),
   live_meeting_messages: new Set(["id","meeting_id","user_id","sender_name","message","created_at"]),
@@ -185,6 +191,35 @@ export default async function handler(req: any, res: any) {
       return json(res, 403, { error: "CSRF validation failed" });
     }
     if (resource === "hse-assistant") return await hseAssistantHandler(req,res,profile);
+    if (resource === "notification-delivery") {
+      if (!(await hasAppPermission(req, profile, "settings", req.method === "GET" ? "read" : "update"))) {
+        return json(res, 403, { error: "Insufficient permission" });
+      }
+      if (req.method === "GET") {
+        const status = notificationProviderStatus();
+        const outboxResponse = await supabaseFetchForRequest(
+          req,
+          "/rest/v1/notification_outbox?select=id,status,channel,attempts,last_error,created_at&order=created_at.desc&limit=100"
+        );
+        const outboxRows = await outboxResponse.json().catch(() => []);
+        return json(res, 200, { ...status, outbox: outboxResponse.ok ? outboxRows.map(mapClient) : [] });
+      }
+      if (req.method === "POST") {
+        const action = String(req.body?.action || "process");
+        if (action !== "process") return json(res, 422, { error: "Unsupported notification delivery action" });
+        const result = await processNotificationOutbox(Number(req.body?.limit || 20));
+        return json(res, 200, result);
+      }
+      return json(res, 405, { error: "Method not allowed" });
+    }
+    if (resource === "safety-intelligence") {
+      if (req.method !== "GET") return json(res,405,{error:"Method not allowed"});
+      if (!(await hasAppPermission(req,profile,"reports","read"))) return json(res,403,{error:"Insufficient permission"});
+      const response=await supabaseFetchForRequest(req,"/rest/v1/rpc/hse_intelligence_snapshot",{method:"POST",body:"{}"});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok)return json(res,response.status,{error:payload?.message||"Unable to load Safety Intelligence"});
+      return json(res,200,payload);
+    }
 
     if (resource === "live-meeting-invite") {
       if (req.method !== "POST") return json(res,405,{error:"Method not allowed"});
@@ -383,6 +418,12 @@ export default async function handler(req: any, res: any) {
       if (["fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table)) url += "&order=updated_at.desc";
       if (["fire_device_events","emergency_exit_events"].includes(table)) url += "&order=occurred_at.desc&limit=500";
       if (table === "hse_actions") url += "&order=created_at.desc";
+      if (table === "hse_workflows") url += "&order=updated_at.desc";
+      if (["hse_workflow_links","hse_workflow_events"].includes(table)) {
+        const workflowId = String(req.query?.workflowId || "").trim();
+        if (workflowId) url += `&workflow_id=eq.${encodeURIComponent(workflowId)}`;
+        url += "&order=created_at.asc";
+      }
       if (table === "audit_programs") url += "&order=planned_date.desc.nullslast,created_at.desc";
       if (table === "audit_findings") { const auditId=String(req.query?.auditId||"").trim(); if(auditId) url += `&audit_id=eq.${encodeURIComponent(auditId)}`; url += "&order=due_date.asc.nullslast,created_at.desc"; }
       if (table === "legal_requirements") url += "&order=next_review_date.asc.nullslast,created_at.desc";
@@ -424,6 +465,8 @@ export default async function handler(req: any, res: any) {
       if (table === "risk_register") url += "&order=residual_score.desc,review_date.asc";
       if (table === "hse_events") url += "&order=occurred_at.desc&limit=500";
       if (table === "notification_outbox") url += "&order=created_at.desc&limit=500";
+      if (table === "notification_rules") url += "&order=updated_at.desc";
+      if (table === "integrations") url += "&order=updated_at.desc";
       if (table === "live_meetings") url = `${base}?select=id,room_code,title,provider,provider_room_name,status,created_by,started_at,ended_at,created_at,updated_at,access_mode,waiting_room&order=started_at.desc&limit=100`;
       if (["live_meeting_participants","live_meeting_messages"].includes(table)) {
         const meetingId = String(req.query?.meetingId || "").trim();
@@ -517,6 +560,7 @@ export default async function handler(req: any, res: any) {
       const row = sanitizeBody(table, body, "insert");
       if (["documents", "reports", "posts", "form_templates", "employees", "routing_rules", "fire_gateways", "fire_panels", "fire_devices", "fire_device_events", "emergency_exits", "emergency_exit_events", "hse_actions", "hse_action_comments"].includes(table)) row.created_at = row.created_at || new Date().toISOString();
       if (table === "hse_actions") row.created_by = row.created_by || profile.id;
+      if (["hse_workflows","hse_workflow_links","hse_workflow_events"].includes(table)) row.created_by = row.created_by || profile.id;
       if (table === "hse_events" || table === "notification_outbox") row.created_by = row.created_by || profile.id;
       if (table === "live_meetings") {
         const entropy = crypto.randomUUID().replace(/-/g, "").slice(0, 16).toUpperCase();
