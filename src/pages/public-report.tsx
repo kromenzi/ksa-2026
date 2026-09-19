@@ -14,7 +14,7 @@ export default function PublicReport() {
     queryKey: ["/api/public-reports", id],
     enabled: Boolean(id),
     queryFn: async () => {
-      const response = await fetch(`/api/public-reports/${encodeURIComponent(id || "")}`, { cache: "no-store" });
+      const response = await fetch(`/api/safety-reports/${encodeURIComponent(id || "")}?public=1`, { cache: "no-store" });
       if (response.status === 404) return null;
       if (!response.ok) throw new Error("Unable to load report preview");
       return response.json();

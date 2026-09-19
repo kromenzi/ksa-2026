@@ -1,6 +1,6 @@
 import { checkPasswordSecurity } from "../_lib/password-security.js";
 import { fallbackSupabasePublishableKey, fallbackSupabaseUrl } from "../_lib/supabase-public-config.js";
-import { json, setAccessCookie } from "../_lib/supabase.js";
+import { issueCsrfToken, json, setAccessCookie } from "../_lib/supabase.js";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || fallbackSupabaseUrl).replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || fallbackSupabasePublishableKey;
@@ -143,8 +143,12 @@ async function handlePasswordUpdate(req: any, res: any) {
 }
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
   const action = String(req.query?.action || "");
+  if (req.method === "GET" && action === "csrf") {
+    res.setHeader("Cache-Control", "no-store, max-age=0");
+    return json(res, 200, { csrfToken: issueCsrfToken(res) });
+  }
+  if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
 
   if (action === "password-check") {
     try {
