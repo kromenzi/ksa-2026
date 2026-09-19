@@ -59,3 +59,20 @@ test("live meeting migration grants authenticated access through RLS", async () 
   assert.ok(source.includes("live_meeting_messages_insert_self"));
   assert.ok(!source.includes("live_meetings_no_direct_client_access\non public.live_meetings\nfor all"));
 });
+
+
+test("live meeting attendance records leave time and prevents duplicate active joins", async () => {
+  const page = await readFile(new URL("../src/pages/admin/live-meeting.tsx", import.meta.url), "utf8");
+  assert.ok(page.includes("activeParticipantId"));
+  assert.ok(page.includes("/api/live-meeting-participants/"));
+  assert.ok(page.includes("leaveMeeting"));
+
+  const api = await readFile(new URL("../api/data.ts", import.meta.url), "utf8");
+  assert.ok(api.includes("left_at=is.null&limit=1"));
+  assert.ok(api.includes("Participants can only update their own attendance"));
+  assert.ok(api.includes("Unable to record meeting leave"));
+
+  const migration = await readFile(new URL("../supabase/migrations/20260919165000_live_meeting_attendance_integrity.sql", import.meta.url), "utf8");
+  assert.ok(migration.includes("live_meeting_one_active_participant_idx"));
+  assert.ok(migration.includes("where user_id is not null and left_at is null"));
+});
