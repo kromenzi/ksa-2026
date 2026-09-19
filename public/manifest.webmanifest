@@ -1,0 +1,10 @@
+{
+  "name":"UTEC Safety Board",
+  "short_name":"Safety Board",
+  "start_url":"/admin/dashboard",
+  "display":"standalone",
+  "background_color":"#ffffff",
+  "theme_color":"#0f172a",
+  "description":"HSE field operations, inspections, CAPA, PTW, LOTO and emergency management.",
+  "icons":[{"src":"/utec-logo.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
