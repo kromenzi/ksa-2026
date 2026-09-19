@@ -66,6 +66,11 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "chemical-transactions": { table: "chemical_inventory_transactions", module: "reports" },
   "risk-register": { table: "risk_register", module: "reports" },
   "risk-controls": { table: "risk_controls", module: "reports" },
+  "site-floor-plans": { table: "site_floor_plans", module: "reports" },
+  "emergency-assembly-points": { table: "emergency_assembly_points", module: "reports" },
+  "emergency-responses": { table: "emergency_response_incidents", module: "reports" },
+  "emergency-response-timeline": { table: "emergency_response_timeline", module: "reports" },
+  "emergency-muster": { table: "emergency_muster_entries", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
@@ -106,10 +111,10 @@ const COLUMNS: Record<string, Set<string>> = {
   safety_reporting_channels: new Set(["id", "channel", "is_enabled", "public_label_ar", "public_label_en", "destination", "config", "updated_at"]),
   escalation_matrix: GENERIC_COLUMNS,
   fire_gateways: new Set(["id","gateway_code","name","protocol","host","port","manufacturer","model","firmware","building","area","status","signal_quality","connected_devices","last_heartbeat_at","last_error","notes","config","created_at","updated_at"]),
-  fire_panels: new Set(["id","panel_code","name","manufacturer","model","serial_number","building","floor","area","protocol","gateway_id","host","status","last_signal_at","last_test_at","next_test_at","notes","data","created_at","updated_at"]),
-  fire_devices: new Set(["id","device_code","device_type","panel_id","zone_id","gateway_id","loop_no","address_no","building","floor","area","exact_location","manufacturer","model","serial_number","protocol","status","power_status","battery_level","isolated","last_signal_at","last_test_at","next_test_at","notes","data","created_at","updated_at"]),
+  fire_panels: new Set(["id","panel_code","name","manufacturer","model","serial_number","building","floor","area","protocol","gateway_id","host","status","last_signal_at","last_test_at","next_test_at","notes","data","floor_plan_id","map_x","map_y","created_at","updated_at"]),
+  fire_devices: new Set(["id","device_code","device_type","panel_id","zone_id","gateway_id","loop_no","address_no","building","floor","area","exact_location","manufacturer","model","serial_number","protocol","status","power_status","battery_level","isolated","last_signal_at","last_test_at","next_test_at","notes","data","floor_plan_id","map_x","map_y","created_at","updated_at"]),
   fire_device_events: new Set(["id","device_id","panel_id","gateway_id","event_type","severity","status","message","occurred_at","acknowledged_at","acknowledged_by","cleared_at","source","raw_payload","created_at"]),
-  emergency_exits: new Set(["id","exit_code","name","building","floor","area","assembly_point","route_description","door_type","gateway_id","status","door_status","lock_status","panic_bar_status","exit_sign_status","emergency_light_status","emergency_light_battery","obstruction_status","last_signal_at","last_inspection_at","next_inspection_at","qr_code","notes","data","created_at","updated_at"]),
+  emergency_exits: new Set(["id","exit_code","name","building","floor","area","assembly_point","route_description","door_type","gateway_id","status","door_status","lock_status","panic_bar_status","exit_sign_status","emergency_light_status","emergency_light_battery","obstruction_status","last_signal_at","last_inspection_at","next_inspection_at","qr_code","notes","data","floor_plan_id","map_x","map_y","created_at","updated_at"]),
   emergency_exit_events: new Set(["id","exit_id","gateway_id","event_type","severity","status","message","occurred_at","acknowledged_at","acknowledged_by","cleared_at","source","raw_payload","created_at"]),
   hse_actions: new Set(["id","action_no","title","description","source_type","source_id","category","department","factory","area","priority","status","progress","owner_user_id","assigned_employee_id","due_at","evidence_required","verification_required","verified_by","verified_at","verification_notes","effectiveness_status","effectiveness_notes","escalation_level","created_by","created_at","updated_at","closed_at","metadata"]),
   hse_action_comments: new Set(["id","action_id","comment","created_by","created_at"]),
@@ -138,6 +143,11 @@ const COLUMNS: Record<string, Set<string>> = {
   chemical_inventory_transactions: new Set(["id","chemical_id","transaction_type","quantity","occurred_at","reference","notes","recorded_by"]),
   risk_register: new Set(["id","risk_no","title","hazard","activity","department","factory","area","owner_user_id","source_assessment_id","initial_likelihood","initial_severity","initial_score","initial_level","residual_likelihood","residual_severity","residual_score","residual_level","status","review_date","accepted_by","accepted_at","action_id","notes","created_by","created_at","updated_at"]),
   risk_controls: new Set(["id","risk_id","control_type","description","owner_employee_id","due_date","status","effectiveness","verified_at","verified_by","created_at","updated_at"]),
+  site_floor_plans: new Set(["id","name","building","floor","image_url","width","height","active","created_by","created_at","updated_at"]),
+  emergency_assembly_points: new Set(["id","point_code","name","building","area","capacity","map_x","map_y","status","created_at","updated_at"]),
+  emergency_response_incidents: new Set(["id","response_no","source_type","source_id","title","severity","building","floor","area","status","alarm_started_at","evacuation_started_at","assembly_started_at","all_clear_at","primary_assembly_point_id","nearest_exit_ids","expected_count","accounted_count","missing_count","incident_id","action_id","created_at","updated_at"]),
+  emergency_response_timeline: new Set(["id","response_id","event_type","message","occurred_at","recorded_by","data"]),
+  emergency_muster_entries: new Set(["id","response_id","person_type","person_ref","person_name","department","assembly_point_id","status","accounted_at","notes"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -279,6 +289,14 @@ export default async function handler(req: any, res: any) {
       if (table === "safety_observations") url += "&order=observed_at.desc";
       if (table === "equipment_assets") url += "&order=asset_code.asc";
       if (table === "contractors") url += "&order=name.asc";
+      if (table === "site_floor_plans") url += "&order=building.asc,floor.asc";
+      if (table === "emergency_assembly_points") url += "&order=point_code.asc";
+      if (table === "emergency_response_incidents") url += "&order=alarm_started_at.desc";
+      if (["emergency_response_timeline","emergency_muster_entries"].includes(table)) {
+        const responseId=String(req.query?.responseId||"").trim();
+        if(responseId) url += `&response_id=eq.${encodeURIComponent(responseId)}`;
+        url += table==="emergency_response_timeline" ? "&order=occurred_at.asc" : "&order=person_name.asc";
+      }
       if (table === "risk_register") url += "&order=residual_score.desc,review_date.asc";
       if (table === "risk_controls") {
         const riskId = String(req.query?.riskId || "").trim();
@@ -368,7 +386,8 @@ export default async function handler(req: any, res: any) {
         row.issuer_user_id = row.issuer_user_id || profile.id;
       }
       if (table === "loto_isolations") row.created_by = row.created_by || profile.id;
-      if (["inspection_templates","inspection_schedules","safety_observations","equipment_assets","equipment_service_records","equipment_operator_authorizations","contractors","contractor_documents","chemicals","risk_register"].includes(table)) row.created_by = row.created_by || profile.id;
+      if (["inspection_templates","inspection_schedules","safety_observations","equipment_assets","equipment_service_records","equipment_operator_authorizations","contractors","contractor_documents","chemicals","risk_register","site_floor_plans"].includes(table)) row.created_by = row.created_by || profile.id;
+      if (table === "emergency_response_timeline") row.recorded_by = row.recorded_by || profile.id;
       if (table === "chemical_sds") row.uploaded_by = row.uploaded_by || profile.id;
       if (table === "chemical_inventory_transactions") row.recorded_by = row.recorded_by || profile.id;
       if (table === "activity_logs") {
@@ -430,7 +449,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","site_floor_plans","emergency_assembly_points","emergency_response_incidents","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
