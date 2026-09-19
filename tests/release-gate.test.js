@@ -32,3 +32,20 @@ test("event notification migration keeps RLS and secure RPC", async () => {
   assert.ok(source.includes("security invoker"));
   assert.ok(source.includes("revoke all on function public.enqueue_hse_notification"));
 });
+
+
+test("live meetings stay behind unified API and server-enforced identity", async () => {
+  const resources = await readFile(new URL("../api/_lib/resource-map.ts", import.meta.url), "utf8");
+  for (const key of ["live-meetings", "live-meeting-participants", "live-meeting-messages"]) {
+    assert.ok(resources.includes(`"${key}"`), `missing live meeting resource ${key}`);
+  }
+
+  const api = await readFile(new URL("../api/data.ts", import.meta.url), "utf8");
+  assert.ok(api.includes('row.user_id = profile.id'));
+  assert.ok(api.includes('meeting.created_by === profile.id ? "host" : "participant"'));
+  assert.ok(api.includes("Only the meeting host or an administrator can update this meeting"));
+
+  const vercel = await readFile(new URL("../vercel.json", import.meta.url), "utf8");
+  assert.ok(vercel.includes("/api/live-meetings"));
+  assert.ok(vercel.includes("https://meet.jit.si"));
+});
