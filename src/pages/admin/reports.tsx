@@ -23,19 +23,7 @@ import JSZip from "jszip";
 import ExportPreviewModal, { type ExportColumnDef, type ExportOptions } from "@/components/export-preview-modal";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
-
-const SAFETY_COLUMNS: ExportColumnDef[] = [
-  { id: "reportNo", labelEn: "Report No", labelAr: "رقم التقرير" },
-  { id: "category", labelEn: "Category", labelAr: "التصنيف" },
-  { id: "location", labelEn: "Location", labelAr: "الموقع" },
-  { id: "department", labelEn: "Department", labelAr: "القسم" },
-  { id: "riskLevel", labelEn: "Risk Level", labelAr: "مستوى الخطر" },
-  { id: "status", labelEn: "Status", labelAr: "الحالة" },
-  { id: "date", labelEn: "Date", labelAr: "التاريخ" },
-  { id: "observerName", labelEn: "Observer Name", labelAr: "اسم المراقب", isSensitive: true },
-  { id: "observationDescription", labelEn: "Description", labelAr: "الوصف" },
-  { id: "correctiveAction", labelEn: "Corrective Action", labelAr: "الإجراء التصحيحي" },
-];
+import { SAFETY_REPORT_EXPORT_COLUMNS, safetyRiskLabel, safetyStatusLabel } from "@/features/reports/safety-report-format";
 
 export default function AdminReports() {
   const {
@@ -246,19 +234,8 @@ export default function AdminReports() {
     }
   }, [previewReport, safetyReports, isAr]);
 
-  const getRiskLabel = (level: string) => {
-    const key = level?.toLowerCase() || '';
-    const ar: Record<string, string> = { low: 'منخفض', medium: 'متوسط', high: 'عالي', critical: 'حرج' };
-    const en: Record<string, string> = { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' };
-    return isAr ? (ar[key] || level) : (en[key] || level);
-  };
-
-  const getStatusLabel = (status: string) => {
-    const key = status?.toLowerCase() || '';
-    const ar: Record<string, string> = { open: 'مفتوح', in_progress: 'قيد التنفيذ', closed: 'مغلق' };
-    const en: Record<string, string> = { open: 'Open', in_progress: 'In Progress', closed: 'Closed' };  
-    return isAr ? (ar[key] || status) : (en[key] || status);
-  };
+  const getRiskLabel = (level: string) => safetyRiskLabel(level, isAr);
+  const getStatusLabel = (status: string) => safetyStatusLabel(status, isAr);
 
   const handleDeleteReport = () => {
     if (deleteConfirmation === "DELETE" && deleteId) {
@@ -296,7 +273,7 @@ export default function AdminReports() {
   // Preview Before Download Modal State
   const [isExportPreviewOpen, setIsExportPreviewOpen] = useState(false);
 
-  const safetyColumns = SAFETY_COLUMNS;
+  const safetyColumns = SAFETY_REPORT_EXPORT_COLUMNS;
 
   const handleConfirmCustomExport = useCallback(async (opts: ExportOptions) => {
     const activeCols = safetyColumns.filter(c => !opts.hiddenColumns.includes(c.id));
