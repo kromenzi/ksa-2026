@@ -1,29 +1,23 @@
-import ManagedComplianceRecords from "@/components/admin/ManagedComplianceRecords";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ShieldCheck, Plus, AlertTriangle, CheckCircle2, Clock3, Loader2 } from "lucide-react";
+import { useData } from "@/lib/data-context";
+import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
-export default function AdminCompliancePage() {
-  return (
-    <ManagedComplianceRecords
-      resource="compliance"
-      prefix="CMP"
-      titleEn="Compliance Dashboard"
-      titleAr="إدارة الامتثال والمعايير"
-      descriptionEn="Live compliance register backed by Supabase with permanent Admin/Manager deletion."
-      descriptionAr="سجل امتثال فعلي مرتبط بـSupabase مع حذف دائم لصلاحيات Admin/Manager."
-      categories={[
-        { value: "regulatory", en: "Regulatory Requirement", ar: "متطلب تنظيمي" },
-        { value: "iso45001", en: "ISO 45001 Requirement", ar: "متطلب ISO 45001" },
-        { value: "iso14001", en: "ISO 14001 Requirement", ar: "متطلب ISO 14001" },
-        { value: "corporate", en: "Corporate Standard", ar: "معيار الشركة" },
-        { value: "corrective", en: "Corrective Action", ar: "إجراء تصحيحي" },
-      ]}
-      statuses={[
-        { value: "Open", en: "Open", ar: "مفتوح" },
-        { value: "In Progress", en: "In Progress", ar: "قيد التنفيذ" },
-        { value: "Compliant", en: "Compliant", ar: "ممتثل" },
-        { value: "Non-Compliant", en: "Non-Compliant", ar: "غير ممتثل" },
-        { value: "Closed", en: "Closed", ar: "مغلق" },
-      ]}
-      defaultStatus="Open"
-    />
-  );
+type Requirement={id:string;requirementNo:string;authority?:string;framework?:string;clause?:string;title:string;requirement:string;complianceStatus:string;applicability:string;nextReviewDate?:string;gapDescription?:string};
+export default function AdminCompliance(){
+ const {settings}=useData();const isAr=settings.language==="ar";const qc=useQueryClient();
+ const [title,setTitle]=useState("");const [authority,setAuthority]=useState("ISO");const [busy,setBusy]=useState(false);
+ const {data:rows=[]}=useQuery<Requirement[]>({queryKey:["/api/legal-requirements"],queryFn:async()=>{const r=await fetch("/api/legal-requirements");if(!r.ok)throw new Error("Unable to load compliance");return r.json();}});
+ const stats=useMemo(()=>({ok:rows.filter(r=>r.complianceStatus==="Compliant").length,partial:rows.filter(r=>r.complianceStatus==="Partially Compliant").length,gap:rows.filter(r=>r.complianceStatus==="Non-Compliant").length,pending:rows.filter(r=>r.complianceStatus==="Pending").length}),[rows]);
+ const createReq=async()=>{if(!title.trim())return;setBusy(true);try{await apiRequest("POST","/api/legal-requirements",{requirementNo:`REQ-${Date.now().toString(36).toUpperCase()}`,authority,framework:authority==="ISO"?"ISO 45001":"Saudi Regulatory",title:title.trim(),requirement:title.trim(),applicability:"Applicable",complianceStatus:"Pending",nextReviewDate:new Date(Date.now()+90*86400000).toISOString().slice(0,10)});setTitle("");qc.invalidateQueries({queryKey:["/api/legal-requirements"]});toast.success(isAr?"تمت إضافة المتطلب":"Requirement added");}catch(e:any){toast.error(e?.message||"Unable to add requirement");}finally{setBusy(false);}};
+ return <div className="space-y-5" dir={isAr?"rtl":"ltr"}>
+  <div className="rounded-3xl border bg-card p-6"><div className="flex items-center gap-3"><div className="h-11 w-11 rounded-2xl bg-blue-500/10 grid place-items-center"><ShieldCheck className="h-5 w-5 text-blue-600"/></div><div><h1 className="text-2xl font-bold">{isAr?"سجل الامتثال والمتطلبات":"Compliance & Legal Register"}</h1><p className="text-sm text-muted-foreground">{isAr?"المتطلبات النظامية، ISO، الأدلة، الفجوات، المراجعة والإجراءات.":"Legal/ISO requirements, evidence, gaps, reviews and actions."}</p></div></div>
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">{[[isAr?"ملتزم":"Compliant",stats.ok,CheckCircle2],[isAr?"جزئي":"Partial",stats.partial,Clock3],[isAr?"فجوة":"Non-Compliant",stats.gap,AlertTriangle],[isAr?"معلق":"Pending",stats.pending,Clock3]].map(([l,v,I]:any)=><div className="rounded-2xl border bg-background p-4" key={l}><I className="h-4 w-4 text-primary mb-2"/><div className="text-2xl font-bold">{v}</div><div className="text-xs text-muted-foreground">{l}</div></div>)}</div></div>
+  <div className="rounded-3xl border bg-card p-5"><div className="grid md:grid-cols-[1fr_180px_auto] gap-3"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder={isAr?"المتطلب":"Requirement"}/><select className="h-10 rounded-md border bg-background px-3 text-sm" value={authority} onChange={e=>setAuthority(e.target.value)}><option>ISO</option><option>Saudi Authority</option><option>Customer</option><option>Internal</option></select><Button onClick={createReq} disabled={busy||!title.trim()}>{busy?<Loader2 className="h-4 w-4 animate-spin me-2"/>:<Plus className="h-4 w-4 me-2"/>}{isAr?"إضافة":"Add"}</Button></div></div>
+  <div className="rounded-3xl border bg-card overflow-hidden"><div className="px-5 py-4 border-b font-semibold">{isAr?"المتطلبات المطبقة":"Applicable Requirements"}</div><div className="divide-y">{rows.length===0?<div className="p-10 text-center text-sm text-muted-foreground">{isAr?"لا توجد متطلبات بعد.":"No requirements yet."}</div>:rows.map(r=><div key={r.id} className="p-4 md:p-5 flex items-center justify-between gap-4"><div className="min-w-0"><div className="font-medium truncate">{r.title}</div><div className="text-xs text-muted-foreground mt-1">{r.requirementNo} · {r.authority||"-"} · {r.framework||"-"} {r.clause?`· ${r.clause}`:""}</div>{r.gapDescription&&<div className="text-xs text-red-500 mt-1 line-clamp-1">{r.gapDescription}</div>}</div><div className="text-end"><span className="text-xs rounded-full border px-2.5 py-1">{r.complianceStatus}</span><div className="text-[10px] text-muted-foreground mt-2">{r.nextReviewDate||"-"}</div></div></div>)}</div></div>
+ </div>;
 }
