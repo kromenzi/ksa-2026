@@ -53,6 +53,10 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "inspection-schedules": { table: "inspection_schedules", module: "reports" },
   "inspection-tasks": { table: "inspection_tasks", module: "reports" },
   "safety-observations": { table: "safety_observations", module: "reports" },
+  "equipment-safety-assets": { table: "equipment_assets", module: "reports" },
+  "equipment-service-records": { table: "equipment_service_records", module: "reports" },
+  "equipment-defects": { table: "equipment_defects", module: "reports" },
+  "equipment-operator-authorizations": { table: "equipment_operator_authorizations", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
@@ -112,6 +116,10 @@ const COLUMNS: Record<string, Set<string>> = {
   inspection_schedules: new Set(["id","template_id","assigned_employee_id","factory","area","department","frequency","day_of_week","day_of_month","next_run_date","active","created_by","created_at","updated_at"]),
   inspection_tasks: new Set(["id","schedule_id","template_id","inspector_employee_id","title","department","factory","area","due_date","status","result","checklist_result","findings","notes","started_at","completed_at","action_id","created_at","updated_at"]),
   safety_observations: new Set(["id","observation_no","observed_at","observer_employee_id","observation_type","category","department","factory","area","description","severity","status","immediate_action","photo_urls","action_id","created_by","created_at","updated_at","closed_at"]),
+  equipment_assets: new Set(["id","asset_code","name","equipment_type","serial_number","manufacturer","model","department","factory","area","status","risk_rating","qr_code","certificate_number","certificate_expiry","last_inspection_date","next_inspection_date","last_maintenance_date","next_maintenance_date","operator_authorization_required","loto_required","notes","data","created_by","created_at","updated_at"]),
+  equipment_service_records: new Set(["id","asset_id","service_type","performed_at","next_due","result","provider","technician","notes","attachment_url","created_by","created_at"]),
+  equipment_defects: new Set(["id","defect_no","asset_id","description","severity","status","reported_at","reported_by_employee_id","action_id","resolved_at","resolution_notes","verified_by_user_id","verified_at","created_at","updated_at"]),
+  equipment_operator_authorizations: new Set(["id","asset_id","employee_id","authorization_type","issue_date","expiry_date","status","certificate_ref","notes","created_by","created_at"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -251,6 +259,14 @@ export default async function handler(req: any, res: any) {
       if (table === "inspection_schedules") url += "&order=next_run_date.asc";
       if (table === "inspection_tasks") url += "&order=due_date.desc";
       if (table === "safety_observations") url += "&order=observed_at.desc";
+      if (table === "equipment_assets") url += "&order=asset_code.asc";
+      if (["equipment_service_records","equipment_defects","equipment_operator_authorizations"].includes(table)) {
+        const assetId = String(req.query?.assetId || "").trim();
+        if (assetId) url += `&asset_id=eq.${encodeURIComponent(assetId)}`;
+        if (table === "equipment_service_records") url += "&order=performed_at.desc";
+        if (table === "equipment_defects") url += "&order=reported_at.desc";
+        if (table === "equipment_operator_authorizations") url += "&order=expiry_date.asc";
+      }
       if (["loto_points","loto_locks"].includes(table)) {
         const isolationId = String(req.query?.isolationId || "").trim();
         if (isolationId) url += `&isolation_id=eq.${encodeURIComponent(isolationId)}`;
@@ -312,7 +328,7 @@ export default async function handler(req: any, res: any) {
         row.issuer_user_id = row.issuer_user_id || profile.id;
       }
       if (table === "loto_isolations") row.created_by = row.created_by || profile.id;
-      if (["inspection_templates","inspection_schedules","safety_observations"].includes(table)) row.created_by = row.created_by || profile.id;
+      if (["inspection_templates","inspection_schedules","safety_observations","equipment_assets","equipment_service_records","equipment_operator_authorizations"].includes(table)) row.created_by = row.created_by || profile.id;
       if (table === "activity_logs") {
         row.performed_by = row.performed_by || user.id;
         row.performed_by_name = row.performed_by_name || profile.name;
@@ -372,7 +388,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
