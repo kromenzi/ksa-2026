@@ -1,4 +1,4 @@
-import { getAuthUser, getProfile, json, supabaseFetchForRequest } from "../_lib/supabase.js";
+import { getAuthUser, getProfile, json, supabaseFetch, supabaseFetchForRequest } from "../_lib/supabase.js";
 
 const writableRoles = new Set(["admin", "manager", "editor"]);
 function toClient(row: any) { return { id: row.id, refNo: row.ref_no, date: row.date, department: row.department, location: row.location, description: row.description, severity: row.severity, immediateAction: row.immediate_action, rootCause: row.root_cause, correctiveAction: row.corrective_action, correctiveActions: row.corrective_actions || [], responsiblePersonId: row.responsible_person_id, dueDate: row.due_date, verificationNotes: row.verification_notes, closedAt: row.closed_at, image1: row.image1, image2: row.image2, image3: row.image3, image4: row.image4, status: row.status, createdAt: row.created_at, createdBy: row.created_by, updatedAt: row.updated_at, sourceFile: row.source_file, sourceMetadata: row.source_metadata }; }
@@ -60,6 +60,16 @@ function makeDepartmentCode(name: string) { const base = name.normalize("NFKD").
 
 export default async function handler(req: any, res: any) {
   try {
+    const publicId = String(req.query?.id || "").trim();
+    if (req.method === "GET" && req.query?.public === "1" && publicId && publicId.length <= 120) {
+      const columns = "id,ref_no,date,department,location,description,severity,immediate_action,root_cause,corrective_action,corrective_actions,responsible_person_id,due_date,verification_notes,closed_at,image1,image2,image3,image4,status,created_at,updated_at";
+      const response = await supabaseFetch(`/rest/v1/ncr?id=eq.${encodeURIComponent(publicId)}&status=neq.draft&select=${columns}&limit=1`, { cache: "no-store" });
+      const rows = await response.json().catch(() => []);
+      if (!response.ok) return json(res, response.status, { error: "Unable to load public NCR" });
+      if (!rows[0]) return json(res, 404, { error: "NCR not found" });
+      res.setHeader("Cache-Control", "private, no-store, max-age=0");
+      return json(res, 200, toClient(rows[0]));
+    }
     const user = await getAuthUser(req); const profile = await getProfile(req);
     if (!user || !profile || !profile.is_active) return json(res, 401, { error: "Not authenticated" });
 

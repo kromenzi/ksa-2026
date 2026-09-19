@@ -13,6 +13,7 @@ import "./mobile-board.css";
 import "./brand-visuals.css";
 import "./dashboard-cards.css";
 import "./home-layout.css";
+import "./ncr-public-preview.css";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 const printStyle = document.createElement("style");
@@ -52,6 +53,21 @@ printStyle.textContent = `
       overflow: visible !important;
       background: #fff !important;
       color: #111827 !important;
+      color-scheme: light !important;
+    }
+    .ncr-print-sheet,
+    .ncr-print-sheet * {
+      visibility: visible !important;
+      opacity: 1 !important;
+      forced-color-adjust: none !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .ncr-print-sheet {
+      display: block !important;
+      position: static !important;
+      background: #fff !important;
+      color: #0f172a !important;
       color-scheme: light !important;
     }
     iframe#print-share-iframe {

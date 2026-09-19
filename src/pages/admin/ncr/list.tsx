@@ -736,7 +736,7 @@ export default function AdminNCRList() {
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Link href={`/admin/ncr/${ncr.id}/preview`}>
+                                <Link href={`/ncr/${ncr.id}`}>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-sky-500/10 hover:text-sky-600" data-testid={`button-link-preview-ncr-${ncr.id}`}>
                                   <ExternalLink className="h-4 w-4" />
                                 </Button>
@@ -1120,7 +1120,7 @@ export default function AdminNCRList() {
           onOpenChange={(open) => !open && setShareItem(null)}
           item={{
             id: shareItem.id,
-            url: typeof window !== 'undefined' ? `${window.location.origin}/admin/ncr/${shareItem.id}/preview` : undefined,
+            url: typeof window !== 'undefined' ? `${window.location.origin}/ncr/${shareItem.id}` : undefined,
             type: "ncr",
             refNo: shareItem.refNo,
             title: `NCR: ${shareItem.refNo}`,

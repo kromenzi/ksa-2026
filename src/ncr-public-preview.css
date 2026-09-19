@@ -1,0 +1,42 @@
+/* Public NCR preview: compact A4 document with print-safe colors. */
+.ncr-public-page { color-scheme: light; }
+.ncr-print-sheet { min-height: 250mm; }
+
+@media print {
+  @page { size: A4 portrait; margin: 8mm; }
+  html, body, #root { background: #fff !important; color: #0f172a !important; }
+  body { margin: 0 !important; }
+  .ncr-public-page { min-height: 0 !important; padding: 0 !important; background: #fff !important; }
+  .ncr-preview-actions { display: none !important; }
+  .ncr-print-sheet {
+    display: block !important;
+    width: 100% !important;
+    height: 281mm !important;
+    min-height: 0 !important;
+    max-height: 281mm !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #0f172a !important;
+  }
+  .ncr-print-header { padding: 10px 16px !important; background: #1e293b !important; color: #fff !important; }
+  .ncr-meta-grid { padding: 10px 14px !important; gap: 6px !important; }
+  .ncr-meta-grid > div { padding: 6px 8px !important; background: #f8fafc !important; }
+  .ncr-print-content { padding: 10px 14px !important; gap: 7px !important; }
+  .ncr-description, .ncr-section { padding: 8px 10px !important; background: #fff !important; }
+  .ncr-section p, .ncr-description p { line-height: 1.35 !important; font-size: 10px !important; }
+  .ncr-section h2, .ncr-description h2 { margin-bottom: 2px !important; font-size: 10px !important; }
+  .ncr-images img { height: 55px !important; }
+  .ncr-print-sheet footer { padding: 7px 14px !important; }
+  .ncr-print-sheet, .ncr-print-sheet * {
+    visibility: visible !important;
+    opacity: 1 !important;
+    forced-color-adjust: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .ncr-print-sheet * { color: inherit; }
+}

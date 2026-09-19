@@ -109,7 +109,7 @@ function buildPrintHtml(item: PrintShareItem, siteName: string, isAr: boolean, s
   const fallbackUrl = typeof window !== "undefined" && item.id
     ? (item.type === "report"
       ? `${window.location.origin}/report/${item.id}`
-      : `${window.location.origin}/admin/ncr/${item.id}`)
+      : `${window.location.origin}/ncr/${item.id}`)
     : "";
   const qrText = item.url || fallbackUrl || item.refNo || item.title || "NCR";
   const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrText)}&size=140`;
@@ -330,7 +330,7 @@ function PrintView({ item, siteName, isAr, settings, fontColor }: { item: PrintS
   const fallbackUrl = typeof window !== "undefined" && item.id
     ? (item.type === "report"
       ? `${window.location.origin}/report/${item.id}`
-      : `${window.location.origin}/admin/ncr/${item.id}`)
+      : `${window.location.origin}/ncr/${item.id}`)
     : "";
   const qrText = item.url || fallbackUrl || item.refNo || item.title || "NCR";
   const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrText)}&size=140`;

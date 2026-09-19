@@ -124,6 +124,7 @@ function Router() {
       <Route path="/report" component={PublicSafetyReport} />
       <Route path="/report/status" component={PublicSafetyReportStatus} />
       <Route path="/report/:id" component={PublicReport} />
+      <Route path="/ncr/:id" component={AdminNCRPreview} />
       <Route path="/admin" component={AdminRedirect} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard"><ProtectedRoute component={AdminDashboard} /></Route>
