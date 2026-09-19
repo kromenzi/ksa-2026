@@ -154,6 +154,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       title: "Overview",
       titleAr: "نظرة عامة",
       items: [
+        { label: isAr ? 'لوحة HSE التنفيذية' : 'Executive HSE Dashboard', icon: LayoutDashboard, href: "/admin/executive-hse", visible: true, color: "text-emerald-600", bgColor: "bg-emerald-600/10" },
+        { label: isAr ? 'مساعد HSE الذكي' : 'HSE Operational Assistant', icon: MessagesSquare, href: "/admin/hse-assistant", visible: true, color: "text-violet-600", bgColor: "bg-violet-600/10" },
         { label: isAr ? 'لوحة التحكم الرئيسية' : 'Dashboard', icon: LayoutDashboard, href: "/admin/dashboard", visible: true, color: "text-blue-500", bgColor: "bg-blue-500/10" },
       ]
     },
@@ -166,8 +168,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         { label: isAr ? 'مخالفات موظفي الأقسام' : 'Workforce Safety Violations', icon: ShieldAlert, href: "/admin/employee-violations", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
         { label: isAr ? 'تقارير ملاحظات السلامة (SOR)' : 'Safety Observation Reports (SOR)', icon: ShieldAlert, href: "/admin/reports", visible: hasPermission('reports', 'read'), color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
         { label: isAr ? 'بلاغات السلامة' : 'Safety Reporting', icon: ShieldAlert, href: "/admin/safety-reporting", visible: hasPermission('reports', 'read'), color: "text-teal-500", bgColor: "bg-teal-500/10" },
+        { label: isAr ? 'الوضع الميداني للجوال QR' : 'Mobile Field QR', icon: Search, href: "/admin/mobile-field", visible: true, color: "text-blue-600", bgColor: "bg-blue-600/10" },
+        { label: isAr ? 'مركز الإجراءات التصحيحية CAPA' : 'CAPA & Action Center', icon: ClipboardCheck, href: "/admin/action-center", visible: true, color: "text-emerald-600", bgColor: "bg-emerald-600/10" },
+        { label: isAr ? 'التقرير الشهري الآلي HSE' : 'Automatic Monthly HSE Report', icon: FileText, href: "/admin/monthly-hse-report", visible: true, color: "text-emerald-700", bgColor: "bg-emerald-700/10" },
         { label: isAr ? 'خطة مهام السلامة الشهرية' : 'Monthly HSE Work Plan', icon: CalendarDays, href: "/admin/monthly-hse-plan", visible: true, color: "text-cyan-600", bgColor: "bg-cyan-600/10" },
         { label: isAr ? 'الحوادث وشبه الحوادث وتحليل الأسباب الجذرية' : 'Incidents, Near Misses & RCA', icon: AlertTriangle, href: "/admin/incidents", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },
+        { label: isAr ? 'إدارة المواد الكيميائية وSDS' : 'Chemical & SDS Management', icon: Boxes, href: "/admin/chemicals", visible: true, color: "text-amber-600", bgColor: "bg-amber-600/10" },
+        { label: isAr ? 'سجل المخاطر المركزي' : 'Central Risk Register', icon: Shield, href: "/admin/risk-register", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
         { label: isAr ? 'تقييم المخاطر (5×5)' : 'Risk Assessment (5×5)', icon: Shield, href: "/admin/risk-assessment", visible: true, color: "text-orange-500", bgColor: "bg-orange-500/10" },
         { label: isAr ? 'تقارير عدم المطابقة (NCR)' : 'Non-Conformance Reports (NCR)', icon: ClipboardList, href: "/admin/ncr", visible: hasPermission('ncr', 'read'), color: "text-amber-500", bgColor: "bg-amber-500/10" },
         { label: isAr ? 'هرم السلامة' : 'Safety Pyramid', icon: Triangle, href: "/admin/safety-pyramid", visible: true, color: "text-rose-600", bgColor: "bg-rose-600/10" },
@@ -226,9 +233,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       title: "Safety Systems & Emergency Preparedness",
       titleAr: "أنظمة السلامة والاستعداد للطوارئ",
       items: [
+        { label: isAr ? 'جواز سلامة المعدات' : 'Equipment Safety Passport', icon: Wrench, href: "/admin/equipment-safety", visible: true, color: "text-indigo-600", bgColor: "bg-indigo-600/10" },
         { label: isAr ? 'معدات وأصول السلامة' : 'Safety Equipment & Assets', icon: HardDrive, href: "/admin/assets", visible: true, color: "text-blue-500", bgColor: "bg-blue-500/10" },
+        { label: isAr ? 'إدارة سلامة المقاولين' : 'Contractor Safety Management', icon: UserCheck, href: "/admin/contractor-safety", visible: true, color: "text-violet-600", bgColor: "bg-violet-600/10" },
         { label: isAr ? 'تعريف السلامة للزوار والمقاولين' : 'Visitor & Contractor Safety Induction', icon: UserCheck, href: "/admin/visitors", visible: true, color: "text-purple-500", bgColor: "bg-purple-500/10" },
+        { label: isAr ? 'خريطة سلامة المصنع' : 'Factory Safety Map', icon: MapPin, href: "/admin/safety-map", visible: true, color: "text-blue-600", bgColor: "bg-blue-600/10" },
         { label: isAr ? 'مركز قيادة الحريق والطوارئ' : 'Fire & Emergency Command Center', icon: RadioTower, href: "/admin/fire-emergency-command", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
+        { label: isAr ? 'الاستجابة للطوارئ وMuster' : 'Emergency Response & Muster', icon: Users, href: "/admin/emergency-response", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },
         { label: isAr ? 'الاستعداد للطوارئ وتمارين الإخلاء' : 'Emergency Preparedness & Drills', icon: Flame, href: "/admin/emergency", visible: true, color: "text-red-600", bgColor: "bg-red-600/10" },
         { label: isAr ? 'أنظمة الحماية من الحريق' : 'Fire Protection Systems', icon: ShieldAlert, href: "/admin/fire-protection", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },
       ]
