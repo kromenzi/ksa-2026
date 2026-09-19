@@ -419,7 +419,12 @@ export default async function handler(req: any, res: any) {
 
     const action = req.method === "POST" ? "create" : req.method === "PATCH" || req.method === "PUT" ? "update" : req.method === "DELETE" ? "delete" : "";
     if (!action) return json(res, 405, { error: "Method not allowed" });
-    if (!canWrite(profile, config.module, action)) return json(res, 403, { error: "Insufficient permission" });
+    const liveSelfServiceCreate =
+      req.method === "POST" &&
+      (resource === "live-meeting-participants" || resource === "live-meeting-messages");
+    if (!liveSelfServiceCreate && !canWrite(profile, config.module, action)) {
+      return json(res, 403, { error: "Insufficient permission" });
+    }
 
     if (resource === "permissions" && (req.method === "PUT" || req.method === "PATCH")) {
       const role = String(body.role || "").trim();
@@ -456,15 +461,27 @@ export default async function handler(req: any, res: any) {
         row.updated_at = new Date().toISOString();
       }
       if (table === "live_meeting_participants") {
-        row.user_id = row.user_id || profile.id;
-        row.display_name = String(row.display_name || profile.name || "Participant").slice(0, 160);
-        row.role = row.role || "participant";
-        row.joined_at = row.joined_at || new Date().toISOString();
+        const meetingId = String(row.meeting_id || "").trim();
+        if (!meetingId) return json(res, 422, { error: "meetingId is required" });
+        const meetingResponse = await supabaseFetchForRequest(
+          req,
+          `/rest/v1/live_meetings?select=id,created_by,status&id=eq.${encodeURIComponent(meetingId)}&limit=1`
+        );
+        const meetingRows = await meetingResponse.json().catch(() => []);
+        if (!meetingResponse.ok) return json(res, meetingResponse.status, { error: meetingRows?.message || "Unable to validate meeting" });
+        const meeting = meetingRows[0];
+        if (!meeting || meeting.status !== "live") return json(res, 404, { error: "Live meeting not found" });
+        row.user_id = profile.id;
+        row.display_name = String(profile.name || "Participant").slice(0, 160);
+        row.role = meeting.created_by === profile.id ? "host" : "participant";
+        row.joined_at = new Date().toISOString();
       }
       if (table === "live_meeting_messages") {
-        row.user_id = row.user_id || profile.id;
-        row.sender_name = String(row.sender_name || profile.name || "Participant").slice(0, 160);
-        row.created_at = row.created_at || new Date().toISOString();
+        const meetingId = String(row.meeting_id || "").trim();
+        if (!meetingId) return json(res, 422, { error: "meetingId is required" });
+        row.user_id = profile.id;
+        row.sender_name = String(profile.name || "Participant").slice(0, 160);
+        row.created_at = new Date().toISOString();
       }
       if (table === "hse_action_comments") row.created_by = row.created_by || profile.id;
       if (table === "hse_action_evidence") row.uploaded_by = row.uploaded_by || profile.id;
@@ -535,12 +552,37 @@ export default async function handler(req: any, res: any) {
     const url = `${base}?id=eq.${encodeURIComponent(id)}`;
 
     if (req.method === "PATCH" || req.method === "PUT") {
+      if (table === "live_meetings") {
+        const ownership = await supabaseFetchForRequest(
+          req,
+          `${base}?select=id,created_by,status&id=eq.${encodeURIComponent(id)}&limit=1`
+        );
+        const ownershipRows = await ownership.json().catch(() => []);
+        if (!ownership.ok) return json(res, ownership.status, { error: ownershipRows?.message || "Unable to validate meeting" });
+        const meeting = ownershipRows[0];
+        if (!meeting) return json(res, 404, { error: "Meeting not found" });
+        if (profile.role !== "admin" && meeting.created_by !== profile.id) {
+          return json(res, 403, { error: "Only the meeting host or an administrator can update this meeting" });
+        }
+      }
       const patch = sanitizeBody(table, body, "update");
       if (table === "documents" || table === "employees" || table === "hse_actions" || table === "notification_outbox" || table === "live_meetings" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","site_floor_plans","safety_map_points","monthly_hse_reports","emergency_assembly_points","emergency_response_incidents","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
       if (!Array.isArray(rows) || rows.length === 0) return json(res, 404, { error: "Resource not found or could not be updated" });
+      if (table === "live_meetings" && patch.status === "completed") {
+        const leftAt = patch.ended_at || new Date().toISOString();
+        await supabaseFetchForRequest(
+          req,
+          `/rest/v1/live_meeting_participants?meeting_id=eq.${encodeURIComponent(id)}&left_at=is.null`,
+          {
+            method: "PATCH",
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify({ left_at: leftAt }),
+          }
+        );
+      }
       return json(res, 200, mapClient(rows[0]));
     }
 
