@@ -43,7 +43,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://quickchart.io; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
         }
       ]
     }
@@ -412,6 +412,10 @@
     {
       "source": "/api/safety-reports/:id",
       "destination": "/api/safety-reports?id=:id"
+    },
+    {
+      "source": "/api/ncr/:id",
+      "destination": "/api/ncr?id=:id"
     },
     {
       "source": "/((?!api(?:/|$)).*)",
