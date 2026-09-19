@@ -13,6 +13,14 @@ const GENERIC_TABLES = new Set([
   "inspections", "incidents", "audits", "compliance", "loto", "permits", "escalation_matrix", "safety_reporting_cases",
 ]);
 
+const BULK_IMPORT_RESOURCES = new Set([
+  "employees",
+  "equipment-safety-assets",
+  "contractors",
+  "fire-devices",
+  "trainings",
+]);
+
 const COLUMNS: Record<string, Set<string>> = {
   users: new Set(["id", "name", "email", "role", "is_active", "avatar", "joined_at", "auth_user_id"]),
   posts: new Set(["id", "title", "content", "author_id", "section_id", "status", "created_at", "tags"]),
@@ -169,6 +177,88 @@ export default async function handler(req: any, res: any) {
     }
     if (resource === "hse-assistant") return await hseAssistantHandler(req,res,profile);
     if (resource === "safety-reporting-reveal") return await proxySafetyReporting(req, res, "reveal", true);
+
+    if (resource === "bulk-import") {
+      if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
+      const entity = String(req.body?.entity || "").trim();
+      if (!BULK_IMPORT_RESOURCES.has(entity)) return json(res, 422, { error: "Unsupported import entity" });
+      const config = RESOURCE_MAP[entity];
+      if (!config) return json(res, 422, { error: "Import resource is not configured" });
+      if (!(await hasAppPermission(req, profile, config.module, "create"))) {
+        return json(res, 403, { error: "Insufficient permission" });
+      }
+      const incoming = Array.isArray(req.body?.rows) ? req.body.rows : [];
+      if (!incoming.length) return json(res, 422, { error: "rows are required" });
+      if (incoming.length > 500) return json(res, 413, { error: "A single import is limited to 500 rows" });
+
+      const table = config.table;
+      const prepared = incoming
+        .map((item: any) => sanitizeBody(table, item, "insert"))
+        .filter((item: any) => Object.keys(item).length > 0)
+        .map((row: any) => {
+          if (table === "employees") {
+            row.status = row.status || "Active";
+            row.created_at = row.created_at || new Date().toISOString();
+            row.updated_at = row.updated_at || new Date().toISOString();
+          }
+          if (["equipment_assets","contractors"].includes(table)) {
+            row.created_by = row.created_by || profile.id;
+            row.created_at = row.created_at || new Date().toISOString();
+            row.updated_at = row.updated_at || new Date().toISOString();
+          }
+          if (table === "fire_devices") {
+            row.created_at = row.created_at || new Date().toISOString();
+            row.updated_at = row.updated_at || new Date().toISOString();
+            row.status = row.status || "Unknown";
+          }
+          if (table === "trainings") {
+            row.data = row.data || {};
+            row.ref_no = row.ref_no || `TRAIN-${crypto.randomUUID().slice(0,8).toUpperCase()}`;
+            row.title = row.title || "Imported Training";
+            row.status = row.status || "active";
+            row.created_by = row.created_by || user.id;
+            row.created_at = row.created_at || new Date().toISOString();
+            row.updated_at = row.updated_at || new Date().toISOString();
+          }
+          return row;
+        });
+
+      if (!prepared.length) return json(res, 422, { error: "No recognized columns were found" });
+      if (req.body?.dryRun === true) {
+        return json(res, 200, {
+          entity,
+          table,
+          rowsReceived: incoming.length,
+          rowsAccepted: prepared.length,
+          sample: prepared.slice(0, 5).map(mapClient),
+        });
+      }
+
+      const inserted: any[] = [];
+      for (let index = 0; index < prepared.length; index += 100) {
+        const chunk = prepared.slice(index, index + 100);
+        const response = await supabaseFetchForRequest(req, `/rest/v1/${table}`, {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify(chunk),
+        });
+        const rows = await response.json().catch(() => []);
+        if (!response.ok) {
+          return json(res, response.status, {
+            error: rows?.message || "Bulk import failed",
+            imported: inserted.length,
+            failedAtRow: index + 1,
+          });
+        }
+        inserted.push(...rows);
+      }
+
+      return json(res, 201, {
+        entity,
+        imported: inserted.length,
+        rows: inserted.slice(0, 20).map(mapClient),
+      });
+    }
 
     // Notifications use a dedicated flow because users may only read/update
     // their own rows, while administrators can inspect the shared inbox.
