@@ -155,6 +155,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       titleAr: "نظرة عامة",
       items: [
         { label: isAr ? 'لوحة HSE التنفيذية' : 'Executive HSE Dashboard', icon: LayoutDashboard, href: "/admin/executive-hse", visible: true, color: "text-emerald-600", bgColor: "bg-emerald-600/10" },
+        { label: isAr ? 'مساعد HSE الذكي' : 'HSE Operational Assistant', icon: MessagesSquare, href: "/admin/hse-assistant", visible: true, color: "text-violet-600", bgColor: "bg-violet-600/10" },
         { label: isAr ? 'لوحة التحكم الرئيسية' : 'Dashboard', icon: LayoutDashboard, href: "/admin/dashboard", visible: true, color: "text-blue-500", bgColor: "bg-blue-500/10" },
       ]
     },
