@@ -700,7 +700,9 @@ function NotificationBell({ userId, isAr }: { userId?: string; isAr: boolean }) 
     queryFn: async () => {
       if (!userId) return { count: 0 };
       const res = await fetch(`/api/notifications/${userId}/unread-count`);
-      return res.json();
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload?.error || "Unable to load notification count");
+      return payload;
     },
     enabled: !!userId,
     refetchInterval: 15000,
@@ -712,10 +714,14 @@ function NotificationBell({ userId, isAr }: { userId?: string; isAr: boolean }) 
       if (!userId) return [];
       if (isAdmin) {
         const res = await fetch(`/api/notifications-all`);
-        return res.json();
+        const payload = await res.json().catch(() => []);
+        if (!res.ok) throw new Error(payload?.error || "Unable to load notifications");
+        return Array.isArray(payload) ? payload : [];
       }
       const res = await fetch(`/api/notifications/${userId}`);
-      return res.json();
+      const payload = await res.json().catch(() => []);
+      if (!res.ok) throw new Error(payload?.error || "Unable to load notifications");
+      return Array.isArray(payload) ? payload : [];
     },
     enabled: !!userId && open,
   });

@@ -50,6 +50,26 @@
   ],
   "rewrites": [
     {
+      "source": "/api/notifications-all",
+      "destination": "/api/data?resource=notifications-all"
+    },
+    {
+      "source": "/api/notifications/:id/unread-count",
+      "destination": "/api/data?resource=notification-unread-count&userId=:id"
+    },
+    {
+      "source": "/api/notifications/:id/read-all",
+      "destination": "/api/data?resource=notification-read-all&userId=:id"
+    },
+    {
+      "source": "/api/notifications/:id",
+      "destination": "/api/data?resource=notifications&id=:id"
+    },
+    {
+      "source": "/api/notifications",
+      "destination": "/api/data?resource=notifications"
+    },
+    {
       "source": "/api/monthly-hse-plan",
       "destination": "/api/data?resource=monthly-hse-plan"
     },

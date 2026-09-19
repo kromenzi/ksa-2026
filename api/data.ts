@@ -172,6 +172,80 @@ export default async function handler(req: any, res: any) {
     if (resource === "hse-assistant") return await hseAssistantHandler(req,res,profile);
     if (resource === "safety-reporting-reveal") return await proxySafetyReporting(req, res, "reveal", true);
 
+    // Notifications use a dedicated flow because users may only read/update
+    // their own rows, while administrators can inspect the shared inbox.
+    if (["notifications", "notifications-all", "notification-unread-count", "notification-read-all"].includes(resource)) {
+      const isAdmin = profile.role === "admin";
+      const requestedUserId = String(req.query?.userId || "").trim();
+      const ownerId = requestedUserId || String(profile.id);
+      if (requestedUserId && requestedUserId !== String(profile.id) && !isAdmin) {
+        return json(res, 403, { error: "Insufficient permission" });
+      }
+
+      if (resource === "notifications-all" && !isAdmin) {
+        return json(res, 403, { error: "Insufficient permission" });
+      }
+
+      if (resource === "notification-unread-count") {
+        if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
+        const filter = resource === "notification-unread-count" ? `&user_id=eq.${encodeURIComponent(ownerId)}` : "";
+        const response = await supabaseFetchForRequest(req, `/rest/v1/notifications?select=id&is_read=eq.false${filter}&limit=1000`, {
+          headers: { Prefer: "count=exact" },
+        });
+        const rows = await response.json().catch(() => []);
+        if (!response.ok) return json(res, response.status, { error: rows?.message || "Unable to load notification count" });
+        const contentRange = response.headers.get("content-range") || "";
+        const count = contentRange.includes("/") ? Number(contentRange.split("/").pop()) : rows.length;
+        return json(res, 200, { count: Number.isFinite(count) ? count : rows.length });
+      }
+
+      if (resource === "notification-read-all") {
+        if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
+        const response = await supabaseFetchForRequest(req, `/rest/v1/notifications?user_id=eq.${encodeURIComponent(ownerId)}&is_read=eq.false`, {
+          method: "PATCH",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({ is_read: true }),
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          return json(res, response.status, { error: body?.message || "Unable to mark notifications as read" });
+        }
+        return json(res, 200, { ok: true });
+      }
+
+      if (req.method === "GET") {
+        const ownerFilter = resource === "notifications-all" ? "" : `&user_id=eq.${encodeURIComponent(ownerId)}`;
+        const response = await supabaseFetchForRequest(req, `/rest/v1/notifications?select=*&order=created_at.desc&limit=100${ownerFilter}`);
+        const rows = await response.json().catch(() => []);
+        if (!response.ok) return json(res, response.status, { error: rows?.message || "Unable to load notifications" });
+        return json(res, 200, rows.map(mapClient));
+      }
+
+      const notificationId = String(req.query?.id || "").trim();
+      if (!notificationId) return json(res, 400, { error: "Notification id is required" });
+      const ownerFilter = isAdmin ? "" : `&user_id=eq.${encodeURIComponent(String(profile.id))}`;
+      if (req.method === "PATCH") {
+        const response = await supabaseFetchForRequest(req, `/rest/v1/notifications?id=eq.${encodeURIComponent(notificationId)}${ownerFilter}`, {
+          method: "PATCH",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({ is_read: true }),
+        });
+        const rows = await response.json().catch(() => []);
+        if (!response.ok) return json(res, response.status, { error: rows?.message || "Unable to mark notification as read" });
+        if (!rows[0]) return json(res, 404, { error: "Notification not found" });
+        return json(res, 200, mapClient(rows[0]));
+      }
+      if (req.method === "DELETE") {
+        const response = await supabaseFetchForRequest(req, `/rest/v1/notifications?id=eq.${encodeURIComponent(notificationId)}${ownerFilter}`, { method: "DELETE" });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          return json(res, response.status, { error: body?.message || "Unable to delete notification" });
+        }
+        return json(res, 200, { ok: true });
+      }
+      return json(res, 405, { error: "Method not allowed" });
+    }
+
     if (resource === "employee-directory") {
       if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
       const type = String(req.query?.type || "").trim().toLowerCase();
