@@ -141,6 +141,14 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const navGroups: NavGroup[] = [
 
     {
+      title: "Live Collaboration",
+      titleAr: "الاجتماعات المباشرة",
+      items: [
+        { label: isAr ? "اجتماع مباشر" : "Live Meeting", icon: RadioTower, href: "/admin/live-meeting", visible: true, color: "text-red-500", bgColor: "bg-red-500/10" },
+      ],
+    },
+
+    {
       title: "ESP Safety Vision",
       titleAr: "رؤية السلامة الذكية",
       items: [
