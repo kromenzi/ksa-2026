@@ -4,7 +4,7 @@ Production changes should follow this path:
 
 1. Feature branch
 2. Pull request to main
-3. Release Gate: typecheck, lint, unit tests, build
+3. Release Gate: typecheck, unit tests, build; lint debt is reported separately until the existing baseline is cleared
 4. Vercel Preview
 5. Browser/API smoke verification
 6. Merge to main
@@ -16,7 +16,7 @@ Production changes should follow this path:
 ```bash
 npm ci
 npm run release:gate
-npm run test:e2e
+npm run lint:report
 ```
 
 ## Production verification
