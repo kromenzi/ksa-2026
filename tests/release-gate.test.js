@@ -194,3 +194,13 @@ test("Supabase advisor hardening revokes public trigger RPC access and covers ne
     "legal_requirements_owner_user_id_idx",
   ]) assert.ok(migration.includes(indexName), `missing index ${indexName}`);
 });
+
+
+test("reports page keeps export and localized labels in a feature helper", async () => {
+  const page = await readFile(new URL("../src/pages/admin/reports.tsx", import.meta.url), "utf8");
+  const helper = await readFile(new URL("../src/features/reports/safety-report-format.ts", import.meta.url), "utf8");
+  assert.ok(page.includes('from "@/features/reports/safety-report-format"'));
+  assert.ok(helper.includes("SAFETY_REPORT_EXPORT_COLUMNS"));
+  assert.ok(helper.includes("safetyRiskLabel"));
+  assert.ok(helper.includes("safetyStatusLabel"));
+});
