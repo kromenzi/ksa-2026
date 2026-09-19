@@ -17,13 +17,33 @@ interface HseImagePickerProps {
 export function HseImagePicker({ files, onChange, isAr, disabled = false, label }: HseImagePickerProps) {
   const [previews, setPreviews] = useState<string[]>([]);
 
+  const compressImage = async (file: File): Promise<File> => {
+    if (file.size < 2 * 1024 * 1024 || !file.type.startsWith("image/")) return file;
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 2048 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext("2d");
+      if (!context) return file;
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+      if (!blob || blob.size >= file.size) return file;
+      return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg", lastModified: Date.now() });
+    } catch {
+      return file;
+    }
+  };
+
   useEffect(() => {
     const urls = files.map((file) => URL.createObjectURL(file));
     setPreviews(urls);
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [files]);
 
-  const handleSelection = (selected: FileList | null) => {
+  const handleSelection = async (selected: FileList | null) => {
     if (!selected?.length) return;
     const incoming = Array.from(selected);
     const valid: File[] = [];
@@ -36,7 +56,7 @@ export function HseImagePicker({ files, onChange, isAr, disabled = false, label 
         toast.error(isAr ? `الصورة ${file.name} أكبر من 10MB` : `${file.name} exceeds 10MB`);
         continue;
       }
-      valid.push(file);
+      valid.push(await compressImage(file));
     }
     const remaining = MAX_HSE_IMAGES - files.length;
     if (valid.length > remaining) {

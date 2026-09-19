@@ -303,7 +303,9 @@ export default async function handler(req: any, res: any) {
     const body = req.body || {};
 
     if (req.method === "GET") {
-      let url = `${base}?select=*`;
+      // Keep large administrative lists bounded by default; detail pages can
+      // still request a specific id, while dashboards avoid huge payloads.
+      let url = `${base}?select=*${rawId ? "" : "&limit=500"}`;
       if (rawId) url += table === "section_config" ? `&section_type=eq.${encodeURIComponent(rawId)}` : `&id=eq.${encodeURIComponent(rawId)}`;
       if (table === "users") url = `${base}?select=id,name,email,role,is_active,avatar,joined_at,auth_user_id${rawId ? `&id=eq.${encodeURIComponent(rawId)}` : ""}`;
       if (table === "employees") url += "&order=name.asc";

@@ -212,6 +212,12 @@ export default function AdminDashboard() {
     recentNCRs: ncrs.slice(-5).reverse(),
   };
   const statsLoading = false;
+  const recentTrend = trendData.slice(-3);
+  const priorTrend = trendData.slice(0, 3);
+  const recentVolume = recentTrend.reduce((sum, item) => sum + item.reports + item.ncrs, 0);
+  const priorVolume = priorTrend.reduce((sum, item) => sum + item.reports + item.ncrs, 0);
+  const trendDelta = priorVolume === 0 ? 0 : Math.round(((recentVolume - priorVolume) / priorVolume) * 100);
+  const nextMonthEstimate = Math.max(0, Math.round((recentVolume / Math.max(1, recentTrend.length)) * 1));
 
   const riskPieData = stats
     ? Object.entries(stats.riskDistribution)
@@ -490,6 +496,21 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-primary/[0.08] via-card to-card" data-testid="card-predictive-trend">
+            <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><TrendingUp className="h-5 w-5" /></div>
+                <div>
+                  <p className="text-sm font-bold">{isAr ? "مؤشر الاتجاه المتوقع" : "Predictive Trend Indicator"}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{isAr ? "تقدير إرشادي مبني على متوسط آخر 3 أشهر، وليس تنبؤًا تشغيليًا نهائيًا." : "Guidance estimate based on the latest 3-month average, not a final operational forecast."}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-5 sm:text-end">
+                <div><p className="text-2xl font-black">{nextMonthEstimate}</p><p className="text-[10px] text-muted-foreground">{isAr ? "حجم متوقع الشهر القادم" : "Estimated next-month volume"}</p></div>
+                <Badge variant="outline" className={trendDelta > 0 ? "border-amber-500/30 text-amber-600" : "border-emerald-500/30 text-emerald-600"}>{trendDelta > 0 ? `+${trendDelta}%` : `${trendDelta}%`}</Badge>
+              </div>
+            </CardContent>
+          </Card>
           <div className="grid gap-4 lg:grid-cols-7">
             <Card className="lg:col-span-4 border-0 shadow-sm" data-testid="card-trend-chart">
               <CardHeader className="pb-2">

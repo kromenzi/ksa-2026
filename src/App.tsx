@@ -10,6 +10,7 @@ import AdminLogin from "@/pages/admin/login";
 import { DataProvider, useData } from "@/lib/data-context";
 import { AdminLayout } from "@/components/layouts/admin-layout";
 import EnvironmentalMeasurementsAlert from "@/components/environmental-measurements-alert";
+import { OfflineStatusBanner } from "@/components/offline-status-banner";
 
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
 const HseAssistantPage = lazy(() => import("@/pages/admin/hse-assistant"));
@@ -211,6 +212,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <DataProvider>
         <Toaster />
+        <OfflineStatusBanner />
         <Suspense fallback={<div className="min-h-screen grid place-items-center text-sm text-muted-foreground">Loading…</div>}>
           <Router />
         </Suspense>
