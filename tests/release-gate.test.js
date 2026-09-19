@@ -96,3 +96,16 @@ test("unified authorization is enforced across UI and API", async () => {
   assert.ok(migration.includes("permissions_select_own_role_or_manager"));
   assert.ok(migration.includes("on conflict (role,module)"));
 });
+
+
+test("enterprise audit and compliance modules are backed by normalized records", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/20260919174500_audit_compliance_enterprise.sql", import.meta.url), "utf8");
+  const auditPage = await readFile(new URL("../src/pages/admin/audits.tsx", import.meta.url), "utf8");
+  const compliancePage = await readFile(new URL("../src/pages/admin/compliance.tsx", import.meta.url), "utf8");
+  assert.ok(migration.includes("public.audit_programs"));
+  assert.ok(migration.includes("public.audit_findings"));
+  assert.ok(migration.includes("public.legal_requirements"));
+  assert.ok(migration.includes("public.compliance_evidence"));
+  assert.ok(auditPage.includes("/api/audit-programs"));
+  assert.ok(compliancePage.includes("/api/legal-requirements"));
+});
