@@ -72,5 +72,7 @@ export const RESOURCE_MAP: Record<string, ResourceConfig> = {
   "safety-map-points": { table: "safety_map_points", module: "reports" },
   "safety-qr-registry": { table: "safety_qr_registry", module: "reports" },
   "monthly-hse-reports": { table: "monthly_hse_reports", module: "reports" },
+  "hse-events": { table: "hse_events", module: "reports" },
+  "notification-outbox": { table: "notification_outbox", module: "reports" },
 };
 
