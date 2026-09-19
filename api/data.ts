@@ -1,4 +1,5 @@
-import { getAccessToken, getAuthUser, getProfile, hasValidCsrfToken, json, supabaseFetchForRequest } from "./_lib/supabase.js";
+import { randomBytes } from "node:crypto";
+import { getAccessToken, getAuthUser, getProfile, hasValidCsrfToken, json, supabaseFetch, supabaseFetchForRequest } from "./_lib/supabase.js";
 import { fallbackSupabaseUrl } from "./_lib/supabase-public-config.js";
 import { monthlyHsePlanHandler } from "./_lib/monthly-hse-plan.js";
 import { hseAssistantHandler } from "./_lib/hse-assistant.js";
@@ -135,6 +136,94 @@ async function proxySafetyReporting(req: any, res: any, action: string, requireU
   return json(res, response.status, payload);
 }
 
+async function liveMeetingHandler(req: any, res: any, profile: any) {
+  const rawId = String(req.query?.id || "").trim();
+
+  if (req.method === "GET") {
+    const response = await supabaseFetch(
+      `/rest/v1/live_meetings?select=*&order=started_at.desc${rawId ? `&id=eq.${encodeURIComponent(rawId)}` : ""}`,
+      { method: "GET" },
+    );
+    const rows = await response.json().catch(() => []);
+    if (!response.ok) return json(res, response.status, { error: rows?.message || "Unable to load live meetings" });
+    return json(res, 200, rawId ? rows[0] || null : rows);
+  }
+
+  if (req.method === "POST") {
+    if (!["admin", "manager", "editor"].includes(String(profile.role || ""))) {
+      return json(res, 403, { error: "You do not have permission to start a live meeting" });
+    }
+    const roomCode = randomBytes(6).toString("hex");
+    const title = String(req.body?.title || "Safety Live Meeting").trim().slice(0, 120) || "Safety Live Meeting";
+    const response = await supabaseFetch("/rest/v1/live_meetings?select=*", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        room_code: roomCode,
+        provider_room_name: `ABDULKAREM-SAFETY-${roomCode}`,
+        title,
+        provider: "jitsi",
+        status: "live",
+        created_by: profile.id,
+      }),
+    });
+    const rows = await response.json().catch(() => []);
+    const meeting = Array.isArray(rows) ? rows[0] : null;
+    if (!response.ok || !meeting) return json(res, response.status || 500, { error: rows?.message || "Unable to start live meeting" });
+
+    await supabaseFetch("/rest/v1/live_meeting_participants", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        meeting_id: meeting.id,
+        user_id: profile.id,
+        display_name: profile.name || "Host",
+        role: "host",
+      }),
+    });
+
+    return json(res, 201, meeting);
+  }
+
+  if ((req.method === "PATCH" || req.method === "PUT") && rawId) {
+    const currentResponse = await supabaseFetch(
+      `/rest/v1/live_meetings?id=eq.${encodeURIComponent(rawId)}&select=id,created_by,status&limit=1`,
+      { method: "GET" },
+    );
+    const currentRows = await currentResponse.json().catch(() => []);
+    const currentMeeting = Array.isArray(currentRows) ? currentRows[0] : null;
+    if (!currentResponse.ok) return json(res, currentResponse.status, { error: currentRows?.message || "Unable to load meeting" });
+    if (!currentMeeting) return json(res, 404, { error: "Meeting not found" });
+    if (String(profile.role || "") !== "admin" && currentMeeting.created_by !== profile.id) {
+      return json(res, 403, { error: "Only the host or an administrator can end this meeting" });
+    }
+
+    const nextStatus = req.body?.status === "completed" ? "completed" : String(req.body?.status || "").trim();
+    if (!["scheduled", "live", "completed", "cancelled"].includes(nextStatus)) {
+      return json(res, 422, { error: "Invalid meeting status" });
+    }
+    const patch: Record<string, unknown> = {
+      status: nextStatus,
+      updated_at: new Date().toISOString(),
+    };
+    if (nextStatus === "completed") patch.ended_at = new Date().toISOString();
+
+    const response = await supabaseFetch(
+      `/rest/v1/live_meetings?id=eq.${encodeURIComponent(rawId)}&select=*`,
+      {
+        method: "PATCH",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify(patch),
+      },
+    );
+    const rows = await response.json().catch(() => []);
+    if (!response.ok) return json(res, response.status, { error: rows?.message || "Unable to update live meeting" });
+    return json(res, 200, Array.isArray(rows) ? rows[0] || null : rows);
+  }
+
+  return json(res, 405, { error: "Method not allowed" });
+}
+
 function canWrite(profile: any, module: string, action: string) {
   if (!profile?.is_active) return false;
   if (module === "activity" && action === "create") return true;
@@ -173,6 +262,7 @@ export default async function handler(req: any, res: any) {
       return json(res, 403, { error: "CSRF validation failed" });
     }
     if (resource === "hse-assistant") return await hseAssistantHandler(req,res,profile);
+    if (resource === "live-meetings") return await liveMeetingHandler(req, res, profile);
     if (resource === "safety-reporting-reveal") return await proxySafetyReporting(req, res, "reveal", true);
 
     // Notifications use a dedicated flow because users may only read/update
