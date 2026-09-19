@@ -89,7 +89,7 @@ const AdminSafetyReporting = lazy(() => import("@/pages/admin/safety-reporting")
 const AdminMonthlyHsePlan = lazy(() => import("@/pages/admin/monthly-hse-plan"));
 const MonthlyHseReportPage = lazy(() => import("@/pages/admin/monthly-hse-report"));
 const MobileFieldPage = lazy(() => import("@/pages/admin/mobile-field"));
-const ActionCenterPage = lazy(() => import("@/pages/admin/action-center"));
+const ActionCenterPage = lazy(() => import("@/pages/admin/action-center"));\nconst LiveMeetingPage = lazy(() => import("@/pages/admin/live-meeting"));
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useData();
@@ -139,7 +139,7 @@ function Router() {
       <Route path="/admin/monthly-hse-plan"><ProtectedRoute component={AdminMonthlyHsePlan} /></Route>
       <Route path="/admin/monthly-hse-report"><ProtectedRoute component={MonthlyHseReportPage} /></Route>
       <Route path="/admin/mobile-field"><ProtectedRoute component={MobileFieldPage} /></Route>
-      <Route path="/admin/action-center"><ProtectedRoute component={ActionCenterPage} /></Route>
+      <Route path="/admin/action-center"><ProtectedRoute component={ActionCenterPage} /></Route>\n      <Route path="/admin/live-meeting"><ProtectedRoute component={LiveMeetingPage} /></Route>
       <Route path="/admin/ncr"><ProtectedRoute component={AdminNCR} /></Route>
       <Route path="/admin/ncr/new"><ProtectedRoute component={AdminNCRNewFixed} /></Route>
       <Route path="/admin/ncr/:id/preview"><ProtectedRoute component={AdminNCRPreview} /></Route>
