@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import type { SafetyReport } from "@/lib/data-context";
 import JSZip from "jszip";
-import ExportPreviewModal, { type ExportOptions } from "@/components/export-preview-modal";
+import ExportPreviewModal, { type ExportColumnDef, type ExportOptions } from "@/components/export-preview-modal";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { SAFETY_REPORT_EXPORT_COLUMNS, safetyRiskLabel, safetyStatusLabel } from "@/features/reports/safety-report-format";
