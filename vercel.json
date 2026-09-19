@@ -50,6 +50,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/live-meeting-invite",
+      "destination": "/api/data?resource=live-meeting-invite"
+    },
+    {
       "source": "/api/bulk-import",
       "destination": "/api/data?resource=bulk-import"
     },
