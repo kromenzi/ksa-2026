@@ -12,6 +12,7 @@ import "./sidebar-brand-footer-contrast.css";
 import "./mobile-board.css";
 import "./brand-visuals.css";
 import "./dashboard-cards.css";
+import "./home-layout.css";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 const printStyle = document.createElement("style");

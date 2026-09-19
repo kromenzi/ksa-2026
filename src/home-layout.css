@@ -1,0 +1,70 @@
+/* Public home page: lighter borders, tighter rhythm, and a smaller brand lockup. */
+.home-page {
+  --home-border: hsl(var(--border) / 0.42);
+}
+
+.home-header {
+  border-bottom-width: 1px !important;
+  border-color: var(--home-border) !important;
+  box-shadow: 0 5px 18px hsl(220 35% 10% / 0.05) !important;
+}
+
+.home-hero {
+  border-bottom: 1px solid hsl(var(--primary) / 0.1);
+}
+
+.home-page .hero-brand-lockup {
+  padding: 0.35rem;
+  border-radius: 1.4rem;
+  border-color: hsl(var(--primary) / 0.1);
+  box-shadow: 0 14px 35px hsl(var(--primary) / 0.08), inset 0 1px 0 hsl(0 0% 100% / 0.55);
+}
+
+.home-page .hero-brand-lockup .brand-logo-3d {
+  --logo-size: min(62vw, 330px);
+}
+
+.home-page .hero-brand-lockup .brand-logo-3d__stage {
+  width: 76%;
+}
+
+.home-page .hero-brand-lockup .brand-logo-3d__orbit {
+  opacity: 0.62;
+}
+
+.home-feature-card,
+.home-department-card,
+.home-stat-card {
+  border-width: 1px !important;
+  border-color: var(--home-border) !important;
+  box-shadow: 0 8px 22px hsl(220 35% 10% / 0.06) !important;
+}
+
+.home-feature-card:hover,
+.home-stat-card:hover {
+  border-color: hsl(var(--primary) / 0.28) !important;
+  box-shadow: 0 14px 28px hsl(var(--primary) / 0.1) !important;
+}
+
+.home-department-card {
+  border-radius: 1.5rem !important;
+}
+
+.home-department-card > div > div + div {
+  border-color: hsl(var(--border) / 0.32) !important;
+}
+
+.home-page footer {
+  border-top-width: 1px !important;
+  border-color: hsl(var(--border) / 0.36) !important;
+}
+
+@media (max-width: 640px) {
+  .home-page .hero-brand-lockup .brand-logo-3d {
+    --logo-size: min(58vw, 250px);
+  }
+
+  .home-page .home-hero h1 {
+    line-height: 1.12;
+  }
+}

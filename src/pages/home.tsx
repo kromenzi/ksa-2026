@@ -42,14 +42,14 @@ export default function Home() {
   const Arrow = isAr ? ArrowLeft : ArrowRight;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background" dir={isAr ? "rtl" : "ltr"}>
-      <header className="border-b bg-background/90 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div className="home-page min-h-screen bg-gradient-to-b from-background via-muted/20 to-background" dir={isAr ? "rtl" : "ltr"}>
+      <header className="home-header border-b bg-background/90 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <img 
               src={logo} 
               alt={companyName} 
-              className="h-14 w-[84px] sm:h-16 sm:w-24 brand-logo-full drop-shadow-sm shrink-0" 
+              className="h-10 w-[62px] sm:h-12 sm:w-[72px] brand-logo-full drop-shadow-sm shrink-0"
               data-testid="img-company-logo"
               onError={(e) => {
                 if (e.currentTarget.src !== window.location.origin + '/utec-logo.svg') {
@@ -73,12 +73,12 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden hero-gradient min-h-[500px]">
+      <section className="home-hero relative overflow-hidden hero-gradient min-h-[420px]">
         <div className="hazard-stripe absolute inset-x-0 top-0" />
         <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent opacity-50" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <div className="text-center max-w-4xl mx-auto space-y-8">
-            <div className="hero-brand-lockup mb-4">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-9 md:py-14">
+          <div className="text-center max-w-4xl mx-auto space-y-5">
+            <div className="hero-brand-lockup mb-1">
               <BrandLogo3D src={logo} alt={companyName} size="hero" />
             </div>
 
@@ -87,16 +87,16 @@ export default function Home() {
               {isAr ? heroSubtitleAr : heroSubtitleEn}
             </div>
 
-            <div className="space-y-4">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text">
+            <div className="space-y-2">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text">
                 {heroTitleEn}
               </h1>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary/90" dir="rtl">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary/90" dir="rtl">
                 {heroTitleAr}
               </h2>
             </div>
 
-            <div className="max-w-3xl mx-auto space-y-3 pt-2">
+            <div className="max-w-2xl mx-auto space-y-2 pt-1">
               {!isAr && (
                 <p className="text-base md:text-lg text-muted-foreground/80 leading-relaxed">
                   {heroDescriptionEn}
@@ -109,7 +109,7 @@ export default function Home() {
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-6">
+            <div className="flex flex-col sm:flex-row gap-2.5 justify-center pt-3">
               <Link href="/admin/reports">
                 <Button size="lg" className="text-sm px-8 w-full sm:w-auto rounded-xl bg-primary hover:bg-primary/90 shadow-xl shadow-primary/30 h-12 font-semibold transition-all hover:shadow-2xl hover:shadow-primary/40 hover:-translate-y-0.5" data-testid="button-create-report">
                   <ClipboardList className="h-5 w-5 me-2" />
@@ -135,20 +135,20 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20 -mt-8">
-        <div className="text-center mb-10">
+      <section className="home-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-14 -mt-5">
+        <div className="text-center mb-7">
           <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-primary mb-2">{isAr ? 'الميزات' : 'CAPABILITIES'}</p>
           <h3 className="text-xl md:text-2xl font-bold text-foreground">{isAr ? 'أدوات إدارة السلامة الصناعية' : 'Industrial Safety Management Tools'}</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             { icon: Shield, labelEn: "Safety Reports", labelAr: "تقارير السلامة", descEn: "Observation and incident tracking", descAr: "تتبع الملاحظات والحوادث", color: "text-emerald-500", bgColor: "bg-emerald-500/10", borderColor: "border-emerald-500/20" },
             { icon: AlertTriangle, labelEn: "NCR Management", labelAr: "إدارة عدم المطابقة", descEn: "Non-conformance lifecycle", descAr: "دورة حياة عدم المطابقة", color: "text-amber-500", bgColor: "bg-amber-500/10", borderColor: "border-amber-500/20" },
             { icon: FileText, labelEn: "Documents", labelAr: "المستندات", descEn: "Contracts, permits & invoices", descAr: "العقود والتصاريح والفواتير", color: "text-sky-500", bgColor: "bg-sky-500/10", borderColor: "border-sky-500/20" },
             { icon: BarChart3, labelEn: "Analytics", labelAr: "التحليلات", descEn: "Performance insights & KPIs", descAr: "مؤشرات الأداء والرؤى", color: "text-violet-500", bgColor: "bg-violet-500/10", borderColor: "border-violet-500/20" },
           ].map((item, i) => (
-            <div key={i} className={`glass-card rounded-2xl p-6 card-lift border ${item.borderColor} hover:shadow-xl transition-all duration-300`} data-testid={`card-feature-${i}`}>
-              <div className={`h-12 w-12 rounded-xl ${item.bgColor} flex items-center justify-center mb-4`}>
+            <div key={i} className={`home-feature-card glass-card rounded-2xl p-5 card-lift border ${item.borderColor} hover:shadow-xl transition-all duration-300`} data-testid={`card-feature-${i}`}>
+              <div className={`h-11 w-11 rounded-xl ${item.bgColor} flex items-center justify-center mb-3`}>
                 <item.icon className={`h-6 w-6 ${item.color}`} />
               </div>
               <h3 className="font-bold text-sm mb-2 uppercase tracking-wide text-foreground">{isAr ? item.labelAr : item.labelEn}</h3>
@@ -158,10 +158,10 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 md:pb-24">
-        <Card className="glass-card rounded-3xl overflow-hidden shadow-2xl border-border/50" data-testid="card-safety-department">
+      <section className="home-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 md:pb-16">
+        <Card className="home-department-card glass-card rounded-3xl overflow-hidden shadow-2xl border-border/50" data-testid="card-safety-department">
           <div className="grid grid-cols-1 lg:grid-cols-5">
-            <div className="lg:col-span-3 p-8 md:p-10">
+            <div className="lg:col-span-3 p-6 md:p-8">
               <div className="flex items-center gap-4 mb-6">
                 <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 flex items-center justify-center shadow-lg shadow-primary/30">
                   <HardHat className="h-7 w-7 text-white" />
@@ -192,7 +192,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="lg:col-span-2 bg-gradient-to-br from-muted/30 to-muted/50 dark:from-white/[0.02] dark:to-white/[0.01] p-8 md:p-10 border-t lg:border-t-0 lg:border-s border-border/30">
+            <div className="lg:col-span-2 bg-gradient-to-br from-muted/30 to-muted/50 dark:from-white/[0.02] dark:to-white/[0.01] p-6 md:p-8 border-t lg:border-t-0 lg:border-s border-border/30">
               <h4 className="font-semibold mb-6 text-[10px] uppercase tracking-widest text-muted-foreground/60">
                 {isAr ? "معلومات الاتصال" : "Contact Information"}
               </h4>
@@ -218,19 +218,19 @@ export default function Home() {
         </Card>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="text-center mb-8">
+      <section className="home-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <div className="text-center mb-6">
           <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-primary mb-2">{isAr ? 'إحصائيات' : 'Quick Stats'}</p>
           <h3 className="text-lg md:text-xl font-bold">{isAr ? 'نظرة عامة على النظام' : 'System Overview'}</h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { icon: Activity, labelEn: "Active Reports", labelAr: "تقارير نشطة", value: "24", color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
             { icon: FileCheck, labelEn: "Closed NCRs", labelAr: "NCRs مغلقة", value: "156", color: "text-blue-500", bgColor: "bg-blue-500/10" },
             { icon: Users, labelEn: "Team Members", labelAr: "أعضاء الفريق", value: "48", color: "text-violet-500", bgColor: "bg-violet-500/10" },
             { icon: ClipboardList, labelEn: "Pending Review", labelAr: "قيد المراجعة", value: "12", color: "text-amber-500", bgColor: "bg-amber-500/10" },
           ].map((stat, i) => (
-            <div key={i} className="steel-card rounded-2xl p-5 text-center card-lift">
+            <div key={i} className="home-stat-card steel-card rounded-2xl p-4 text-center card-lift">
               <div className={`h-10 w-10 rounded-xl ${stat.bgColor} flex items-center justify-center mx-auto mb-3`}>
                 <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
