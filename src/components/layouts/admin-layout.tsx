@@ -99,11 +99,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const isAr = settings.language === 'ar';
 
   const navigateSidebar = (href: string, mobile = false) => {
-    if (href && href !== location) {
-      setLocation(href);
-    }
     if (mobile) {
-      window.requestAnimationFrame(() => setIsMobileOpen(false));
+      // Let Radix Sheet finish its exit/unmount before React swaps the page tree.
+      // Navigating in the same event can make mobile browsers throw removeChild.
+      setIsMobileOpen(false);
+      if (href && href !== location) {
+        window.setTimeout(() => setLocation(href), 340);
+      }
+    } else if (href && href !== location) {
+      setLocation(href);
     }
     window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
   };
