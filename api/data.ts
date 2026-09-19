@@ -1,6 +1,7 @@
 import { getAccessToken, getAuthUser, getProfile, json, supabaseFetchForRequest } from "./_lib/supabase.js";
 import { fallbackSupabaseUrl } from "./_lib/supabase-public-config.js";
 import { monthlyHsePlanHandler } from "./_lib/monthly-hse-plan.js";
+import { hseAssistantHandler } from "./_lib/hse-assistant.js";
 
 const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boolean; adminOnly?: boolean }> = {
   users: { table: "users", module: "users", adminOnly: true },
@@ -233,6 +234,7 @@ export default async function handler(req: any, res: any) {
     const user = await getAuthUser(req);
     const profile = await getProfile(req);
     if (!user || !profile || !profile.is_active) return json(res, 401, { error: "Not authenticated" });
+    if (resource === "hse-assistant") return await hseAssistantHandler(req,res,profile);
     if (resource === "safety-reporting-reveal") return await proxySafetyReporting(req, res, "reveal", true);
 
     if (resource === "employee-directory") {
