@@ -50,6 +50,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/safety-intelligence",
+      "destination": "/api/data?resource=safety-intelligence"
+    },
+    {
       "source": "/api/audit-programs",
       "destination": "/api/data?resource=audit-programs"
     },
