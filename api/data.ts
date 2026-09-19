@@ -39,6 +39,49 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "fire-device-events": { table: "fire_device_events", module: "reports" },
   "emergency-exits": { table: "emergency_exits", module: "reports" },
   "emergency-exit-events": { table: "emergency_exit_events", module: "reports" },
+
+  "hse-actions": { table: "hse_actions", module: "reports" },
+  "hse-action-comments": { table: "hse_action_comments", module: "reports" },
+  "hse-action-evidence": { table: "hse_action_evidence", module: "reports" },
+  "hse-action-history": { table: "hse_action_history", module: "reports" },
+  "hse-escalation-rules": { table: "hse_escalation_rules", module: "reports" },
+  "hse-action-escalations": { table: "hse_action_escalations", module: "reports" },
+
+  "ptw-permits": { table: "ptw_permits", module: "reports" },
+  "loto-isolations": { table: "loto_isolations", module: "reports" },
+  "loto-points": { table: "loto_points", module: "reports" },
+  "loto-locks": { table: "loto_locks", module: "reports" },
+
+  "inspection-templates": { table: "inspection_templates", module: "reports" },
+  "inspection-schedules": { table: "inspection_schedules", module: "reports" },
+  "inspection-tasks": { table: "inspection_tasks", module: "reports" },
+  "safety-observations": { table: "safety_observations", module: "reports" },
+
+  "equipment-assets": { table: "equipment_assets", module: "reports" },
+  "equipment-service-records": { table: "equipment_service_records", module: "reports" },
+  "equipment-defects": { table: "equipment_defects", module: "reports" },
+  "equipment-operator-authorizations": { table: "equipment_operator_authorizations", module: "reports" },
+
+  contractors: { table: "contractors", module: "reports" },
+  "contractor-workers": { table: "contractor_workers", module: "reports" },
+  "contractor-documents": { table: "contractor_documents", module: "reports" },
+  "contractor-scorecards": { table: "contractor_scorecards", module: "reports" },
+
+  chemicals: { table: "chemicals", module: "reports" },
+  "chemical-sds": { table: "chemical_sds", module: "reports" },
+  "chemical-inventory": { table: "chemical_inventory_transactions", module: "reports" },
+
+  "risk-register": { table: "risk_register", module: "reports" },
+  "risk-controls": { table: "risk_controls", module: "reports" },
+
+  "site-floor-plans": { table: "site_floor_plans", module: "reports" },
+  "assembly-points": { table: "emergency_assembly_points", module: "reports" },
+  "emergency-responses": { table: "emergency_response_incidents", module: "reports" },
+  "emergency-response-timeline": { table: "emergency_response_timeline", module: "reports" },
+  "emergency-muster": { table: "emergency_muster_entries", module: "reports" },
+  "safety-map-points": { table: "safety_map_points", module: "reports" },
+  "safety-qr": { table: "safety_qr_registry", module: "reports" },
+  "monthly-hse-reports": { table: "monthly_hse_reports", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
@@ -84,6 +127,49 @@ const COLUMNS: Record<string, Set<string>> = {
   fire_device_events: new Set(["id","device_id","panel_id","gateway_id","event_type","severity","status","message","occurred_at","acknowledged_at","acknowledged_by","cleared_at","source","raw_payload","created_at"]),
   emergency_exits: new Set(["id","exit_code","name","building","floor","area","assembly_point","route_description","door_type","gateway_id","status","door_status","lock_status","panic_bar_status","exit_sign_status","emergency_light_status","emergency_light_battery","obstruction_status","last_signal_at","last_inspection_at","next_inspection_at","qr_code","notes","data","created_at","updated_at"]),
   emergency_exit_events: new Set(["id","exit_id","gateway_id","event_type","severity","status","message","occurred_at","acknowledged_at","acknowledged_by","cleared_at","source","raw_payload","created_at"]),
+
+  hse_actions: new Set(["id","action_no","title","description","source_type","source_id","category","department","factory","area","priority","status","progress","owner_user_id","assigned_employee_id","due_at","evidence_required","verification_required","verified_by","verified_at","verification_notes","effectiveness_status","effectiveness_notes","escalation_level","created_by","created_at","updated_at","closed_at","metadata"]),
+  hse_action_comments: new Set(["id","action_id","comment","created_by","created_at"]),
+  hse_action_evidence: new Set(["id","action_id","file_url","file_name","note","uploaded_by","uploaded_at"]),
+  hse_action_history: new Set(["id","action_id","event_type","old_values","new_values","changed_by","changed_at"]),
+  hse_escalation_rules: new Set(["id","name","priority","overdue_hours","escalation_level","target_role","active","created_at"]),
+  hse_action_escalations: new Set(["id","action_id","rule_id","escalation_level","target_role","reason","status","escalated_at","acknowledged_at","acknowledged_by","notes"]),
+
+  ptw_permits: new Set(["id","permit_no","permit_type","title","description","department","factory","area","location","requester_employee_id","issuer_user_id","hse_reviewer_user_id","approver_user_id","status","risk_level","start_at","expires_at","reviewed_at","approved_at","activated_at","suspended_at","closed_at","suspension_reason","closure_notes","precautions","required_ppe","gas_test_required","gas_test_result","loto_required","signatures","created_by","created_at","updated_at"]),
+  loto_isolations: new Set(["id","loto_no","permit_id","equipment_name","asset_ref","department","factory","area","isolation_type","status","authorized_employee_id","verified_by_user_id","zero_energy_verified","start_at","verified_at","released_at","closed_at","notes","created_by","created_at","updated_at"]),
+  loto_points: new Set(["id","isolation_id","point_code","energy_type","location","normal_state","isolated_state","verification_method","status","created_at"]),
+  loto_locks: new Set(["id","isolation_id","point_id","lock_number","tag_number","applied_by_employee_id","applied_at","removed_at","status","notes"]),
+
+  inspection_templates: new Set(["id","name","category","description","checklist","active","created_by","created_at","updated_at"]),
+  inspection_schedules: new Set(["id","template_id","assigned_employee_id","factory","area","department","frequency","day_of_week","day_of_month","next_run_date","active","created_by","created_at","updated_at"]),
+  inspection_tasks: new Set(["id","schedule_id","template_id","inspector_employee_id","title","department","factory","area","due_date","status","result","checklist_result","findings","notes","started_at","completed_at","action_id","created_at","updated_at"]),
+  safety_observations: new Set(["id","observation_no","observed_at","observer_employee_id","observation_type","category","department","factory","area","description","severity","status","immediate_action","photo_urls","action_id","created_by","created_at","updated_at","closed_at"]),
+
+  equipment_assets: new Set(["id","asset_code","name","equipment_type","serial_number","manufacturer","model","department","factory","area","status","risk_rating","qr_code","certificate_number","certificate_expiry","last_inspection_date","next_inspection_date","last_maintenance_date","next_maintenance_date","operator_authorization_required","loto_required","notes","data","created_by","created_at","updated_at"]),
+  equipment_service_records: new Set(["id","asset_id","service_type","performed_at","next_due","result","provider","technician","notes","attachment_url","created_by","created_at"]),
+  equipment_defects: new Set(["id","defect_no","asset_id","description","severity","status","reported_at","reported_by_employee_id","action_id","resolved_at","resolution_notes","verified_by_user_id","verified_at","created_at","updated_at"]),
+  equipment_operator_authorizations: new Set(["id","asset_id","employee_id","authorization_type","issue_date","expiry_date","status","certificate_ref","notes","created_by","created_at"]),
+
+  contractors: new Set(["id","contractor_code","name","company_registration","scope_of_work","main_contact","email","phone","contract_start","contract_end","insurance_expiry","status","safety_score","notes","created_by","created_at","updated_at"]),
+  contractor_workers: new Set(["id","contractor_id","worker_no","name","national_id","job_title","phone","induction_date","induction_expiry","medical_expiry","competency_expiry","status","access_allowed","block_reason","created_at","updated_at"]),
+  contractor_documents: new Set(["id","contractor_id","worker_id","document_type","reference_no","issue_date","expiry_date","status","critical_for_access","file_url","notes","created_by","created_at","updated_at"]),
+  contractor_scorecards: new Set(["id","contractor_id","month","year","inspections","violations","incidents","overdue_actions","training_compliance","score","rating","notes","created_at","updated_at"]),
+
+  chemicals: new Set(["id","chemical_code","product_name","manufacturer","cas_numbers","hazard_classes","pictograms","storage_area","compatibility_group","quantity","unit","max_allowed_quantity","product_expiry_date","risk_rating","required_ppe","spill_response","first_aid","disposal_method","qr_code","status","notes","created_by","created_at","updated_at"]),
+  chemical_sds: new Set(["id","chemical_id","revision_date","review_due_date","language","file_url","status","notes","uploaded_by","uploaded_at"]),
+  chemical_inventory_transactions: new Set(["id","chemical_id","transaction_type","quantity","occurred_at","reference","notes","recorded_by"]),
+
+  risk_register: new Set(["id","risk_no","title","hazard","activity","department","factory","area","owner_user_id","source_assessment_id","initial_likelihood","initial_severity","initial_score","initial_level","residual_likelihood","residual_severity","residual_score","residual_level","status","review_date","accepted_by","accepted_at","action_id","notes","created_by","created_at","updated_at"]),
+  risk_controls: new Set(["id","risk_id","control_type","description","owner_employee_id","due_date","status","effectiveness","verified_at","verified_by","created_at","updated_at"]),
+
+  site_floor_plans: new Set(["id","name","building","floor","image_url","width","height","active","created_by","created_at","updated_at"]),
+  emergency_assembly_points: new Set(["id","point_code","name","building","area","capacity","map_x","map_y","status","created_at","updated_at"]),
+  emergency_response_incidents: new Set(["id","response_no","source_type","source_id","title","severity","building","floor","area","status","alarm_started_at","evacuation_started_at","assembly_started_at","all_clear_at","primary_assembly_point_id","nearest_exit_ids","expected_count","accounted_count","missing_count","incident_id","action_id","created_at","updated_at"]),
+  emergency_response_timeline: new Set(["id","response_id","event_type","message","occurred_at","recorded_by","data"]),
+  emergency_muster_entries: new Set(["id","response_id","person_type","person_ref","person_name","department","assembly_point_id","status","accounted_at","notes"]),
+  safety_map_points: new Set(["id","floor_plan_id","point_type","label","resource_type","resource_id","map_x","map_y","status","icon","details","created_by","created_at","updated_at"]),
+  safety_qr_registry: new Set(["id","qr_code","resource_type","resource_id","label","route","status","metadata","created_at","updated_at"]),
+  monthly_hse_reports: new Set(["id","report_no","month","year","status","snapshot","highlights","management_summary","next_month_plan","generated_by","generated_at","reviewed_by","reviewed_at","approved_by","approved_at","created_at","updated_at"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -189,6 +275,47 @@ export default async function handler(req: any, res: any) {
       return json(res, 200, (rows || []).map(mapClient));
     }
 
+    if (resource === "hse-automation") {
+      if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
+      const response = await supabaseFetchForRequest(req, "/rest/v1/rpc/run_hse_automation", {
+        method: "POST",
+        body: JSON.stringify({
+          p_job: String(req.body?.job || ""),
+          p_month: req.body?.month == null ? null : Number(req.body.month),
+          p_year: req.body?.year == null ? null : Number(req.body.year),
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) return json(res, response.status, { error: payload?.message || payload?.error || "Unable to run HSE automation" });
+      return json(res, 200, mapClient(payload));
+    }
+
+    if (resource === "hse-executive-snapshot") {
+      if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
+      const month = Number(req.query?.month || new Date().getMonth() + 1);
+      const year = Number(req.query?.year || new Date().getFullYear());
+      const response = await supabaseFetchForRequest(req, "/rest/v1/rpc/hse_executive_snapshot", {
+        method: "POST",
+        body: JSON.stringify({ p_month: month, p_year: year }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) return json(res, response.status, { error: payload?.message || "Unable to load HSE executive snapshot" });
+      return json(res, 200, mapClient(payload));
+    }
+
+    if (resource === "hse-data-assistant") {
+      if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
+      const question = String(req.body?.question || "").trim().slice(0, 1000);
+      if (!question) return json(res, 422, { error: "question is required" });
+      const response = await supabaseFetchForRequest(req, "/rest/v1/rpc/hse_data_assistant", {
+        method: "POST",
+        body: JSON.stringify({ p_question: question }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) return json(res, response.status, { error: payload?.message || "Unable to query HSE data assistant" });
+      return json(res, 200, mapClient(payload));
+    }
+
     const config = RESOURCE_MAP[resource];
     if (!config) return json(res, 404, { error: "Unknown API resource" });
     if (config.adminOnly && profile.role !== "admin") return json(res, 403, { error: "Insufficient permission" });
@@ -205,6 +332,11 @@ export default async function handler(req: any, res: any) {
       if (table === "employees") url += "&order=name.asc";
       if (["fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table)) url += "&order=updated_at.desc";
       if (["fire_device_events","emergency_exit_events"].includes(table)) url += "&order=occurred_at.desc&limit=500";
+      if (["hse_actions","ptw_permits","loto_isolations","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","chemicals","risk_register","site_floor_plans","emergency_response_incidents","safety_map_points","safety_qr_registry","monthly_hse_reports"].includes(table)) url += "&order=created_at.desc";
+      if (table === "hse_action_history") url += "&order=changed_at.desc&limit=500";
+      if (table === "hse_action_escalations") url += "&order=escalated_at.desc&limit=500";
+      if (table === "chemical_inventory_transactions") url += "&order=occurred_at.desc&limit=500";
+      if (table === "emergency_response_timeline") url += "&order=occurred_at.desc&limit=500";
       if (table === "section_config") url += "&order=section_type.asc";
       if (GENERIC_TABLES.has(table)) url += "&order=updated_at.desc";
       if (table === "safety_reporting_messages") {
@@ -252,7 +384,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "POST") {
       const row = sanitizeBody(table, body, "insert");
-      if (["documents", "reports", "posts", "form_templates", "employees", "routing_rules", "fire_gateways", "fire_panels", "fire_devices", "fire_device_events", "emergency_exits", "emergency_exit_events"].includes(table)) row.created_at = row.created_at || new Date().toISOString();
+      if (["documents", "reports", "posts", "form_templates", "employees", "routing_rules", "fire_gateways", "fire_panels", "fire_devices", "fire_device_events", "emergency_exits", "emergency_exit_events", "hse_actions", "hse_action_comments", "hse_action_history", "hse_escalation_rules", "ptw_permits", "loto_isolations", "loto_points", "inspection_templates", "inspection_schedules", "inspection_tasks", "safety_observations", "equipment_assets", "equipment_service_records", "equipment_defects", "equipment_operator_authorizations", "contractors", "contractor_workers", "contractor_documents", "contractor_scorecards", "chemicals", "risk_controls", "site_floor_plans", "emergency_assembly_points", "emergency_response_incidents", "safety_map_points", "safety_qr_registry", "monthly_hse_reports"].includes(table)) row.created_at = row.created_at || new Date().toISOString();
       if (table === "activity_logs") {
         row.performed_by = row.performed_by || user.id;
         row.performed_by_name = row.performed_by_name || profile.name;
@@ -312,7 +444,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || ["fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || ["fire_gateways","fire_panels","fire_devices","emergency_exits","hse_actions","ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","site_floor_plans","emergency_response_incidents","safety_map_points","safety_qr_registry","monthly_hse_reports"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
