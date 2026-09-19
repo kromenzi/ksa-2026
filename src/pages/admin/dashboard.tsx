@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import IncidentPyramid from "@/components/incident-pyramid";
 import { KPICard, MiniStat, RISK_COLORS, STATUS_COLORS } from "@/features/dashboard/dashboard-widgets";
