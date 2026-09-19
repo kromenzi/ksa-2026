@@ -729,7 +729,7 @@ function NotificationBell({ userId, isAr }: { userId?: string; isAr: boolean }) 
   const unreadCount = countData?.count || 0;
 
   const markRead = async (id: string) => {
-    await apiRequest("PATCH", `/api/notifications/${id}/read`, {});
+    await apiRequest("PATCH", `/api/notifications/${id}`, {});
     queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
   };
 
