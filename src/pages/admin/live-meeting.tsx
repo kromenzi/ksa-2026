@@ -17,6 +17,8 @@ type LiveMeeting = {
   createdBy: string;
   startedAt: string;
   endedAt?: string | null;
+  accessMode?: "authenticated" | "invite_only";
+  waitingRoom?: boolean;
 };
 
 export default function LiveMeetingPage() {
@@ -27,6 +29,8 @@ export default function LiveMeetingPage() {
   const [active, setActive] = useState<LiveMeeting | null>(null);
   const [activeParticipantId, setActiveParticipantId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const invitedMeetingId = new URLSearchParams(window.location.search).get("meeting");
+  const invitedToken = new URLSearchParams(window.location.search).get("token");
   const canHost = ["admin", "manager", "editor"].includes(String(currentUser?.role || ""));
   const canEndActiveMeeting = !!active && (currentUser?.role === "admin" || active.createdBy === currentUser?.id);
 
@@ -71,6 +75,7 @@ export default function LiveMeetingPage() {
         meetingId: meeting.id,
         displayName: currentUser?.name || "Participant",
         role: meeting.createdBy === currentUser?.id ? "host" : "participant",
+        joinToken: invitedMeetingId === meeting.id ? invitedToken : undefined,
       });
       const participant = await participantRes.json();
       setActiveParticipantId(participant?.id || null);
@@ -94,6 +99,23 @@ export default function LiveMeetingPage() {
     } finally {
       setActiveParticipantId(null);
       setActive(null);
+      setBusy(false);
+    }
+  };
+
+  const createSecureInvite = async () => {
+    if (!active) return;
+    setBusy(true);
+    try {
+      const res = await apiRequest("POST", "/api/live-meeting-invite", { meetingId: active.id });
+      const payload = await res.json();
+      const url = `${window.location.origin}${payload.joinPath}`;
+      await navigator.clipboard.writeText(url);
+      setActive({ ...active, accessMode: "invite_only", waitingRoom: true });
+      toast.success(isAr ? "تم إنشاء ونسخ رابط دعوة آمن" : "Secure invite link copied");
+    } catch (error:any) {
+      toast.error(error?.message || (isAr ? "تعذر إنشاء الدعوة" : "Unable to create secure invite"));
+    } finally {
       setBusy(false);
     }
   };
@@ -135,23 +157,24 @@ export default function LiveMeetingPage() {
                   <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
                   LIVE
                 </span>
+                {active.accessMode === "invite_only" && <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300">{isAr ? "دعوة آمنة" : "SECURE"}</span>}
               </div>
               <p className="text-[10px] text-white/45 truncate">{active.roomCode}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-white/70 hover:text-white hover:bg-white/10"
-              onClick={async () => {
-                await navigator.clipboard.writeText(meetingUrl).catch(() => {});
-                toast.success(isAr ? "تم نسخ رابط الاجتماع" : "Meeting link copied");
-              }}
-            >
-              <Copy className="h-4 w-4 me-1.5" />
-              <span className="hidden sm:inline">{isAr ? "نسخ الرابط" : "Copy link"}</span>
-            </Button>
+            {canEndActiveMeeting && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white/70 hover:text-white hover:bg-white/10"
+                onClick={createSecureInvite}
+                disabled={busy}
+              >
+                <Copy className="h-4 w-4 me-1.5" />
+                <span className="hidden sm:inline">{isAr ? "دعوة آمنة" : "Secure invite"}</span>
+              </Button>
+            )}
             {canEndActiveMeeting ? (
               <Button
                 variant="destructive"
@@ -268,6 +291,11 @@ export default function LiveMeetingPage() {
           </div>
         </div>
         <div className="divide-y divide-border/40">
+          {invitedMeetingId && !active && (
+            <div className="mx-4 mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-700 dark:text-emerald-300">
+              {isAr ? "تم فتح رابط دعوة آمن. اضغط انضمام على الاجتماع المطابق." : "Secure invite detected. Join the matching meeting below."}
+            </div>
+          )}
           {isLoading ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
@@ -290,6 +318,7 @@ export default function LiveMeetingPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm truncate">{meeting.title}</p>
                       <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-500 font-bold">LIVE</span>
+                      {meeting.accessMode === "invite_only" && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-bold">{isAr ? "آمن" : "SECURE"}</span>}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-1">
                       {meeting.roomCode} · {new Date(meeting.startedAt).toLocaleString(isAr ? "ar-SA" : "en-US")}
