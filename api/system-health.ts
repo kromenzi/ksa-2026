@@ -1,5 +1,6 @@
 import { getAuthUser, getProfile, json, supabaseFetch, supabaseFetchForRequest } from "./_lib/supabase.js";
 import { logger, requestId } from "./_lib/logger.js";
+import { hasAppPermission } from "./_lib/authorization.js";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "https://sfdpkpqokazsegsstjfs.supabase.co").replace(/\/$/, "");
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable__ve50anGhjvRKxXi6UdrcQ_SQ945faS";
@@ -35,7 +36,7 @@ const camelToSnake=(value:string)=>value.replace(/[A-Z]/g,m=>`_${m.toLowerCase()
 const snakeToCamel=(value:string)=>value.replace(/_([a-z])/g,(_,c)=>c.toUpperCase());
 const mapClient=(row:any)=>row&&typeof row==="object"?Object.fromEntries(Object.entries(row).map(([k,v])=>[snakeToCamel(k),v])):row;
 function sanitizeBody(table:string,body:any,mode:"insert"|"update"){const allowed=COLUMNS[table]||new Set<string>();const out:Record<string,any>={};for(const [key,value] of Object.entries(body||{})){const column=camelToSnake(key);if(!allowed.has(column))continue;if(table==="users"&&column==="password")continue;if(mode==="update"&&column==="id")continue;out[column]=value;}return out;}
-function canWrite(profile:any,module:string,action:string){if(!profile?.is_active)return false;if(profile.role==="admin")return true;if(profile.role==="manager"&&["documents","content","settings","reports","assets"].includes(module))return action!=="delete"||["reports","assets"].includes(module);if(profile.role==="editor"&&["content","reports","documents","assets"].includes(module))return action!=="delete";return false;}
+
 
 async function checkSupabase(){try{const response=await fetch(`${SUPABASE_URL}/rest/v1/users?select=id&limit=1`,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}});return{ok:response.ok,status:response.status};}catch{return{ok:false,status:0};}}
 async function checkHttp(url?:string){if(!url)return{configured:false,ok:false,status:0};try{const response=await fetch(url,{method:"GET",signal:AbortSignal.timeout(4000)});return{configured:true,ok:response.ok,status:response.status};}catch{return{configured:true,ok:false,status:0};}}
@@ -88,7 +89,7 @@ async function documentStorageHandler(req:any,res:any){
   }
 
   if(action==="sign-upload"){
-    if(!canWrite(profile,"documents","create"))return json(res,403,{error:"Insufficient permission"});
+    if(!(await hasAppPermission(req,profile,"documents","create")))return json(res,403,{error:"Insufficient permission"});
     const fileName=String(body.fileName||"").trim();
     const fileSize=Number(body.fileSize||0);
     if(!fileName)return json(res,422,{error:"File name is required"});
@@ -144,7 +145,7 @@ async function documentStorageHandler(req:any,res:any){
   }
 
   if(action==="delete"){
-    if(!canWrite(profile,"documents","delete"))return json(res,403,{error:"Insufficient permission"});
+    if(!(await hasAppPermission(req,profile,"documents","delete")))return json(res,403,{error:"Insufficient permission"});
     const objectPath=String(body.path||"").trim();
     if(!isDocumentStoragePath(objectPath))return json(res,422,{error:"Invalid document storage path"});
     const response=await supabaseFetchForRequest(req,`/storage/v1/object/${DOCUMENT_STORAGE_BUCKET}`,{
@@ -164,6 +165,7 @@ async function resourceHandler(req:any,res:any,resource:string){
   const config=RESOURCE_MAP[resource];if(!config)return json(res,404,{error:"Unknown API resource"});if(config.adminOnly&&profile.role!=="admin")return json(res,403,{error:"Insufficient permission"});
   const rawId=String(req.query?.id||"").trim();const table=config.table;const base=`/rest/v1/${table}`;
   if(req.method==="GET"){
+    if(!(await hasAppPermission(req,profile,config.module,"read")))return json(res,403,{error:"Insufficient permission"});
     let url=`${base}?select=*`;if(rawId)url+=table==="section_config"?`&section_type=eq.${encodeURIComponent(rawId)}`:`&id=eq.${encodeURIComponent(rawId)}`;
     if(table==="users")url=`${base}?select=id,name,email,role,is_active,avatar,joined_at,auth_user_id${rawId?`&id=eq.${encodeURIComponent(rawId)}`:""}`;
     if(table==="section_config")url+="&order=section_type.asc";
@@ -175,7 +177,7 @@ async function resourceHandler(req:any,res:any,resource:string){
     if(["assets","visitors","emergency","fire_equipment","fire_inspections","fire_pump_tests","fire_alarm_zones","fire_maintenance_orders","fire_alerts"].includes(table))url+="&order=created_at.desc";
     const r=await supabaseFetchForRequest(req,url);const rows=await r.json();if(!r.ok)return json(res,r.status,{error:rows?.message||"Unable to load resource"});return json(res,200,config.single?(rows[0]?mapClient(rows[0]):null):rows.map(mapClient));
   }
-  const action=req.method==="POST"?"create":req.method==="PATCH"||req.method==="PUT"?"update":req.method==="DELETE"?"delete":"";if(!action)return json(res,405,{error:"Method not allowed"});if(!canWrite(profile,config.module,action))return json(res,403,{error:"Insufficient permission"});
+  const action=req.method==="POST"?"create":req.method==="PATCH"||req.method==="PUT"?"update":req.method==="DELETE"?"delete":"";if(!action)return json(res,405,{error:"Method not allowed"});if(!(await hasAppPermission(req,profile,config.module,action as any)))return json(res,403,{error:"Insufficient permission"});
   const body=req.body||{};
   if(resource==="permissions"&&(req.method==="PUT"||req.method==="PATCH")){const role=String(body.role||"").trim(),module=String(body.module||"").trim(),actions=Array.isArray(body.actions)?body.actions:[];if(!role||!module)return json(res,422,{error:"role and module are required"});const lookup=`${base}?role=eq.${encodeURIComponent(role)}&module=eq.${encodeURIComponent(module)}`;const existing=await supabaseFetchForRequest(req,`${lookup}&select=id`);const erows=await existing.json();if(!existing.ok)return json(res,existing.status,{error:erows?.message||"Unable to load permission"});const request=erows[0]?await supabaseFetchForRequest(req,`${base}?id=eq.${encodeURIComponent(erows[0].id)}`,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({actions})}):await supabaseFetchForRequest(req,base,{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({role,module,actions})});const result=await request.json();if(!request.ok)return json(res,request.status,{error:result?.message||"Unable to save permission"});return json(res,200,mapClient(result[0]));}
   if(resource==="section-config"){const sectionType=rawId;if(!sectionType)return json(res,400,{error:"Section type is required"});if(req.method==="DELETE")return json(res,405,{error:"Deleting section configuration is not supported"});const patch=sanitizeBody(table,body,"update");patch.section_type=sectionType;const lookup=`${base}?section_type=eq.${encodeURIComponent(sectionType)}`;const existing=await supabaseFetchForRequest(req,`${lookup}&select=id`);const erows=await existing.json();if(!existing.ok)return json(res,existing.status,{error:erows?.message||"Unable to load section configuration"});const request=erows[0]?await supabaseFetchForRequest(req,lookup,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(patch)}):await supabaseFetchForRequest(req,base,{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(patch)});const result=await request.json();if(!request.ok)return json(res,request.status,{error:result?.message||"Unable to save section configuration"});return json(res,200,mapClient(result[0]));}

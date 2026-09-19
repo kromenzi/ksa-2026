@@ -71,6 +71,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { routeRequirement } from "@/lib/route-permissions";
 
 interface NavGroup {
   title: string;
@@ -90,13 +91,20 @@ interface NavItem {
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { logout, currentUser, settings, toggleLanguage, toggleTheme, setColorTheme, hasPermission } = useData();
+  const { logout, currentUser, settings, toggleLanguage, toggleTheme, setColorTheme, hasPermission, permissionRows } = useData();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<number, boolean>>({});
   const [collapsedItems, setCollapsedItems] = useState<Record<string, boolean>>({});
   const isAr = settings.language === 'ar';
+  const canNavigate = (href: string) => {
+    const requirement = routeRequirement(href);
+    return !requirement || hasPermission(requirement.module, requirement.action);
+  };
+  const currentRequirement = routeRequirement(location);
+  const permissionsReady = currentUser?.role === "admin" || permissionRows.length > 0;
+  const currentRouteAllowed = !currentRequirement || hasPermission(currentRequirement.module, currentRequirement.action);
 
   const navigateSidebar = (href: string, mobile = false) => {
     if (mobile) {
@@ -357,7 +365,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       
       <div className="flex-1 py-2 px-2 overflow-y-auto sidebar-scroll">
         {navGroups.map((group, gi) => {
-          const visibleItems = group.items.filter(item => item.visible);
+          const visibleItems = group.items.filter(item => item.visible && canNavigate(item.href));
           if (visibleItems.length === 0) return null;
           const isGroupCollapsed = collapsedGroups[gi] ?? true;
           return (
@@ -688,7 +696,26 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         <div className="flex-1 p-3 sm:p-4 md:p-5 animate-in fade-in-50 duration-300 overflow-x-hidden">
-          {children}
+          {!permissionsReady ? (
+            <div className="min-h-[40vh] grid place-items-center text-sm text-muted-foreground">
+              {isAr ? "جاري تحميل الصلاحيات..." : "Loading permissions..."}
+            </div>
+          ) : currentRouteAllowed ? (
+            children
+          ) : (
+            <div className="min-h-[52vh] grid place-items-center">
+              <div className="max-w-md w-full rounded-3xl border border-destructive/20 bg-card p-7 text-center shadow-sm">
+                <ShieldAlert className="h-10 w-10 mx-auto mb-3 text-destructive" />
+                <h2 className="text-lg font-semibold">{isAr ? "غير مصرح بالدخول" : "Access denied"}</h2>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {isAr ? "حسابك لا يملك صلاحية قراءة هذا القسم." : "Your account does not have permission to read this section."}
+                </p>
+                <Button className="mt-5 rounded-xl" onClick={() => setLocation("/admin/dashboard")}>
+                  {isAr ? "العودة للوحة التحكم" : "Back to dashboard"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         <GlobalSearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />
       </main>

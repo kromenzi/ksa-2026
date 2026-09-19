@@ -2,6 +2,7 @@ import { getAccessToken, getAuthUser, getProfile, hasValidCsrfToken, json, supab
 import { fallbackSupabaseUrl } from "./_lib/supabase-public-config.js";
 import { monthlyHsePlanHandler } from "./_lib/monthly-hse-plan.js";
 import { hseAssistantHandler } from "./_lib/hse-assistant.js";
+import { hasAppPermission } from "./_lib/authorization.js";
 
 import { RESOURCE_MAP } from "./_lib/resource-map.js";
 import { logger, requestId } from "./_lib/logger.js";
@@ -136,15 +137,6 @@ async function proxySafetyReporting(req: any, res: any, action: string, requireU
   });
   const payload = await response.json().catch(() => ({ error: "Safety reporting service returned an invalid response" }));
   return json(res, response.status, payload);
-}
-
-function canWrite(profile: any, module: string, action: string) {
-  if (!profile?.is_active) return false;
-  if (module === "activity" && action === "create") return true;
-  if (profile.role === "admin") return true;
-  if (profile.role === "manager" && ["documents", "content", "settings", "reports", "employees"].includes(module)) return action !== "delete" || ["reports", "employees"].includes(module);
-  if (profile.role === "editor" && ["content", "reports", "documents", "employees"].includes(module)) return action !== "delete";
-  return false;
 }
 
 const DEFAULT_REPORT_SETTINGS = {
@@ -309,6 +301,9 @@ export default async function handler(req: any, res: any) {
     const body = req.body || {};
 
     if (req.method === "GET") {
+      if (!(await hasAppPermission(req, profile, config.module, "read"))) {
+        return json(res, 403, { error: "Insufficient permission" });
+      }
       // Keep large administrative lists bounded by default; detail pages can
       // still request a specific id, while dashboards avoid huge payloads.
       let url = `${base}?select=*${rawId ? "" : "&limit=500"}`;
@@ -423,7 +418,7 @@ export default async function handler(req: any, res: any) {
       (req.method === "POST" &&
         (resource === "live-meeting-participants" || resource === "live-meeting-messages")) ||
       (req.method === "PATCH" && resource === "live-meeting-participants");
-    if (!liveSelfServiceMutation && !canWrite(profile, config.module, action)) {
+    if (!liveSelfServiceMutation && !(await hasAppPermission(req, profile, config.module, action as any))) {
       return json(res, 403, { error: "Insufficient permission" });
     }
 

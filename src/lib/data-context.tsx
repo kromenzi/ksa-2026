@@ -4,7 +4,7 @@ import { apiRequest, clearCsrfToken } from "./queryClient";
 import type { SafetySign } from "@/types";
 
 export type Role = "admin" | "manager" | "editor" | "viewer";
-export type Module = "users" | "content" | "sections" | "forms" | "reports" | "settings" | "activity" | "ncr" | "documents";
+export type Module = "users" | "content" | "sections" | "forms" | "reports" | "settings" | "activity" | "ncr" | "documents" | "employees" | "assets" | "violations";
 export type Action = "create" | "read" | "update" | "delete" | "send_email";
 
 export interface User { id:string; name:string; email:string; password:string; role:Role; isActive:boolean; avatar?:string|null; joinedAt:string; }
