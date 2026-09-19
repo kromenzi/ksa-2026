@@ -50,6 +50,54 @@
   ],
   "rewrites": [
     {
+      "source": "/api/hse-workflows",
+      "destination": "/api/data?resource=hse-workflows"
+    },
+    {
+      "source": "/api/hse-workflows/:id",
+      "destination": "/api/data?resource=hse-workflows&id=:id"
+    },
+    {
+      "source": "/api/hse-workflow-links",
+      "destination": "/api/data?resource=hse-workflow-links"
+    },
+    {
+      "source": "/api/hse-workflow-events",
+      "destination": "/api/data?resource=hse-workflow-events"
+    },
+    {
+      "source": "/api/safety-intelligence",
+      "destination": "/api/data?resource=safety-intelligence"
+    },
+    {
+      "source": "/api/safety-observations",
+      "destination": "/api/data?resource=safety-observations"
+    },
+    {
+      "source": "/api/safety-observations/:id",
+      "destination": "/api/data?resource=safety-observations&id=:id"
+    },
+    {
+      "source": "/api/notification-delivery",
+      "destination": "/api/data?resource=notification-delivery"
+    },
+    {
+      "source": "/api/notification-rules",
+      "destination": "/api/data?resource=notification-rules"
+    },
+    {
+      "source": "/api/notification-rules/:id",
+      "destination": "/api/data?resource=notification-rules&id=:id"
+    },
+    {
+      "source": "/api/integrations",
+      "destination": "/api/data?resource=integrations"
+    },
+    {
+      "source": "/api/integrations/:id",
+      "destination": "/api/data?resource=integrations&id=:id"
+    },
+    {
       "source": "/api/live-meeting-invite",
       "destination": "/api/data?resource=live-meeting-invite"
     },

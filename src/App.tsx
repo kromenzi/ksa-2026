@@ -15,6 +15,7 @@ import { OfflineStatusBanner } from "@/components/offline-status-banner";
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
 const HseAssistantPage = lazy(() => import("@/pages/admin/hse-assistant"));
 const ExecutiveHseDashboard = lazy(() => import("@/pages/admin/executive-hse"));
+const SafetyIntelligencePage = lazy(() => import("@/pages/admin/safety-intelligence"));
 const AdminUsers = lazy(() => import("@/pages/admin/users"));
 const AdminPosts = lazy(() => import("@/pages/admin/posts"));
 const AdminSections = lazy(() => import("@/pages/admin/sections"));
@@ -90,6 +91,7 @@ const AdminMonthlyHsePlan = lazy(() => import("@/pages/admin/monthly-hse-plan"))
 const MonthlyHseReportPage = lazy(() => import("@/pages/admin/monthly-hse-report"));
 const MobileFieldPage = lazy(() => import("@/pages/admin/mobile-field"));
 const ActionCenterPage = lazy(() => import("@/pages/admin/action-center"));
+const WorkflowCenterPage = lazy(() => import("@/pages/admin/workflow-center"));
 const LiveMeetingPage = lazy(() => import("@/pages/admin/live-meeting"));
 const ImportCenterPage = lazy(() => import("@/pages/admin/import-center"));
 
@@ -132,6 +134,7 @@ function Router() {
       <Route path="/admin/dashboard"><ProtectedRoute component={AdminDashboard} /></Route>
       <Route path="/admin/hse-assistant"><ProtectedRoute component={HseAssistantPage} /></Route>
       <Route path="/admin/executive-hse"><ProtectedRoute component={ExecutiveHseDashboard} /></Route>
+      <Route path="/admin/safety-intelligence"><ProtectedRoute component={SafetyIntelligencePage} /></Route>
       <Route path="/admin/users"><ProtectedRoute component={AdminUsers} /></Route>
       <Route path="/admin/posts"><ProtectedRoute component={AdminPosts} /></Route>
       <Route path="/admin/sections"><ProtectedRoute component={AdminSections} /></Route>
@@ -142,6 +145,7 @@ function Router() {
       <Route path="/admin/monthly-hse-report"><ProtectedRoute component={MonthlyHseReportPage} /></Route>
       <Route path="/admin/mobile-field"><ProtectedRoute component={MobileFieldPage} /></Route>
       <Route path="/admin/action-center"><ProtectedRoute component={ActionCenterPage} /></Route>
+      <Route path="/admin/workflow-center"><ProtectedRoute component={WorkflowCenterPage} /></Route>
       <Route path="/admin/live-meeting"><ProtectedRoute component={LiveMeetingPage} /></Route>
       <Route path="/admin/import-center"><ProtectedRoute component={ImportCenterPage} /></Route>
       <Route path="/admin/ncr"><ProtectedRoute component={AdminNCR} /></Route>
