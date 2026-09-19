@@ -657,6 +657,62 @@ export default async function handler(req: any, res: any) {
       const r = await supabaseFetchForRequest(req, base, { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(row) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to create resource" });
+
+      if (table === "hse_actions" && rows?.[0]?.id && row.source_type && row.source_id) {
+        const existingWorkflowResponse = await supabaseFetchForRequest(
+          req,
+          `/rest/v1/hse_workflows?select=id&source_type=eq.${encodeURIComponent(String(row.source_type))}&source_id=eq.${encodeURIComponent(String(row.source_id))}&status=neq.Closed&limit=1`
+        );
+        const existingWorkflowRows = await existingWorkflowResponse.json().catch(() => []);
+        let workflowId = existingWorkflowRows?.[0]?.id;
+        if (!workflowId) {
+          const workflowResponse = await supabaseFetchForRequest(req, "/rest/v1/hse_workflows", {
+            method: "POST",
+            headers: { Prefer: "return=representation" },
+            body: JSON.stringify({
+              title: row.title || "HSE Corrective Workflow",
+              source_type: row.source_type,
+              source_id: row.source_id,
+              department: row.department || null,
+              factory: row.factory || null,
+              area: row.area || null,
+              owner_user_id: row.owner_user_id || null,
+              created_by: profile.id,
+              status: "Open",
+            }),
+          });
+          const workflowRows = await workflowResponse.json().catch(() => []);
+          if (workflowResponse.ok) workflowId = workflowRows?.[0]?.id;
+        }
+        if (workflowId) {
+          await supabaseFetchForRequest(req, "/rest/v1/hse_workflow_links", {
+            method: "POST",
+            headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+            body: JSON.stringify({
+              workflow_id: workflowId,
+              from_type: String(row.source_type),
+              from_id: row.source_id,
+              to_type: "hse_action",
+              to_id: rows[0].id,
+              relation: "corrective_action",
+              created_by: profile.id,
+            }),
+          });
+          await supabaseFetchForRequest(req, "/rest/v1/hse_workflow_events", {
+            method: "POST",
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify({
+              workflow_id: workflowId,
+              event_type: "ACTION_CREATED",
+              resource_type: "hse_action",
+              resource_id: rows[0].id,
+              message: row.title || "Corrective action created",
+              created_by: profile.id,
+            }),
+          });
+        }
+      }
+
       return json(res, 201, mapClient(rows[0]));
     }
 
