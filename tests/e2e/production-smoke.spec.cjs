@@ -52,7 +52,7 @@ test.describe("authenticated Safety Board smoke", () => {
     expect(protectedApi.status()).toBe(200);
 
     for (const route of [
-      "/admin/hse-workflows",
+      "/admin/workflow-center",
       "/admin/safety-intelligence",
       "/admin/live-meeting",
       "/admin/import-center",
