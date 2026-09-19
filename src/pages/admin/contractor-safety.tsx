@@ -80,7 +80,7 @@ export default function ContractorSafetyPage(){
   const addDoc=async()=>{
     if(!selected||!docForm.documentType.trim())return;
     const r=await apiRequest("POST","/api/data?resource=contractor-documents",{
-      contractorId:selected.id,workerId:docForm.workerId==="none"?null:docForm.workerId,...docForm,
+      ...docForm,contractorId:selected.id,workerId:docForm.workerId==="none"?null:docForm.workerId,
       issueDate:docForm.issueDate||null,expiryDate:docForm.expiryDate||null,status:"Valid"
     });
     const p=await r.json();if(!r.ok)return toast.error(p?.error||"Unable to add document");
