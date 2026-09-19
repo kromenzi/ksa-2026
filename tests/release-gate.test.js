@@ -172,3 +172,25 @@ test("data API keeps its resource registry modular without adding Vercel functio
   assert.ok(registry.includes("export const BULK_IMPORT_RESOURCES"));
   assert.ok(vercel.includes('"destination": "/api/data?resource='));
 });
+
+
+test("Supabase advisor hardening revokes public trigger RPC access and covers new foreign keys", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/20260919150000_security_performance_advisor_hardening_v2.sql", import.meta.url), "utf8");
+  assert.ok(migration.includes("revoke all on function public.materialize_in_app_notification() from public, anon, authenticated"));
+  for (const indexName of [
+    "audit_findings_action_id_idx",
+    "audit_findings_created_by_idx",
+    "audit_findings_owner_user_id_idx",
+    "audit_findings_verified_by_idx",
+    "audit_programs_created_by_idx",
+    "audit_programs_lead_auditor_user_id_idx",
+    "compliance_evidence_uploaded_by_idx",
+    "hse_workflow_events_created_by_idx",
+    "hse_workflow_links_created_by_idx",
+    "hse_workflows_created_by_idx",
+    "hse_workflows_owner_user_id_idx",
+    "legal_requirements_action_id_idx",
+    "legal_requirements_created_by_idx",
+    "legal_requirements_owner_user_id_idx",
+  ]) assert.ok(migration.includes(indexName), `missing index ${indexName}`);
+});
