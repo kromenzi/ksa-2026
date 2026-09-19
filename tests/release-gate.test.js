@@ -217,3 +217,17 @@ test("reports page keeps export and localized labels in a feature helper", async
   assert.ok(helper.includes("safetyRiskLabel"));
   assert.ok(helper.includes("safetyStatusLabel"));
 });
+
+
+test("settings and dashboard keep reusable defaults/widgets outside page monoliths", async () => {
+  const settings = await readFile(new URL("../src/pages/admin/settings.tsx", import.meta.url), "utf8");
+  const defaults = await readFile(new URL("../src/features/settings/enterprise-defaults.ts", import.meta.url), "utf8");
+  const dashboard = await readFile(new URL("../src/pages/admin/dashboard.tsx", import.meta.url), "utf8");
+  const widgets = await readFile(new URL("../src/features/dashboard/dashboard-widgets.tsx", import.meta.url), "utf8");
+  assert.ok(settings.includes('from "@/features/settings/enterprise-defaults"'));
+  assert.ok(defaults.includes("createDefaultNumbering"));
+  assert.ok(defaults.includes("DEFAULT_JOB_TITLES"));
+  assert.ok(dashboard.includes('from "@/features/dashboard/dashboard-widgets"'));
+  assert.ok(widgets.includes("export function KPICard"));
+  assert.ok(widgets.includes("export function MiniStat"));
+});
