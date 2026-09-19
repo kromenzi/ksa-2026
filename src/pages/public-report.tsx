@@ -121,8 +121,8 @@ export default function PublicReport() {
       </header>
 
       {/* Report */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-white dark:bg-card rounded-xl border shadow-sm overflow-hidden">
+      <main className="sor-print-sheet max-w-4xl mx-auto px-4 sm:px-6 py-8">
+        <div className="sor-print-card bg-white dark:bg-card rounded-xl border shadow-sm overflow-hidden">
           {/* Report Header */}
           <div className="bg-gradient-to-r from-teal-600 to-emerald-600 p-6 text-white print:bg-teal-700">
             <div className="flex items-start justify-between gap-4 flex-wrap">

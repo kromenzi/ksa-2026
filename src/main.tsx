@@ -14,13 +14,14 @@ import "./brand-visuals.css";
 import "./dashboard-cards.css";
 import "./home-layout.css";
 import "./ncr-public-preview.css";
+import "./sor-public-print.css";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 const printStyle = document.createElement("style");
 printStyle.setAttribute("data-print-isolation", "true");
 printStyle.textContent = `
   @media print {
-    @page { size: A4; margin: 12mm; }
+    @page { size: A4 portrait; margin: 8mm; }
     html, body {
       background: #fff !important;
       color: #111827 !important;
@@ -68,6 +69,21 @@ printStyle.textContent = `
       position: static !important;
       background: #fff !important;
       color: #0f172a !important;
+      color-scheme: light !important;
+    }
+    .sor-print-sheet,
+    .sor-print-sheet * {
+      visibility: visible !important;
+      opacity: 1 !important;
+      forced-color-adjust: none !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .sor-print-sheet {
+      display: block !important;
+      position: static !important;
+      background: #fff !important;
+      color: #111827 !important;
       color-scheme: light !important;
     }
     iframe#print-share-iframe {

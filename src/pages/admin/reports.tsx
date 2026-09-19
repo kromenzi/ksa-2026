@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-import { FileBarChart, Trash2, Download, AlertTriangle, Printer, Eye, Link2, Edit, Upload, PenLine, Loader2, Image as ImageIcon, X, ChevronDown, Shield, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, BarChart3, Calendar, MapPin, Activity, Sparkles, FileText, FileText as FileDocIcon, Search, Filter, XCircle, FileSearch, Copy, Archive, FileSpreadsheet, FileCode2, Send } from "lucide-react";
+import { FileBarChart, Trash2, Download, AlertTriangle, Printer, Eye, Link2, ExternalLink, Edit, Upload, PenLine, Loader2, Image as ImageIcon, X, ChevronDown, Shield, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, BarChart3, Calendar, MapPin, Activity, Sparkles, FileText, FileText as FileDocIcon, Search, Filter, XCircle, FileSearch, Copy, Archive, FileSpreadsheet, FileCode2, Send } from "lucide-react";
 import PrintShareDialog from "@/components/print-share-dialog";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,6 +22,7 @@ import type { SafetyReport } from "@/lib/data-context";
 import JSZip from "jszip";
 import ExportPreviewModal, { type ExportColumnDef, type ExportOptions } from "@/components/export-preview-modal";
 import { apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
 
 const SAFETY_COLUMNS: ExportColumnDef[] = [
   { id: "reportNo", labelEn: "Report No", labelAr: "رقم التقرير" },
@@ -881,9 +882,11 @@ export default function AdminReports() {
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-600" onClick={() => setPreviewReport(sr)} title={isAr ? 'معاينة / تحميل PDF' : 'Preview / Download PDF'} data-testid={`button-pdf-${sr.id}`}>
                           <Download className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-blue-500/10 hover:text-blue-600" onClick={() => handleCopyLink(sr)} title={isAr ? 'نسخ الرابط' : 'Copy Link'} data-testid={`button-copy-link-${sr.id}`}>
-                          <Link2 className="h-4 w-4" />
-                        </Button>
+                        <Link href={`/report/${sr.id}`}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-sky-500/10 hover:text-sky-600" title={isAr ? 'فتح الرابط' : 'Open Link'} data-testid={`button-open-link-${sr.id}`}>
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </Link>
                         {canCreate && sr.status !== 'closed' && (
                           <Button
                             variant="ghost"
