@@ -71,6 +71,7 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "emergency-responses": { table: "emergency_response_incidents", module: "reports" },
   "emergency-response-timeline": { table: "emergency_response_timeline", module: "reports" },
   "emergency-muster": { table: "emergency_muster_entries", module: "reports" },
+  "safety-map-points": { table: "safety_map_points", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
@@ -148,6 +149,7 @@ const COLUMNS: Record<string, Set<string>> = {
   emergency_response_incidents: new Set(["id","response_no","source_type","source_id","title","severity","building","floor","area","status","alarm_started_at","evacuation_started_at","assembly_started_at","all_clear_at","primary_assembly_point_id","nearest_exit_ids","expected_count","accounted_count","missing_count","incident_id","action_id","created_at","updated_at"]),
   emergency_response_timeline: new Set(["id","response_id","event_type","message","occurred_at","recorded_by","data"]),
   emergency_muster_entries: new Set(["id","response_id","person_type","person_ref","person_name","department","assembly_point_id","status","accounted_at","notes"]),
+  safety_map_points: new Set(["id","floor_plan_id","point_type","label","resource_type","resource_id","map_x","map_y","status","icon","details","created_by","created_at","updated_at"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -290,6 +292,11 @@ export default async function handler(req: any, res: any) {
       if (table === "equipment_assets") url += "&order=asset_code.asc";
       if (table === "contractors") url += "&order=name.asc";
       if (table === "site_floor_plans") url += "&order=building.asc,floor.asc";
+      if (table === "safety_map_points") {
+        const floorPlanId=String(req.query?.floorPlanId||"").trim();
+        if(floorPlanId) url += `&floor_plan_id=eq.${encodeURIComponent(floorPlanId)}`;
+        url += "&order=point_type.asc,label.asc";
+      }
       if (table === "emergency_assembly_points") url += "&order=point_code.asc";
       if (table === "emergency_response_incidents") url += "&order=alarm_started_at.desc";
       if (["emergency_response_timeline","emergency_muster_entries"].includes(table)) {
@@ -386,7 +393,7 @@ export default async function handler(req: any, res: any) {
         row.issuer_user_id = row.issuer_user_id || profile.id;
       }
       if (table === "loto_isolations") row.created_by = row.created_by || profile.id;
-      if (["inspection_templates","inspection_schedules","safety_observations","equipment_assets","equipment_service_records","equipment_operator_authorizations","contractors","contractor_documents","chemicals","risk_register","site_floor_plans"].includes(table)) row.created_by = row.created_by || profile.id;
+      if (["inspection_templates","inspection_schedules","safety_observations","equipment_assets","equipment_service_records","equipment_operator_authorizations","contractors","contractor_documents","chemicals","risk_register","site_floor_plans","safety_map_points"].includes(table)) row.created_by = row.created_by || profile.id;
       if (table === "emergency_response_timeline") row.recorded_by = row.recorded_by || profile.id;
       if (table === "chemical_sds") row.uploaded_by = row.uploaded_by || profile.id;
       if (table === "chemical_inventory_transactions") row.recorded_by = row.recorded_by || profile.id;
@@ -449,7 +456,7 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === "PATCH" || req.method === "PUT") {
       const patch = sanitizeBody(table, body, "update");
-      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","site_floor_plans","emergency_assembly_points","emergency_response_incidents","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
+      if (table === "documents" || table === "employees" || table === "hse_actions" || ["ptw_permits","loto_isolations","inspection_templates","inspection_schedules","inspection_tasks","safety_observations","equipment_assets","equipment_defects","contractors","contractor_workers","contractor_documents","contractor_scorecards","chemicals","risk_register","risk_controls","site_floor_plans","safety_map_points","emergency_assembly_points","emergency_response_incidents","fire_gateways","fire_panels","fire_devices","emergency_exits"].includes(table) || GENERIC_TABLES.has(table) || table === "safety_reporting_channels") patch.updated_at = new Date().toISOString();
       const r = await supabaseFetchForRequest(req, url, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(patch) });
       const rows = await r.json();
       if (!r.ok) return json(res, r.status, { error: rows?.message || "Unable to update resource" });
