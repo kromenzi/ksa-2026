@@ -203,7 +203,7 @@ export default async function handler(req:any,res:any){
 
   const user=await getAuthUser(req);
   const profile=user?await getProfile(req,user):null;
-  const canSeeDetails=Boolean(profile?.is_active&&profile.role==="admin");
+  const canSeeDetails=profile?.is_active&&profile.role==="admin";
 
   if(!canSeeDetails){
     logger.info("system_health.request.done",{requestId:rid,overall,durationMs:Date.now()-startedAt,details:false});
