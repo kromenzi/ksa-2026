@@ -12,7 +12,7 @@ test("package scripts include release gate", async () => {
 
 test("critical HSE resource mappings remain registered", async () => {
   const source = await readFile(new URL("../api/_lib/resource-map.ts", import.meta.url), "utf8");
-  for (const key of ["hse-actions", "ptw-permits", "fire-devices", "risk-register", "monthly-hse-reports"]) {
+  for (const key of ["hse-actions", "ptw-permits", "fire-devices", "risk-register", "monthly-hse-reports", "hse-events", "notification-outbox"]) {
     assert.ok(source.includes(`"${key}"`), `missing resource ${key}`);
   }
 });
@@ -22,4 +22,13 @@ test("security headers remain configured", async () => {
   assert.ok(vercel.includes("Content-Security-Policy"));
   assert.ok(vercel.includes("X-Frame-Options"));
   assert.ok(vercel.includes("X-Content-Type-Options"));
+});
+
+
+test("event notification migration keeps RLS and secure RPC", async () => {
+  const source = await readFile(new URL("../supabase/migrations/20260919102000_hse_event_notification_foundation.sql", import.meta.url), "utf8");
+  assert.ok(source.includes("alter table public.hse_events enable row level security"));
+  assert.ok(source.includes("alter table public.notification_outbox enable row level security"));
+  assert.ok(source.includes("security invoker"));
+  assert.ok(source.includes("revoke all on function public.enqueue_hse_notification"));
 });
