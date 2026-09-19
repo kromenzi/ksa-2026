@@ -4,6 +4,7 @@ import { monthlyHsePlanHandler } from "./_lib/monthly-hse-plan.js";
 import { hseAssistantHandler } from "./_lib/hse-assistant.js";
 
 import { RESOURCE_MAP } from "./_lib/resource-map.js";
+import { logger, requestId } from "./_lib/logger.js";
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
 const GENERIC_TABLES = new Set([
@@ -153,6 +154,10 @@ const DEFAULT_REPORT_SETTINGS = {
 };
 
 export default async function handler(req: any, res: any) {
+  const startedAt = Date.now();
+  const rid = requestId(req);
+  const route = "/api/data";
+  logger.info("api.request.start", { route, requestId: rid, method: req.method, resource: req.query?.resource || null });
   try {
     res.setHeader("Cache-Control", "no-store, max-age=0");
     const resource = String(req.query?.resource || "").trim();
@@ -429,6 +434,9 @@ export default async function handler(req: any, res: any) {
     if (!Array.isArray(rows) || rows.length === 0) return json(res, 404, { error: "Resource not found or could not be deleted" });
     return json(res, 200, { ok: true, deletedId: id });
   } catch (error: any) {
-    return json(res, error.statusCode || 500, { error: error.message || "Data API failed" });
+    logger.error("api.request.failed", error, { route, requestId: rid, method: req.method, resource: req.query?.resource || null, durationMs: Date.now() - startedAt });
+    return json(res, error.statusCode || 500, { error: error.message || "Data API failed", requestId: rid });
+  } finally {
+    logger.info("api.request.done", { route, requestId: rid, method: req.method, resource: req.query?.resource || null, durationMs: Date.now() - startedAt, statusCode: res.statusCode });
   }
 }
