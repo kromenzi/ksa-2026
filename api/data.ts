@@ -72,6 +72,7 @@ const RESOURCE_MAP: Record<string, { table: string; module: string; single?: boo
   "emergency-response-timeline": { table: "emergency_response_timeline", module: "reports" },
   "emergency-muster": { table: "emergency_muster_entries", module: "reports" },
   "safety-map-points": { table: "safety_map_points", module: "reports" },
+  "safety-qr-registry": { table: "safety_qr_registry", module: "reports" },
 };
 
 const GENERIC_COLUMNS = new Set(["id", "ref_no", "title", "status", "department", "date", "data", "created_by", "created_at", "updated_at"]);
@@ -150,6 +151,7 @@ const COLUMNS: Record<string, Set<string>> = {
   emergency_response_timeline: new Set(["id","response_id","event_type","message","occurred_at","recorded_by","data"]),
   emergency_muster_entries: new Set(["id","response_id","person_type","person_ref","person_name","department","assembly_point_id","status","accounted_at","notes"]),
   safety_map_points: new Set(["id","floor_plan_id","point_type","label","resource_type","resource_id","map_x","map_y","status","icon","details","created_by","created_at","updated_at"]),
+  safety_qr_registry: new Set(["id","qr_code","resource_type","resource_id","label","route","status","metadata","created_at","updated_at"]),
 };
 
 const camelToSnake = (value: string) => value.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`);
@@ -244,6 +246,16 @@ export default async function handler(req: any, res: any) {
       return json(res, 200, (rows || []).map(mapClient));
     }
 
+    if (resource === "qr-lookup") {
+      if (req.method !== "GET") return json(res,405,{error:"Method not allowed"});
+      const code=String(req.query?.code||"").trim();
+      if(!code) return json(res,422,{error:"QR code is required"});
+      const response=await supabaseFetchForRequest(req,`/rest/v1/safety_qr_registry?select=*&qr_code=eq.${encodeURIComponent(code)}&status=eq.Active&limit=1`);
+      const rows=await response.json().catch(()=>[]);
+      if(!response.ok) return json(res,response.status,{error:rows?.message||"Unable to resolve QR"});
+      return json(res,200,rows[0]?mapClient(rows[0]):null);
+    }
+
     if (resource === "violation-templates") {
       if (req.method !== "GET") return json(res, 405, { error: "Method not allowed" });
       const response = await supabaseFetchForRequest(req, "/rest/v1/rpc/active_violation_templates", {
@@ -291,6 +303,7 @@ export default async function handler(req: any, res: any) {
       if (table === "safety_observations") url += "&order=observed_at.desc";
       if (table === "equipment_assets") url += "&order=asset_code.asc";
       if (table === "contractors") url += "&order=name.asc";
+      if (table === "safety_qr_registry") url += "&order=resource_type.asc,label.asc";
       if (table === "site_floor_plans") url += "&order=building.asc,floor.asc";
       if (table === "safety_map_points") {
         const floorPlanId=String(req.query?.floorPlanId||"").trim();
