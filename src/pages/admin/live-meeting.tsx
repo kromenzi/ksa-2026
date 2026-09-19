@@ -26,6 +26,8 @@ export default function LiveMeetingPage() {
   const [title, setTitle] = useState(isAr ? "اجتماع سلامة مباشر" : "Safety Live Meeting");
   const [active, setActive] = useState<LiveMeeting | null>(null);
   const [busy, setBusy] = useState(false);
+  const canHost = ["admin", "manager", "editor"].includes(String(currentUser?.role || ""));
+  const canEndActiveMeeting = !!active && (currentUser?.role === "admin" || active.createdBy === currentUser?.id);
 
   const { data: meetings = [], isLoading } = useQuery<LiveMeeting[]>({
     queryKey: ["/api/live-meetings"],
@@ -126,16 +128,28 @@ export default function LiveMeetingPage() {
               <Copy className="h-4 w-4 me-1.5" />
               <span className="hidden sm:inline">{isAr ? "نسخ الرابط" : "Copy link"}</span>
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={endMeeting}
-              disabled={busy}
-              className="rounded-xl"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin me-1.5" /> : <Square className="h-4 w-4 me-1.5" />}
-              {isAr ? "إنهاء" : "End"}
-            </Button>
+            {canEndActiveMeeting ? (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={endMeeting}
+                disabled={busy}
+                className="rounded-xl"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin me-1.5" /> : <Square className="h-4 w-4 me-1.5" />}
+                {isAr ? "إنهاء" : "End"}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActive(null)}
+                className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+              >
+                <LogOut className="h-4 w-4 me-1.5" />
+                {isAr ? "مغادرة" : "Leave"}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -197,19 +211,25 @@ export default function LiveMeetingPage() {
         </div>
 
         <div className="p-5 md:p-7 border-t border-border/50">
-          <div className="flex flex-col md:flex-row gap-3">
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={isAr ? "اسم الاجتماع" : "Meeting title"}
-              className="h-11 rounded-xl"
-              maxLength={160}
-            />
-            <Button onClick={startMeeting} disabled={busy} className="h-11 rounded-xl md:px-6">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <RadioTower className="h-4 w-4 me-2" />}
-              {isAr ? "بدء اجتماع مباشر" : "Start Live Meeting"}
-            </Button>
-          </div>
+          {canHost ? (
+            <div className="flex flex-col md:flex-row gap-3">
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={isAr ? "اسم الاجتماع" : "Meeting title"}
+                className="h-11 rounded-xl"
+                maxLength={160}
+              />
+              <Button onClick={startMeeting} disabled={busy} className="h-11 rounded-xl md:px-6">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin me-2" /> : <RadioTower className="h-4 w-4 me-2" />}
+                {isAr ? "بدء اجتماع مباشر" : "Start Live Meeting"}
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {isAr ? "يمكنك الانضمام إلى الاجتماعات المباشرة أدناه. بدء اجتماع جديد متاح للمضيفين والإدارة." : "You can join live meetings below. Starting a new meeting is available to hosts and management."}
+            </p>
+          )}
         </div>
       </div>
 
